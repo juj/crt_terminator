@@ -178,7 +178,9 @@ void vesa_print_info()
 		advancex(RIGHT_COLUMN - strlen("VRAM"));
 		cprintf("VRAM: ");
 		textcolor(CYAN);
-		cprintf("%d KB", vbe.vram * 64);
+		unsigned long kbytes = (unsigned long)vbe.vram * 64;
+		if (kbytes > 65536 && kbytes % 1024 == 0) cprintf("%lu MB", kbytes/1024);
+		else cprintf("%lu KB", kbytes);
 		textcolor(LIGHTGRAY);
 	}
 	cprintf("\r\n");

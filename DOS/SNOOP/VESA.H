@@ -10,7 +10,7 @@ struct vbeinfo
 	unsigned int far *modes;
 	// vram field is likely VBE 1.1+, as Acumos AVGA 2 implements VBE 1.1
 	// and it does report vram correctly. (vram is at least in VBE 1.2+)
-	int vram;
+	unsigned int vram;
 	// VBE 2.0+:
 	int oem_rev;
 	char far *vendor;
