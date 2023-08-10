@@ -11,6 +11,7 @@
 #include "menu.h"
 #include "crtt.h"
 #include "key.h"
+#include "ramdac.h"
 
 #include "cirrus.h"
 #include "s3.h"
@@ -228,6 +229,8 @@ int main(int argc, char **argv)
 		test_adapter(detect_genoa);
 		print_video_bios_info();
 	}
+
+	detect_hidden_ramdac_register();
 
 	if (!opt("novesatest"))
 	{

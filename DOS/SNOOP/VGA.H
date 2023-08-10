@@ -12,6 +12,10 @@ void outp_3c4(int idx, int value);
 void outp_3d4(int idx, int value);
 void vga_write_attr(int sub, int val);
 
+void set_video_mode(int mode);
+int get_cur_video_mode();
+void random_fill_vga_memory(int is_gfx_mode);
+
 int port_writable(int port, int bitpattern);
 int port_register_writable(int port, int idx, int bitpattern);
 

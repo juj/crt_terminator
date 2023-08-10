@@ -54,35 +54,8 @@ crtt_mode_info detect_current_mode()
 	return m;
 }
 
-static void set_video_mode(int mode)
-{
-	REGS q;
-	q.x.ax = mode;
-	int86(0x10, &q, &q);
-}
-
-static int get_cur_video_mode()
-{
-	REGS regs = {0};
-	regs.h.ah = 0x0F; // INT 10h, 0x0F - Get Video State
-	int86(0x10, &regs, &regs);
-	return regs.h.al;
-}
-
 static unsigned char far *addr = (unsigned char far *)MK_FP(0xA000, 0);
 static unsigned char far *addr2 = (unsigned char far *)MK_FP(0xB000, 0);
-
-static void random_fill_vga_memory(int is_gfx_mode)
-{
-	outp(0x3C4, 0x02); // Select write bitplane sub-register index
-	int plane = 1;
-	for(unsigned long j = 0; j < 65536; ++j)
-	{
-		if (is_gfx_mode) outp(0x3C5, (rand()%15)+1);
-		plane = (plane == 15) ? 1 : plane + 1;
-		addr[j] = addr2[j] = rand();
-	}
-}
 
 vec<mode_info> modes;
 
