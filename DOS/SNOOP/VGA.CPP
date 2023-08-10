@@ -1,5 +1,6 @@
 #include "vga.h"
 #include "vec.h"
+#include "ramdac.h"
 
 #include <conio.h>
 #include <dos.h>
@@ -14,6 +15,7 @@ int inp_vga(int port, int idx)
 
 int inp_3c4(int idx) { return inp_vga(0x3C4, idx); }
 int inp_3d4(int idx) { return inp_vga(0x3D4, idx); }
+int inp_3ce(int idx) { return inp_vga(0x3CE, idx); }
 
 void outp_vga(int port, int idx, int value)
 {
@@ -23,6 +25,7 @@ void outp_vga(int port, int idx, int value)
 
 void outp_3c4(int idx, int value) { outp_vga(0x3C4, idx, value); }
 void outp_3d4(int idx, int value) { outp_vga(0x3D4, idx, value); }
+void outp_3ce(int idx, int value) { outp_vga(0x3CE, idx, value); }
 
 int vga_read_attr(int sub)
 {
@@ -229,31 +232,69 @@ static int block_repeats_every_n(unsigned char *regs, int n)
 	return 1;
 }
 
+//static int xxx = 0;
+//static int in_vsync() { xxx = !xxx; return xxx; }
+
 static int in_vsync() { return inp(0x3DA) & 8; }
 
-void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title)
+static const char hex[] = "0123456789ABCDEF";
+
+//#define SCREEN_WIDTH 132
+#define SCREEN_WIDTH 80
+#define COL_WIDTH 16
+#define COL0_X 5
+#define ROW0_Y 2
+
+#define REGS_PER_ROW ((SCREEN_WIDTH-COL0_X)/COL_WIDTH)
+
+unsigned int far *screen_ptr(int x, int y)
+{
+	int idx = y * SCREEN_WIDTH + x;
+	unsigned int far *t = (unsigned int far *)MK_FP(0xB800, idx<<1);
+	return t;
+}
+
+static void draw_frame(const char *title, int num_regs)
+{
+	textcolor(LIGHTGRAY);
+	gotoxy(1,1);
+	cprintf("%s", title);
+	textcolor(BROWN);
+
+	int reg_idx = 0;
+	for(int i = 0; i < (num_regs+REGS_PER_ROW-1)/REGS_PER_ROW; ++i)
+	{
+		unsigned int far *t = screen_ptr(1, i+ROW0_Y);
+		t[0] = hex[reg_idx>>4] | 0x0600;
+		t[1] = hex[reg_idx&0xF] | 0x0600;
+		t[2] = 'h' | 0x0800;
+		reg_idx += REGS_PER_ROW;
+	}
+
+	for(i = 0; i < REGS_PER_ROW; ++i)
+	{
+		unsigned int far *t = screen_ptr(i*COL_WIDTH+COL0_X, ROW0_Y-1);
+		t[-1] = '+' | 0x0800;
+		t[0] = '0' | 0x0600;
+		t[1] = hex[i] | 0x0600;
+		t[2] = 'h' | 0x0800;
+	}
+}
+
+void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title, int detect_rw)
 {
 	_setcursortype(_NOCURSOR);
 	clrscr();
-	const char hex[] = "0123456789ABCDEF";
-
-	textcolor(LIGHTGRAY);
-	cprintf("%s", title);
-
-	textcolor(BROWN);
-	for(int i = 0; i < 16; ++i)
-	{
-		gotoxy(i*3+6, 3);
-		cprintf("0%c", hex[i]);
-		gotoxy(2, i+4);
-		cprintf("%c0", hex[i]);
-	}
 
 	unsigned char regs[256] = {0};
 	unsigned char writable_bits[256] = {0};
+	unsigned char ramdac = 0xCC;
+
 	int num_regs = 256;
 
-	for(i = 0; i < 256; ++i)
+	// Analyze which bits in which registers are writable?
+	if (detect_rw)
+	for(int i = 0; i < 256; ++i)
 	{
 		for(int j = 0; j < 8; ++j)
 		{
@@ -265,8 +306,57 @@ void view_vga_registers(int (*read_func)(int port, int subreg), int port, const 
 		}
 	}
 
+	// Run a continuous loop that samples the values of the registers in case
+	// they change
 	while(!kbhit())
 	{
+
+//		set_video_mode(0x71); // cirrus logic 640x480 24bpp?
+//		set_video_mode(0x64); // cirrus logic 640x480 16bpp
+/*
+		set_video_mode(0x13); // 320x200@256c
+random_fill_vga_memory(1);
+	ramdac = read_hidden_ramdac_register();
+getch();
+*/
+#if 0
+write_hidden_ramdac_register(0xE1);
+	ramdac = read_hidden_ramdac_register();
+		unsigned char seq[32] =
+		{ 0x03, 0x01, 0x07, 0x00, 0x0e, 0x00, 0x12, 0x03,
+		0x00, 0x44, 0x30, 0x4a, 0x5b, 0x42, 0x65, 0x35,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x71, 0x20,
+		0x00, 0x01, 0x00, 0x2b, 0x2f, 0x1f, 0x3a, 0x1c };
+		for(int x = 0; x < 32; ++x)
+			outp_3c4(x, seq[x]);
+
+			unsigned char crtc[40] = {
+			0x5f, 0x4f, 0x50, 0x82, 0x53, 0x9f, 0x0b, 0x3e,
+			0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0xea, 0x8c, 0xdf, 0xa0, 0x00, 0xe7, 0x04, 0xe3,
+			0xff, 0x00, 0x00, 0x22, 0x23, 0x00, 0x21, 0x20,
+			0x1f, 0x1e, 0x03, 0x00, 0x00, 0x48, 0x20, 0xa0 };
+
+		outp_3d4(0x11, 0x0C); // unlock write protect
+		for(x = 0; x < 40; ++x)
+			outp_3d4(x, crtc[x]);
+//		unsigned char old = inp_3c4();
+//		outp_3c4(7, 0x05);
+
+		unsigned char gfx[56] = {
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x05, 0x0F,
+			0xFF, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00,
+			0xFB, 0xFB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0xFF, 0x0B, 0xE5, 0x03, 0xFF, 0x1D, 0xE7, 0x1F,
+			0xFF, 0xFF, 0x1D, 0x00, 0xF7, 0xEF, 0x0F, 0x80,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
+		for(x = 0; x < 56; ++x)
+			outp_3ce(x, gfx[x]);
+
+getch();
+#endif
 		// sample registers
 		for(int i = 0; i < 256; ++i)
 		{
@@ -283,12 +373,16 @@ void view_vga_registers(int (*read_func)(int port, int subreg), int port, const 
 			num_regs >>= 1;
 		}
 
+///////		set_video_mode(0x54);
+//		set_video_mode(0x03);
+		draw_frame(title, num_regs);
+
+		// Print registers on screen
 		for(i = 0; i < 256; ++i)
 		{
-			int x = i % 16;
-			int y = i / 16;
-			int idx = (y + 3) * 80 + x * 3 + 5;
-			unsigned int far *t = (unsigned int far *)MK_FP(0xB800, idx<<1);
+			int x = (i % REGS_PER_ROW) * COL_WIDTH + COL0_X;
+			int y = i / REGS_PER_ROW + ROW0_Y;
+			unsigned int far *t = screen_ptr(x, y);
 			if (i < num_regs)
 			{
 				unsigned int color1 =
@@ -299,10 +393,23 @@ void view_vga_registers(int (*read_func)(int port, int subreg), int port, const 
 					((writable_bits[i]&15) ? 0x0300 : 0x0700);
 				t[0] = (unsigned int)hex[regs[i]>>4]  | color1;
 				t[1] = (unsigned int)hex[regs[i]&0xF] | color2;
+				t[2] = 'h' | 0x0800;
+				for(int b = 0; b < 8; ++b)
+				{
+					unsigned char mask = (1 << b);
+					color1 = (writable_bits[i] & mask) ? 0x0B00 : 0x0700;
+					int skip = b < 4 ? 1 : 0;
+					t[4+(7-b)+skip] = ((regs[i] & mask) ? '1' : '0') | color1;
+				}
+				t[8] = '_' | 0x0800;
+				t[13] = 'b' | 0x0800;
 			}
-			else t[0] = t[1] = 0;
+			else _fmemset(t, 0, COL_WIDTH*2);
 		}
+		break;
 	}
 	_setcursortype(_NORMALCURSOR);
 	textcolor(LIGHTGRAY);
+//	gotoxy(1, 25);
+//	cprintf("RAMDAC: %02Xh", (unsigned int)ramdac);
 }

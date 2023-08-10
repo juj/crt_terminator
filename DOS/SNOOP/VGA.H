@@ -4,12 +4,14 @@
 int inp_vga(int port, int idx);
 int inp_3c4(int idx);
 int inp_3d4(int idx);
+int inp_3ce(int idx);
 int vga_read_attr(int sub);
 int vga_read_attr_port(int port, int sub); // identical to vga_read_attr(), just passes a dummy port value
 
 void outp_vga(int port, int idx, int value);
 void outp_3c4(int idx, int value);
 void outp_3d4(int idx, int value);
+void outp_3ce(int idx, int value);
 void vga_write_attr(int sub, int val);
 
 void set_video_mode(int mode);
@@ -53,6 +55,6 @@ public:
 	~vga_port_save() { p.write(value); }
 };
 
-void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title);
+void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title, int detect_rw);
 
 #endif

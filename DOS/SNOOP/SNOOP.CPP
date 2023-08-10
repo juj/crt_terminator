@@ -26,12 +26,14 @@
 
 static void mirror_vga_palette_to_crtt()
 {
+	int crtt_port = detect_crtt();
+	if (!crtt_port) return;
 	outp(0x3C7, 0); // Switch DAC to reading active VGA palette from index 0
-	outp(0x124, 0); // And CRT Terminator to writing to palette index 0
+	outp(crtt_port + 0x04, 0); // And CRT Terminator to writing to palette index 0
 	for(int i = 0; i < 768; ++i)
 	{
 		unsigned char c = inp(0x3C9);           // Read 6:6:6 palette and send it
-		outp(0x125, ((c >> 4) & 3) | (c << 2)); // to CRT Terminator as 8:8:8
+		outp(crtt_port + 0x05, ((c >> 4) & 3) | (c << 2)); // to CRT Terminator as 8:8:8
 	}
 }
 
@@ -277,19 +279,33 @@ int main(int argc, char **argv)
 	if (opt("regs"))
 	{
 		int page = 0;
-		for(;;)
+		if (opt("gfx")) page = 0;
+		if (opt("seq")) page = 1;
+		if (opt("attr")) page = 2;
+		if (opt("crtc")) page = 3;
+		if (opt("oak")) page = 4;
+		int detect_rw = opt("rw");
+		int quit = 0;
+		while(!quit)
 		{
 			switch(page)
 			{
-			case 0: view_vga_registers(inp_vga, 0x3CE, "Graphics Registers: 3CEh-3CFh");
-			case 1: view_vga_registers(inp_vga, 0x3C4, "Sequencer Registers: 3C4h-3C5h");
-			case 2: view_vga_registers(vga_read_attr_port, 0x3C0, "Attribute Controller Registers: 3C0h-3C1h");
-			case 3: view_vga_registers(inp_vga, 0x3D4, "CRT Controller (CRTC) Registers: 3D4h-3D5h");
-			case 4: view_vga_registers(inp_vga, 0x3DE, "OAK extension registers: 3DEh-3DFh");
+			case 0: view_vga_registers(inp_vga, 0x3CE, "Graphics Registers: 3CEh-3CFh", detect_rw); break;
+			case 1: view_vga_registers(inp_vga, 0x3C4, "Sequencer Registers: 3C4h-3C5h", detect_rw); break;
+			case 2: view_vga_registers(vga_read_attr_port, 0x3C0, "Attribute Controller Registers: 3C0h-3C1h", detect_rw); break;
+			case 3: view_vga_registers(inp_vga, 0x3D4, "CRT Controller (CRTC) Registers: 3D4h-3D5h", detect_rw); break;
+			case 4: view_vga_registers(inp_vga, 0x3DE, "OAK extension registers: 3DEh-3DFh", detect_rw); break;
 			}
-			int key = get_key();
-			if (key >= KEY_F1 && key <= KEY_F5) page = key - KEY_F1;
-			if (key == KEY_ESC) break;
+			for(;;)
+			{
+				int key = get_key();
+				if (key >= KEY_F1 && key <= KEY_F5)
+				{
+					page = key - KEY_F1;
+					break;
+				}
+				if (key == KEY_ESC) { quit = 1; break; }
+			}
 		}
 	}
 
@@ -300,5 +316,7 @@ int main(int argc, char **argv)
 	}
 
 	chdir(oldpath);
+	if (get_cur_video_mode() != 0x03)
+		set_video_mode(0x03);
 	return 0;
 }

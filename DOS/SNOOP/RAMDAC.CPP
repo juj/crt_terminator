@@ -4,27 +4,32 @@
 #include <stdio.h>
 #include <conio.h>
 
-static int hidden_ramdac_numreads = 0;
+static int hidden_ramdac_numreads = -1;
 
 int has_hidden_ramdac_register()
 {
 	return hidden_ramdac_numreads > 0;
 }
 
-unsigned char read_hidden_ramdac_register(int numreads)
+unsigned char read_hidden_ramdac_register()
 {
+	if (hidden_ramdac_numreads <= 0) return 0xCD + hidden_ramdac_numreads;
 	inp(0x3C8); // Clear old 03C6h read/write counter state
-	for(int i = 0; i < numreads; ++i)
+	for(int i = 0; i < hidden_ramdac_numreads; ++i)
 		inp(0x3C6);
-	return inp(0x3C6);
+	unsigned char ramdac = inp(0x3C6);
+	inp(0x3C8); // Clear old 03C6h read/write counter state
+	return ramdac;
 }
 
-void write_hidden_ramdac_register(int numreads, unsigned char value)
+void write_hidden_ramdac_register(unsigned char value)
 {
+	if (!hidden_ramdac_numreads) return;
 	inp(0x3C8); // Clear old 03C6h read/write counter state
-	for(int i = 0; i < numreads; ++i)
+	for(int i = 0; i < hidden_ramdac_numreads; ++i)
 		inp(0x3C6);
 	outp(0x3C6, value);
+	inp(0x3C8); // Clear old 03C6h read/write counter state
 }
 
 void detect_hidden_ramdac_register()
@@ -88,6 +93,7 @@ void detect_hidden_ramdac_register()
 	outp(0x3C6, 0xFF); // Restore write mask to default value
 	enable();
 
+	hidden_ramdac_numreads = reads;
 	if (reads > 0)
 	{
 		// Calculate how many values we read

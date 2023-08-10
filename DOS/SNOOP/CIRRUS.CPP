@@ -83,6 +83,13 @@ int detect_cirrus_logic(char *dst)
 			case 0x20: version = "5425"; break;
 			case 0x24: version = "5426"; break;
 			case 0x26: version = "5428"; break;
+			// From CL_GD543X.PDF, page 9-75
+			// (TODO: Did they have a typo that both cards really have the same ID number? Hunt down a CL-GD5440 to double-check)
+			// On my CL-GD5430-QC-C (PCI Vendor/Device 1013h/00B8h, Rev.48h) ID 0x28 does correspond to 5430.
+			case 0x28: version = "5430/5440"; break;
+			case 0x2A: version = "5434"; break; // From CL_GD543X.PDF, page 9-75
+			case 0x2B: version = "5436"; break; // From CL_GD543X.PDF, page 9-75
+			case 0x2E: version = "5446"; break; // From sniffing registers on my CL-GD5446BV-HC-B PCI card. (PCI vendor/device 1013h/00B8h rev. 45h, subvendor/subdevice 1B13h/003Ch)
 			}
 		}
 	}

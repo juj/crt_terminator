@@ -19,6 +19,8 @@ static int crtt_port = 0;
 // Returns the port address that CRT Terminator is detected at
 int detect_crtt()
 {
+	if (crtt_port) return crtt_port; // Already detected?
+
 	for(int port = CRT_TERMINATOR_ID_PORT0;
 					port <= CRT_TERMINATOR_ID_PORT1;
 					port += (CRT_TERMINATOR_ID_PORT1 - CRT_TERMINATOR_ID_PORT0))
