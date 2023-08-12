@@ -1,7 +1,12 @@
 #include "cirrus.h"
 #include "vga.h"
+#include "log.h"
 #include <dos.h>
 #include <stdio.h>
+
+static vga_port
+	SR6(0x3C4, 0x06), // Lock register
+	CR27(0x3D4, 0x27); // Version/revision register
 
 // Cirrus Logic Hidden DAC register exists on
 // cl_gd542x.pdf: CL-GD5422/'24/'26/'28/'29, not on CL-GD5420.
@@ -32,6 +37,7 @@ int has_hidden_dac_register()
 
 int detect_cirrus_logic(char *dst)
 {
+	LOG("Cirrus");
 	// CL-GD542X Technical Manual, chapter 9.1 has
 	// example code on how to identify a CL card. However
 	// that code is slightly buggy (would misdetect CL-GD5425)
@@ -45,25 +51,36 @@ int detect_cirrus_logic(char *dst)
 	// To mitigate for that, first look if the loaded value in that
 	// register looks like it corresponds to a Cirrus unlock register.
 	// 0x0F: locked, 0x12: unlocked
-	int old_lock = inp_3c4(0x06);
-	if (old_lock != 0x0F && old_lock != 0x12) return 0;
-	outp_3c4(0x06, 0x12); // Unlock ALL Extension register (SR6)
-	int sr6 = inp_3c4(0x06);
+	vga_port_save save_SR6(SR6);
+	int old_lock = SR6.read();
+	if (old_lock != 0x0F && old_lock != 0x12)
+	{
+		Log << "3C4h/06h contains " << hex(old_lock) << ", not a Cirrus\n";
+		return 0;
+	}
+	SR6.write(0x12); // Unlock ALL Extension register (SR6)
+
+	Log << "Cirrus SR6 register: " << hex(SR6.read()) << "\n";
 
 	// CR27 register:
 	// bits 7-2: Device ID
 	// bits 1-0: Revision ID
-	unsigned int cr27 = inp_3d4(0x27);
-
-	outp_3c4(0x06, old_lock);
+	unsigned int cr27 = CR27.read();
+	Log << "Cirrus CR27 register: " << hex(cr27) << "\n";
 
 	const char *version = 0;
 	// CL-GD5429 does not have SR6 register, so check if it does not read back
 	// after write.
-	if (sr6 != 0x12)
+	if (SR6.read() != 0x12)
 	{
-		if (!has_hidden_dac_register()) return 0; // Added strength to prevent false positives.
+		log("Cirrus SR6 register does not seem to be writable. Maybe CL-GD5429?");
+		if (!has_hidden_dac_register())
+		{
+			log("No hidden RAMDAC register. Not a Cirrus");
+			return 0; // Added strength to prevent false positives.
+		}
 		if ((cr27 >> 2) == 0x27) version = "5429";
+		else Log << "Unknown CR27 version " << hex(cr27) << "\n";
 	}
 	else
 	{
@@ -75,7 +92,11 @@ int detect_cirrus_logic(char *dst)
 		else if (cr27 == 0x8B) version = "5420r1";
 		else
 		{
-			if (!has_hidden_dac_register()) return 0; // Added strength to prevent false positives.
+			if (!has_hidden_dac_register())
+			{
+				log("No hidden RAMDAC register.. Not a Cirrus");
+				return 0; // Added strength to prevent false positives.
+			}
 			switch(cr27 >> 2)
 			{
 			case 0x23: version = "5422"; break;
@@ -90,6 +111,8 @@ int detect_cirrus_logic(char *dst)
 			case 0x2A: version = "5434"; break; // From CL_GD543X.PDF, page 9-75
 			case 0x2B: version = "5436"; break; // From CL_GD543X.PDF, page 9-75
 			case 0x2E: version = "5446"; break; // From sniffing registers on my CL-GD5446BV-HC-B PCI card. (PCI vendor/device 1013h/00B8h rev. 45h, subvendor/subdevice 1B13h/003Ch)
+			default:
+				Log << "Unknown CR27 code " << hex(cr27) << "\n";
 			}
 		}
 	}

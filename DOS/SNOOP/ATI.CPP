@@ -1,15 +1,22 @@
 #include "ati.h"
+#include "log.h"
 #include <dos.h>
 #include <string.h>
 #include <stdio.h>
 
 int detect_ati(char *dst)
 {
+	LOG("ATI");
 	unsigned char far *vbios = (unsigned char far*)MK_FP(0xC000, 0);
-	if (_fstrncmp(&vbios[0x31], "761295520", 9)) return 0;
+	if (_fstrncmp(&vbios[0x31], "761295520", 9))
+	{
+		log("VBIOS does not contain magic number. Cannot be an ATI card.");
+		return 0;
+	}
 
 	const char *version = 0, *rev = 0;
 	unsigned int series = vbios[0x40] | (unsigned int)vbios[0x41] << 8;
+	Log << "VBIOS major: " << hex(vbios[0x41]) << ", minor: " << hex(vbios[0x40]) << "\n";
 	switch(series)
 	{
 	case 0x3133: version = "ATI VGA Wonder/Mach series"; break;
@@ -17,9 +24,12 @@ int detect_ati(char *dst)
 	case 0x3433: version = "ATI VGA Basic-16"; break;
 	case 0x3232: version = "ATI EGA Wonder"; break;
 	case 0x3F33: version = "ATI Mach64"; break;
-	default: if ((series&0xFF) == '3') version = "ATI Basic-16"; break;
+	default: if ((series&0xFF) == '3') version = "ATI Basic-16";
+					 else Log << "Unknown VBIOS major/minor version code: " << hex(series) << "\n";
+		 break;
 	}
 	unsigned char revision = vbios[0x43];
+	Log << "Revision: " << hex(revision) << "\n";
 	switch(revision)
 	{
 	case ' ': rev = "Mach 64"; break;
@@ -34,6 +44,7 @@ int detect_ati(char *dst)
 	}
 
 	unsigned char card_defn = vbios[0x42];
+	Log << "Card definition id: " << hex(card_defn) << "\n";
 	if (version && rev)
 		sprintf(dst, "%s %s (id %02Xh)", version, rev, (int)card_defn);
 	else if (version)

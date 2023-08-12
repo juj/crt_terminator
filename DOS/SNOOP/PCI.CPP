@@ -28,7 +28,7 @@ pcidev_t pci_find_nth_device_by_class(unsigned long cls, int n)
 	return failed>>8 ? 0 : dev;
 }
 
-unsigned int pci_read_word(pcidev_t dev, int reg_number)
+unsigned int pci_read_u16(pcidev_t dev, int reg_number)
 {
 	// http://www.ctyme.com/intr/rb-2376.htm
 	// INT 1Ah/AX=B109h - PCI BIOS v2.0c+ - READ CONFIGURATION WORD
@@ -50,7 +50,7 @@ unsigned int pci_read_word(pcidev_t dev, int reg_number)
 	return reg_number;
 }
 
-void pci_write_word(pcidev_t dev, int reg_number, unsigned int value)
+void pci_write_u16(pcidev_t dev, int reg_number, unsigned int value)
 {
 /*
 	// http://www.ctyme.com/intr/rb-2390.htm

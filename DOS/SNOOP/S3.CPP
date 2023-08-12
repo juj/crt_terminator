@@ -1,14 +1,21 @@
 #include "s3.h"
 #include "vga.h"
+#include "log.h"
 #include <dos.h>
 #include <stdio.h>
+
+static vga_port
+	CR2E(0x3D4, 0x2E),
+	CR30(0x3D4, 0x30),
+	CR38(0x3D4, 0x38),
+	CR47(0x3D4, 0x47);
 
 // On some S3 boards, Feature Connector output is disabled
 // at boot. Enable it via the S3 "Extended Sequencer D Register (SRD)"
 int s3_enable_feature_connector(pcidev_t vga)
 {
 	// Test if we have a S3 board or something else
-	if (pci_read_word(vga, 0) != 0x5333) return 0;
+	if (pci_read_u16(vga, 0) != 0x5333) return 0;
 
 	// N.b. this code assumes that all S3 boards have the same S3
 	// extended register SRD that controls the feature connector.
@@ -29,24 +36,25 @@ int s3_enable_feature_connector(pcidev_t vga)
 
 int detect_s3(char *dst)
 {
+	LOG("S3");
 	// The following code is adapted from S3.txt, s3_trio64v+.pdf and
 	// book Programmer's Guide to the EGA, VGA and Super VGA cards.
 
 	// Bad book code: book asks (listing 26.2a, page 1328) to write to a
 	// port before we have ascertained this is a S3 card. Other cards may
 	// be thrown off by this.
-	int old_cr38 = inp_3d4(0x38);
-	outp_3d4(0x38, 0x48); // Unlock S3 registers
+	vga_port_save save_CR38(CR38);
+
+	CR38.write(0x48); // Unlock S3 registers
 
 	// Book recommends (listing 26.4, page 1332) testing if all bits in
 	// 03D4h:47h are writable. This is bad, since we still haven't
 	// determined we are on a S3 card.
-	if (!port_register_writable(0x3D4, 0x47, 0xFF))
+	if (!CR47.writable(0xFF))
 	{
-		outp_3d4(0x38, old_cr38); // restore old register state
+		log("3D4h/47h is not writable. Not a S3 card.");
 		return 0; // cannot be a S3 card
 	}
-
 
 	// CR2D: Device ID High Register, always hardwired to 88h
 	// CR2E: Device ID Low Register, always hardwired to 11h
@@ -64,7 +72,8 @@ int detect_s3(char *dst)
 	// it attempts to compare "if ((x & 0xf0) == 0x81)" which is tautologically
 	// false.. Nevertheless, if some of the code below is proven wrong,
 	// might be good to cross-reference against the book.
-	int cr30 = inp_3d4(0x30);
+	int cr30 = CR30.read();
+	Log << "3D4h/30h: " << hex(cr30) << "\n";
 	const char *version = 0;
 	switch(cr30)
 	{
@@ -85,7 +94,8 @@ int detect_s3(char *dst)
 	case 0xD0: version = "86c964"; break;
 	case 0xD1: version = "86c964P"; break;
 	case 0xE0: case 0xE1:	{
-			int new_id = inp_3d4(0x2E);
+			int new_id = CR2E.read();
+			Log << "3D4h/2Eh: " << hex(new_id) << "\n";
 			switch(new_id)
 			{
 			case 0x10: version = "Trio32 (86c732)"; break;
@@ -97,7 +107,6 @@ int detect_s3(char *dst)
 		}
 	}
 	if (version) sprintf(dst, "S3 %s", version);
-	outp_3d4(0x38, old_cr38);
 	return (version != 0);
 }
 

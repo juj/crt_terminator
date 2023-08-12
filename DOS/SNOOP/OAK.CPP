@@ -1,6 +1,7 @@
 #include "oak.h"
 #include "vga.h"
 #include "vbios.h"
+#include "log.h"
 
 #include <conio.h>
 #include <stdio.h>
@@ -76,27 +77,40 @@ static vga_port
 
 int detect_oak(char *dst)
 {
+	LOG("Oak");
+
 	// First check BIOS memory area if we can find an OAK bios.
-	if (!find_vbios_string("OAK TECHNOLOGY")) return 0;
+	if (!find_vbios_string("OAK TECHNOLOGY"))
+	{
+		log("String \"OAK TECHNOLOGY\" not found in VBIOS.");
+		return 0;
+	}
 
 	// Oak cards have an extra indexed port pair 3DEh/3DFh.
 
 	// First test if port 03DEh looks like a 5-bit or an 8-bit index port.
 	int reg_3de_5bits = port_writable(0x3DE, 0x1F);
 	// If 3DEh does not look like a 5-bit index register, cannot be an Oak chip.
-	if (!reg_3de_5bits) return 0;
+	if (!reg_3de_5bits)
+	{
+		log("Index register 3DEh does not look like (at least) 5-bit wide register. Not an Oak.");
+		return 0;
+	}
 	int reg_3de_8bits = port_writable(0x3DE, 0xFF);
+	Log << "Index register 3DEh is 8 bits wide? " << reg_3de_8bits << "\n";
 
 	// If 3DEh is an 8-bit index register, we have a Oak OTI newer than 077
 	const char *version = 0;
 	if (reg_3de_8bits)
 	{
 		// VGADOC says sub-reg 00h distinguishes between OTI 083 and 087.
+		Log << "OAK_00: " << hex(OAK_00.read()) << "\n";
 		version = (OAK_00.read() & 2) ? "083" : "087";
 	}
 	else // else 3DEh is a 5-bit index register
 	{
 		// top three bits of 3DEh identify the chip
+		Log << "3DEh: " << hex(inp(0x3DE)) << "\n";
 		int chip = ((unsigned char)inp(0x3DE)) >> 5;
 		switch(chip)
 		{

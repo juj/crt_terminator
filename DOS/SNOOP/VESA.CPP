@@ -432,6 +432,7 @@ void vesa_print_info()
 				textcolor(LIGHTGRAY);
 			}
 		}
+
 	textcolor(LIGHTGRAY);
 	gotoxy(x1, y1);
 	if (legend_no_hw || legend_mono || legend_no_lfb || legend_no_windowed
@@ -458,4 +459,5 @@ void vesa_print_info()
 		if (legend_no_bios_text) cprintf("[b] No BIOS TTY ");
 		cprintf("\r\n");
 	}
+
 }

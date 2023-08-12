@@ -9,6 +9,8 @@
 
 int inp_vga(int port, int idx)
 {
+	// Port 3C0h has a different more complex access mechanism
+	if (port == 0x3c0) return inp_3c0(idx);
 	outp(port, idx);
 	return inp(port+1);
 }
@@ -19,6 +21,8 @@ int inp_3ce(int idx) { return inp_vga(0x3CE, idx); }
 
 void outp_vga(int port, int idx, int value)
 {
+	// Port 3C0h has a different more complex access mechanism
+	if (port == 0x3c0) { outp_3c0(idx, value); return; }
 	outp(port, idx);     // could use 16-bit writes here, but use
 	outp(port+1, value); // 8-bit explicitly for compatibility
 }
@@ -27,7 +31,7 @@ void outp_3c4(int idx, int value) { outp_vga(0x3C4, idx, value); }
 void outp_3d4(int idx, int value) { outp_vga(0x3D4, idx, value); }
 void outp_3ce(int idx, int value) { outp_vga(0x3CE, idx, value); }
 
-int vga_read_attr(int sub)
+int inp_3c0(int sub)
 {
 //	disable();
 	inp(0x3DA);
@@ -39,13 +43,14 @@ int vga_read_attr(int sub)
 //	enable();
 	return val;
 }
+
 int vga_read_attr_port(int port, int sub)
 {
 	port;
-	return vga_read_attr(sub);
+	return inp_3c0(sub);
 }
 
-void vga_write_attr(int sub, int val)
+void outp_3c0(int sub, int val)
 {
 //	disable();
 	inp(0x3DA);
@@ -207,20 +212,20 @@ int port_register_writable(int port, int idx, int bitpattern)
 
 int attrc_register_writable(int idx, int bitpattern)
 {
-	int old = vga_read_attr(idx); // save old value
+	int old = inp_3c0(idx); // save old value
 
 	int all0 = old & ~bitpattern;
-	vga_write_attr(idx, all0);
-	int read_all0 = vga_read_attr(idx),
+	outp_3c0(idx, all0);
+	int read_all0 = inp_3c0(idx),
 		all1 = all0, read_all1 = read_all0;
 	if (all0 == read_all0)
 	{
 		all1 = old | bitpattern;
-		vga_write_attr(idx, all1);
-		read_all1 = vga_read_attr(idx);
+		outp_3c0(idx, all1);
+		read_all1 = inp_3c0(idx);
 	}
 
-	if (old != read_all1) vga_write_attr(idx, old); // restore old value
+	if (old != read_all1) outp_3c0(idx, old); // restore old value
 
 	return all0 == read_all0 && all1 == read_all1;
 }
@@ -313,8 +318,9 @@ void view_vga_registers(int (*read_func)(int port, int subreg), int port, const 
 
 //		set_video_mode(0x71); // cirrus logic 640x480 24bpp?
 //		set_video_mode(0x64); // cirrus logic 640x480 16bpp
+
+//		set_video_mode(0x13); // 320x200@256c
 /*
-		set_video_mode(0x13); // 320x200@256c
 random_fill_vga_memory(1);
 	ramdac = read_hidden_ramdac_register();
 getch();

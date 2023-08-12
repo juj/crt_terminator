@@ -1,17 +1,24 @@
 #include "video7.h"
 #include "vbios.h"
 #include "vga.h"
+#include "log.h"
 #include <stdio.h>
 
 int detect_video7(char *dst)
 {
+	LOG("Video7");
 	// First check BIOS memory area if we can find a Video 7 bios.
-	if (!find_vbios_string("Video Seven")) return 0;
+	if (!find_vbios_string("Video Seven"))
+	{
+		log("\"Video Seven\" not in VBIOS, not a Video 7 card.");
+		return 0;
+	}
 
 	// The following check is combined from VGADOC VIDEO7.txt
 	// and Programmer's Guide to EGA, VGA and SVGA book.
 	unsigned int ver_major = inp_vga(0x3C4, 0x8F);
 	unsigned int ver_minor = inp_vga(0x3C4, 0x8E);
+	Log << "Major ver: " << hex(ver_major) << ", minor ver: " << hex(ver_minor) << "\n";
 	unsigned int ver = (ver_major << 8) | ver_minor;
 	const char *version = 0;
 	if (ver >= 0x8000)

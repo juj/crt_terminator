@@ -1,6 +1,7 @@
 #include "ahead.h"
 #include "vga.h"
 #include "vbios.h"
+#include "log.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -11,8 +12,13 @@ static vga_port
 
 int detect_ahead(char *dst)
 {
+	LOG("Ahead");
 	// First check BIOS memory area if we can find an AHEAD bios.
-	if (!find_vbios_string("AHEAD")) return 0;
+	if (!find_vbios_string("AHEAD"))
+	{
+		log("Vbios does not have \"AHEAD\", cannot be an Ahead card.");
+		return 0;
+	}
 
 	// Bit 5 of sub-reg 0Fh enables access to extended registers.
 	// Sub-reg 0Fh itself is an extended register, so unlock is needed
@@ -22,6 +28,7 @@ int detect_ahead(char *dst)
 
 	// AHEAD_V5000.pdf and VGADOC: detect VRAM amount
 	// (not sure if right. I think my board has 8x44256s, but this says only 256KB)
+	Log << "Register 3CEh/1Fh: " << hex(AHEAD_1F.read()) << "\n";
 	int mem = AHEAD_1F.read() & 0x03;
 	const char *mems = 0;
 	switch(mem)
@@ -32,6 +39,7 @@ int detect_ahead(char *dst)
 	case 3: mems = "1024"; break;
 	}
 
+	Log << "Register 3CEh/0Fh: " << hex(AHEAD_0F.read()) << "\n";
 	int ver = AHEAD_0F.read()&0x0F;
 	const char *version = 0;
 	switch(ver)

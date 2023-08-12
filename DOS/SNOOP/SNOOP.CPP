@@ -12,6 +12,8 @@
 #include "crtt.h"
 #include "key.h"
 #include "ramdac.h"
+#include "vesaxga.h"
+#include "log.h"
 
 #include "cirrus.h"
 #include "s3.h"
@@ -39,23 +41,23 @@ static void mirror_vga_palette_to_crtt()
 
 static int pci_is_palette_snoop_enabled(pcidev_t vga)
 {
-	return (pci_read_word(vga, 4) >> 5) & 1;
+	return (pci_read_u16(vga, 4) >> 5) & 1;
 }
 
 static void enable_vga_palette_snoop(pcidev_t vga)
 {
-	unsigned int cmd = pci_read_word(vga, 4);
+	unsigned int cmd = pci_read_u16(vga, 4);
 	if (!(cmd & 0x20))
 	{
-		pci_write_word(vga, 4, cmd | 0x20); // Enable snooping and make sure that
+		pci_write_u16(vga, 4, cmd | 0x20); // Enable snooping and make sure that
 		mirror_vga_palette_to_crtt();       // CRTT has same palette as VGA.
 	}
 }
 
 static void disable_vga_palette_snoop(pcidev_t vga)
 {
-	unsigned int cmd = pci_read_word(vga, 4);
-	if ((cmd & 0x20)) pci_write_word(vga, 4, cmd & ~0x20);
+	unsigned int cmd = pci_read_u16(vga, 4);
+	if ((cmd & 0x20)) pci_write_u16(vga, 4, cmd & ~0x20);
 }
 
 static pcidev_t find_pci_vga_adapter()
@@ -70,7 +72,7 @@ static pcidev_t find_pci_vga_adapter()
 	{
 		dev = pci_find_nth_device_by_class(0x00100ul, i);
 		if (!dev) break;
-		unsigned int vendor = pci_read_word(dev, 0);
+		unsigned int vendor = pci_read_u16(dev, 0);
 		if (vendor == 0x5333) return dev; // "S3"
 	}
 	return 0;
@@ -100,6 +102,14 @@ void test_adapter(detect_func fn)
 	}
 }
 
+pcidev_t vga = 0;
+int inp_pci(int port, int idx)
+{
+	port; // deliberately unused
+	unsigned int p = pci_read_u16(vga, idx & 0xFFFE);
+	return (unsigned char)((idx&1) ? (p>>8) : p);
+}
+
 int main(int argc, char **argv)
 {
 	ac = argc; av = argv;
@@ -121,8 +131,10 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	int quiet = opt("quiet");
+	if (opt("log")) set_log_stdout_enabled(1);
+	if (opt("logfile")) set_log_file_enabled(1);
 
-	pcidev_t vga = find_pci_vga_adapter();
+	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
 	int is_s3_board = 0, snoop_already_enabled = 0, snoop_enabled = 0;
 	int snoop_enabled_after_mode_change = 0;
@@ -133,9 +145,9 @@ int main(int argc, char **argv)
 		if (!opt("nos3test")) is_s3_board = s3_enable_feature_connector(vga);
 		snoop_already_enabled = pci_is_palette_snoop_enabled(vga);
 		if (!snoop_already_enabled) enable_vga_palette_snoop(vga);
-		vendor = pci_read_word(vga, 0);
-		device = pci_read_word(vga, 2);
-		revision = pci_read_word(vga, 8) & 0xFF;
+		vendor = pci_read_u16(vga, 0);
+		device = pci_read_u16(vga, 2);
+		revision = pci_read_u16(vga, 8) & 0xFF;
 		snoop_enabled = pci_is_palette_snoop_enabled(vga);
 
 		if (!opt("nomodetest"))
@@ -196,11 +208,11 @@ int main(int argc, char **argv)
 		 printf("  PCI Rev: ");
 		cprintf("%02Xh\r\n", revision);
 
-		int header_type = pci_read_word(vga, 0xE);
+		int header_type = pci_read_u16(vga, 0xE);
 		if ((header_type & 0x7F) == 0)
 		{
-			unsigned int subvendor = pci_read_word(vga, 0x2C);
-			unsigned int subdevice = pci_read_word(vga, 0x2E);
+			unsigned int subvendor = pci_read_u16(vga, 0x2C);
+			unsigned int subdevice = pci_read_u16(vga, 0x2E);
 			if (vendor != subvendor || device != subdevice)
 			{
 				if (subvendor && subvendor != 0xFFFF)
@@ -229,6 +241,7 @@ int main(int argc, char **argv)
 		test_adapter(detect_video7);
 		test_adapter(detect_ahead);
 		test_adapter(detect_genoa);
+		detect_vesa_xga();
 		print_video_bios_info();
 	}
 
@@ -241,7 +254,7 @@ int main(int argc, char **argv)
 
 	if (found_pci_vga)
 	{
-		printf("\n");
+//		printf("\n");
 		if (is_s3_board) printf("S3 video card detected. Enabled Feature Connector via S3 register 03C5:0Dh.\n");
 
 		if (opt("disable"))
@@ -284,6 +297,7 @@ int main(int argc, char **argv)
 		if (opt("attr")) page = 2;
 		if (opt("crtc")) page = 3;
 		if (opt("oak")) page = 4;
+		if (opt("pci")) page = 5;
 		int detect_rw = opt("rw");
 		int quit = 0;
 		while(!quit)
@@ -295,11 +309,12 @@ int main(int argc, char **argv)
 			case 2: view_vga_registers(vga_read_attr_port, 0x3C0, "Attribute Controller Registers: 3C0h-3C1h", detect_rw); break;
 			case 3: view_vga_registers(inp_vga, 0x3D4, "CRT Controller (CRTC) Registers: 3D4h-3D5h", detect_rw); break;
 			case 4: view_vga_registers(inp_vga, 0x3DE, "OAK extension registers: 3DEh-3DFh", detect_rw); break;
+			case 5: if (found_pci_vga) view_vga_registers(inp_pci, 0, "PCI registers:", detect_rw); break;
 			}
 			for(;;)
 			{
 				int key = get_key();
-				if (key >= KEY_F1 && key <= KEY_F5)
+				if (key >= KEY_F1 && key <= KEY_F6)
 				{
 					page = key - KEY_F1;
 					break;
@@ -318,5 +333,6 @@ int main(int argc, char **argv)
 	chdir(oldpath);
 	if (get_cur_video_mode() != 0x03)
 		set_video_mode(0x03);
+	close_log();
 	return 0;
 }

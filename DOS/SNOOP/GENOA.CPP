@@ -1,18 +1,33 @@
 #include "genoa.h"
 #include "vga.h"
 #include "vbios.h"
+#include "log.h"
 #include <dos.h>
 #include <stdio.h>
 
 int detect_genoa(char *dst)
 {
-	if (!find_vbios_string("GENOA")) return 0;
+	LOG("Genoa");
+
+	if (!find_vbios_string("GENOA"))
+	{
+		log("No \"GENOA\" in VBIOS, not a Genoa card.");
+		return 0;
+	}
 
 	unsigned int far *info_addr = (unsigned int far*)MK_FP(0xC000, 0x37);
 	unsigned int info_table_offset = *info_addr;
 	unsigned char far *info = (unsigned char far*)MK_FP(0xC000, info_table_offset);
 	// check constant(?) data in info table
-	if (info[0] != 0x77 || info[2] != 0x99 || info[3] != 0x66) return 0;
+	Log << "info[0]: " << hex(info[0]) << "\n";
+	Log << "info[1]: " << hex(info[1]) << "\n";
+	Log << "info[2]: " << hex(info[2]) << "\n";
+	Log << "info[3]: " << hex(info[3]) << "\n";
+	if (info[0] != 0x77 || info[2] != 0x99 || info[3] != 0x66)
+	{
+		log("info table fields do not match. Not a Genoa.\n");
+		return 0;
+	}
 
 	const char *version = 0;
 	switch(info[1])

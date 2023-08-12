@@ -1,11 +1,13 @@
 #include "trident.h"
 #include "vga.h"
+#include "log.h"
 #include <dos.h>
 #include <stdio.h>
 #include <string.h>
 
 int detect_trident(char *dst)
 {
+	LOG("Trident");
 	// Trident boards have this uniquely interesting register
 	// 03C4h:0Eh that flips the second bit written to it,
 	// when it is read back.
@@ -27,9 +29,14 @@ int detect_trident(char *dst)
 
 	if ((sre2^0x02) != sre)
 	{
+		log("3C4h/0Eh is not magic Trident-bit-flipping register.");
 		// Bit index 1 should have flipped. If not, then we could have
 		// Trident 8800BR.
-		if ((sre2 != sre) || !(chip_version == 1 && sre == 6)) return 0;
+		if ((sre2 != sre) || !(chip_version == 1 && sre == 6))
+		{
+			Log << "SRE: " << hex(sre) << ", SRE read again: " << hex(sre2) << ", chip_version: " << hex(chip_version) << ". Not a Trident\n";
+			return 0;
+		}
 
 		// On Trident boards the 03C4:0Bh register is a read-only register
 		// So try writing to it and see if it stays the same.
@@ -40,12 +47,18 @@ int detect_trident(char *dst)
 		outp_3c4(0x0B, chip_version); // restore old state before anything else
 
 		// if the register state changed, cannot be a Trident
-		if (chip_version2 != chip_version) return 0;
+		if (chip_version2 != chip_version)
+		{
+			log("3C4h/0Bh is writable, cannot be a Trident");
+			return 0;
+		}
 		sprintf(dst, "Trident 8800BR"); // Good enough info to conclude 8800BR.
 		return 1;
 	}
+	Log << "3C4h/0Eh is a magic Trident-bit-flipping register. Chip ID: " << hex(chip_version) << "\n";
 
 	const int rams[8] = { 256, 512, 768, 1024, 256, 768, 2048 };
+	Log << "3D4h/1Fh (amount of RAM): " << hex(inp_3d4(0x1F)) << "\n";
 	int ram = inp_3d4(0x1F) & 0x07;
 
 	const char *version = 0;
