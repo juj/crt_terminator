@@ -27,6 +27,27 @@ void outp_vga(int port, int idx, int value)
 	outp(port+1, value); // 8-bit explicitly for compatibility
 }
 
+void vga_set_bits(int port, int idx, unsigned char bits)
+{
+	outp(port, idx);
+	++port;
+	outp(port, inp(port) | bits);
+}
+
+void vga_clear_bits(int port, int idx, unsigned char bits)
+{
+	outp(port, idx);
+	++port;
+	outp(port, inp(port) & ~bits);
+}
+
+void vga_replace_bits(int port, int idx, unsigned char bitmask, unsigned char bits)
+{
+	outp(port, idx);
+	++port;
+	outp(port, (inp(port) & ~bitmask) | bits);
+}
+
 void outp_3c4(int idx, int value) { outp_vga(0x3C4, idx, value); }
 void outp_3d4(int idx, int value) { outp_vga(0x3D4, idx, value); }
 void outp_3ce(int idx, int value) { outp_vga(0x3CE, idx, value); }
@@ -127,11 +148,37 @@ struct vga_state_info
 	unsigned char reserved[64]; // size of this struct is 64 bytes total, but overcount padding as 64 bytes total to avoid programming errors
 };
 
-void print_vga_state_info()
+int get_cur_text_screen_width()
+{
+	REGS r = {0};
+	SREGS s = {0};
+	r.h.ah = 0x1B;
+	vga_state_info i = {0};
+	r.x.di = FP_OFF(&i);
+	s.es = FP_SEG(&i);
+	int86x(0x10, &r, &r, &s);
+	if (r.h.al != 0x1B) return 80; // not supported, assume default
+	return i.num_columns;
+}
+
+int get_cur_text_screen_height()
+{
+	REGS r = {0};
+	SREGS s = {0};
+	r.h.ah = 0x1B;
+	vga_state_info i = {0};
+	r.x.di = FP_OFF(&i);
+	s.es = FP_SEG(&i);
+	int86x(0x10, &r, &r, &s);
+	if (r.h.al != 0x1B) return 25; // not supported, assume default
+	return i.last_row;
+}
+
+void print_vga_state_info(int mode)
 {
 
 			REGS q;
-			q.x.ax = 0x13;
+			q.x.ax = mode;
 			int86(0x10, &q, &q);
 
 
@@ -244,8 +291,7 @@ static int in_vsync() { return inp(0x3DA) & 8; }
 
 static const char hex[] = "0123456789ABCDEF";
 
-//#define SCREEN_WIDTH 132
-#define SCREEN_WIDTH 80
+static int SCREEN_WIDTH = 80;
 #define COL_WIDTH 16
 #define COL0_X 5
 #define ROW0_Y 2
@@ -286,8 +332,15 @@ static void draw_frame(const char *title, int num_regs)
 	}
 }
 
+void wait_for_vsync()
+{
+	while(!in_vsync()) /*nop*/;
+	while(in_vsync()) /*nop*/;
+}
+
 void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title, int detect_rw)
 {
+	SCREEN_WIDTH = get_cur_text_screen_width();
 	_setcursortype(_NOCURSOR);
 	clrscr();
 
@@ -366,7 +419,7 @@ getch();
 		// sample registers
 		for(int i = 0; i < 256; ++i)
 		{
-			if (port == 0x3C0 && i % 32 == 0) { while(in_vsync()) ; while(!in_vsync()) ; }
+			if (port == 0x3C0 && i % 32 == 0) wait_for_vsync();
 			regs[i] = read_func(port, i);
 		}
 		// Often times the register file is not full 8-bits, but only fewer

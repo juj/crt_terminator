@@ -56,12 +56,12 @@ void close_log()
 	}
 }
 
-Log_ &Log_::operator <<(int val)
+Log_ &Log_::operator <<(unsigned long val)
 {
 	if (log_file_enabled || log_stdout_enabled)
 	{
 		char str[16];
-		sprintf(str, "%d", val);
+		sprintf(str, "%lu", val);
 		log(str, 0);
 	}
 	return *this;

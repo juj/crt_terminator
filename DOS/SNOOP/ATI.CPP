@@ -1,4 +1,7 @@
 #include "ati.h"
+#include "vga.h"
+#include "crtt.h"
+#include "crttscan.h"
 #include "log.h"
 #include <dos.h>
 #include <string.h>
@@ -54,4 +57,32 @@ int detect_ati(char *dst)
 	else
 		sprintf(dst, "Unknown ATI series %04Xh (unkn. rev. %02Xh, id %02Xh)", series, (int)revision, (int)card_defn);
 	return 1;
+}
+
+// Returns 0: ok, 1: Video BIOS has incorrect values, 2: bad clock
+int crtt_test_ati_incorrect_dot_clock_halving()
+{
+	if (!detect_crtt()) return 0;
+
+	int cur_video_mode = get_cur_video_mode();
+
+	set_video_mode(0x13);
+	/* Looks like this does not quite work? Did I misinterpret this
+	register, or do a mistake in implementation?
+	int bios_register_programming_fail = ((inp_3c4(0x01) & 0x08) == 0);
+	if (bios_register_programming_fail)
+	{
+		set_video_mode(0x03);
+		return 1; // BIOS has incorrect default values
+	}
+	*/
+
+	// Video BIOS has the correct value, but test if the actual output
+	// pixel clock looks like 12.5 MHz or 25.2 MHz.
+
+	sleep(3); // Give CRT Terminator a little bit of time to stabilize
+	crtt_mode_info mi = detect_current_mode();
+	set_video_mode(cur_video_mode);
+	// Pixel clock in Mode 13h should be about 12.5 MHz.
+	return (mi.pixel_clock > 15000000) ? 2 : 0;
 }

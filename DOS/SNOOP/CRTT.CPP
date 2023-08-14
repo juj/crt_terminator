@@ -105,3 +105,16 @@ unsigned long crtt_read_u32(int idx)
 	}
 	return r.u32;
 }
+
+void mirror_vga_palette_to_crtt()
+{
+	int crtt_port = detect_crtt();
+	if (!crtt_port) return;
+	outp(0x3C7, 0); // Switch DAC to reading active VGA palette from index 0
+	outp(crtt_port + 0x04, 0); // And CRT Terminator to writing to palette index 0
+	for(int i = 0; i < 768; ++i)
+	{
+		unsigned char c = inp(0x3C9);           // Read 6:6:6 palette and send it
+		outp(crtt_port + 0x05, ((c >> 4) & 3) | (c << 2)); // to CRT Terminator as 8:8:8
+	}
+}

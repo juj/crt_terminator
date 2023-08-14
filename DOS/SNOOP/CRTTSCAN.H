@@ -63,6 +63,7 @@ struct mode_info
 
 extern vec<mode_info> modes;
 
-void crtt_scan_video_modes();
+void crtt_scan_video_modes(void);
+crtt_mode_info detect_current_mode(void);
 
 #endif

@@ -2,6 +2,7 @@
 #include "vga.h"
 #include "vec.h"
 #include "vbios.h"
+#include "text.h"
 
 #include <dos.h>
 #include <string.h>
@@ -21,12 +22,6 @@ int vesa_detect()
 	s.es = FP_SEG(&vbe);
 	int86x(0x10, &r, &r, &s);
 	return r.x.ax == 0x004F ? vbe.version : 0;
-}
-
-static void print_cap(const char *name, int supported)
-{
-	textcolor(supported ? WHITE : DARKGRAY);
-	cprintf(" [%c] %s", supported ? 'x' : ' ', name);
 }
 
 int is_text_mode(modeinfo *m) { return m->mem_model == 0 || !(m->attr & 16); }
@@ -114,48 +109,6 @@ const char *bpp_to_str(int bpp)
 	return tmp;
 }
 
-void scroll_screen_up(int lines)
-{
-	text_info t = {0};
-	gettextinfo(&t);
-	int x = wherex(), y = wherey();
-	if (t.screenheight - y < lines)
-	{
-		int scroll = lines - (t.screenheight - y);
-		for(int i = 0; i < scroll; ++i)
-		{
-			gotoxy(x, t.screenheight);
-			cprintf("\r\n");
-		}
-		gotoxy(x,y-scroll);
-	}
-}
-
-void print_no_newlines(char far *ptr)
-{
-	// A Trident card has a newline in its VESA OEM field,
-	// so implement a sanitized print to drop the newline.
-	int len = _fstrlen(ptr);
-	while(len > 0 && ptr[len-1] <= 0x20) --len; // trim length from right
-	int i = 0;
-	while(i < len && ptr[i] && ptr[i] <= 0x20) ++i;
-	for(; i < len; ++i)
-		cprintf("%c", ptr[i] >= 0x20 ? ptr[i] : 0x20);
-}
-
-void print_field(int pad_length, const char *field_name, char far *value, int nl)
-{
-	if (field_name)
-	{
-		for(int i = strlen(field_name); i < pad_length; ++i) cprintf(" ");
-		cprintf("%s: ", field_name);
-		textcolor(CYAN);
-		print_no_newlines(value);
-		textcolor(LIGHTGRAY);
-		if (nl) cprintf("\r\n");
-	}
-}
-
 void vesa_print_info()
 {
 	int vesa_version = vesa_detect();
@@ -166,7 +119,7 @@ void vesa_print_info()
 		textcolor(DARKGRAY);
 		cprintf("Not supported.");
 		textcolor(LIGHTGRAY);
-		cprintf("\r\n");
+		nl();
 		return;
 	}
 	textcolor(CYAN);
@@ -183,7 +136,7 @@ void vesa_print_info()
 		else cprintf("%lu KB", kbytes);
 		textcolor(LIGHTGRAY);
 	}
-	cprintf("\r\n");
+	nl();
 
 	print_field(16, "   VESA OEM", vbe.oem, 0);
 
@@ -195,7 +148,7 @@ void vesa_print_info()
 		cprintf("%d.%d", vbe.oem_rev>>8, vbe.oem_rev&0xff);
 		textcolor(LIGHTGRAY);
 	}
-	cprintf("\r\n");
+	nl();
 
 	if (vbe.version >= 0x0200)
 	{
@@ -221,7 +174,7 @@ void vesa_print_info()
 				cprintf(":%s", (vbe.caps & 16) ? "ext" : "evc");
 		}
 		textcolor(LIGHTGRAY);
-		cprintf("\r\n");
+		nl();
 	}
 
 	if (!vbe.modes) return;
@@ -318,7 +271,7 @@ void vesa_print_info()
 	bpp.sort();
 	gfxs.sort();
 	texts.sort();
-	scroll_screen_up(gfxs.size()+4);
+//	scroll_screen_up(gfxs.size()+4);
 
 	if (texts.size() > 0)
 	{
@@ -339,7 +292,7 @@ void vesa_print_info()
 			}
 		}
 		textcolor(LIGHTGRAY);
-		cprintf("\r\n");
+		nl();
 	}
 
 	if (gfxs.size() == 0) return;
@@ -349,9 +302,12 @@ void vesa_print_info()
 	cprintf("  VESA Gfx modes: ");
 	textcolor(BROWN);
 	for(int i = 0; i < bpp.size(); ++i) cprintf("%s ", bpp_to_str(bpp[i]));
-	cprintf("\r\n");
+	nl();
 	for(i = 0; i < gfxs.size(); ++i)
-		cprintf("        %4dx%4d\r\n", gfxs.data[i].w, gfxs.data[i].h);
+	{
+		cprintf("        %4dx%4d", gfxs.data[i].w, gfxs.data[i].h);
+		nl();
+	}
 	textcolor(LIGHTGRAY);
 
 	int x1 = wherex(), y1 = wherey();
@@ -457,7 +413,7 @@ void vesa_print_info()
 		if (legend_no_windowed) cprintf( "[w] No VGA window ");
 		if (legend_no_vga) cprintf("[v] No VGA-compat ");
 		if (legend_no_bios_text) cprintf("[b] No BIOS TTY ");
-		cprintf("\r\n");
+		nl();
 	}
 
 }

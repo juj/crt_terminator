@@ -11,6 +11,9 @@ int inp_3c0(int idx);
 int vga_read_attr_port(int port, int idx); // identical to vga_read_attr(), just passes a dummy port value
 
 void outp_vga(int port, int idx, int value);
+void vga_set_bits(int port, int idx, unsigned char bits);
+void vga_clear_bits(int port, int idx, unsigned char bits);
+void vga_replace_bits(int port, int idx, unsigned char bitmask, unsigned char bits);
 void outp_3c4(int idx, int value);
 void outp_3d4(int idx, int value);
 void outp_3ce(int idx, int value);
@@ -19,6 +22,13 @@ void outp_3c0(int idx, int value);
 void set_video_mode(int mode);
 int get_cur_video_mode();
 void random_fill_vga_memory(int is_gfx_mode);
+
+int get_cur_text_screen_width(void);
+int get_cur_text_screen_height(void);
+
+void wait_for_vsync();
+
+void print_vga_state_info(int mode);
 
 int port_writable(int port, int bitpattern);
 int port_register_writable(int port, int idx, int bitpattern);

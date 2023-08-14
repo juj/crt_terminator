@@ -19,7 +19,7 @@ public:
 class Log_
 {
 public:
-	Log_ &operator <<(int val);
+	Log_ &operator <<(unsigned long val);
 	Log_ &operator <<(const hex &val);
 	Log_ &operator <<(const char *str);
 };
