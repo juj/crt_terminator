@@ -1,3 +1,5 @@
 *.BAK
 *.OBJ
 *.SWP
+*.LOG
+*.DSK
