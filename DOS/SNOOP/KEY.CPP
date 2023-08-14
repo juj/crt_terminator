@@ -8,3 +8,9 @@ int get_key()
 		key = 0x100 | getch();
 	return key;
 }
+
+void clear_kbhit()
+{
+  // consume all keys
+  while(kbhit()) getch();
+}

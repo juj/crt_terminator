@@ -33,6 +33,16 @@ void print_vga_state_info(int mode);
 int port_writable(int port, int bitpattern);
 int port_register_writable(int port, int idx, int bitpattern);
 
+class scoped_set_video_mode
+{
+	int prev_mode;
+public:
+	scoped_set_video_mode(int new_mode) { prev_mode = get_cur_video_mode(); set_video_mode(new_mode); }
+	~scoped_set_video_mode() { if (get_cur_video_mode() != prev_mode) set_video_mode(prev_mode); }
+};
+#define SCOPED_VIDEO_MODE() scoped_set_video_mode scoped_mode(get_cur_video_mode());
+#define SCOPED_SET_VIDEO_MODE(mode) scoped_set_video_mode scoped_mode(mode);
+
 class vga_port
 {
 	int port, reg;

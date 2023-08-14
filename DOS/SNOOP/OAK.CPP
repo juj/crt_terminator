@@ -2,7 +2,7 @@
 #include "vga.h"
 #include "vbios.h"
 #include "log.h"
-
+#include "intr.h"
 #include <conio.h>
 #include <stdio.h>
 
@@ -85,6 +85,7 @@ int detect_oak(char *dst)
 		log("String \"OAK TECHNOLOGY\" not found in VBIOS.");
 		return 0;
 	}
+	NO_INTR_SCOPE();
 
 	// Oak cards have an extra indexed port pair 3DEh/3DFh.
 

@@ -1,6 +1,7 @@
 #include "trident.h"
 #include "vga.h"
 #include "log.h"
+#include "intr.h"
 #include <dos.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 int detect_trident(char *dst)
 {
 	LOG("Trident");
+	NO_INTR_SCOPE();
 	// Trident boards have this uniquely interesting register
 	// 03C4h:0Eh that flips the second bit written to it,
 	// when it is read back.

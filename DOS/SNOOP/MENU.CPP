@@ -1,9 +1,10 @@
 #include "menu.h"
 #include "crttscan.h"
+#include "key.h"
+#include "intr.h"
 #include <dos.h>
 #include <conio.h>
 #include <stdio.h>
-#include "key.h"
 
 unsigned int far *text = (unsigned int far*)MK_FP(0xB800, 0);
 int text_width = 80;
@@ -54,41 +55,13 @@ void wnd(int x0, int y0, int x1, int y1, const char *title)
 	printf("%s", title);
 }
 
-int read_attr(int sub)
-{
-	disable();
-	inp(0x3DA);
-	int prev = inp(0x3C0);
-	outp(0x3C0, sub);
-	int val = inp(0x3C1);
-	inp(0x3DA);
-	outp(0x3C0, prev);
-	enable();
-	return val;
-}
-
-void write_attr(int sub, int val)
-{
-	disable();
-	inp(0x3DA);
-	int prev = inp(0x3C0);
-
-	inp(0x3DA);
-	outp(0x3C0, sub);
-	outp(0x3C0, val);
-
-	inp(0x3DA);
-	outp(0x3C0, prev);
-	enable();
-}
-
 #if 0
 void menu()
 {
 	// Enable VGA adapter attribute mode control register 10h
 	// Line Graphics Enable bit.
-//	int x = read_attr(0x10);
-//	write_attr(0x10, x | 0x04);
+//	int x = read_3c0(0x10);
+//	write_3c0(0x10, x | 0x04);
 
 	rect(0, 0, text_width, text_height, '°', BLUE, BLACK);
 	wnd(0, 0, text_width, 8, "CRT Terminator");

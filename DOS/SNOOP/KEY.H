@@ -1,7 +1,8 @@
 #ifndef KEY_H
 #define KEY_H
 
-int get_key();
+int get_key(void);
+void clear_kbhit(void);
 
 #define KEY_CTRL_A 0x01
 #define KEY_CTRL_C 0x03

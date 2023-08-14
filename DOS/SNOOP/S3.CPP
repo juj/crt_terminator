@@ -1,10 +1,12 @@
 #include "s3.h"
 #include "vga.h"
 #include "log.h"
+#include "intr.h"
 #include <dos.h>
 #include <stdio.h>
 
 static vga_port
+	SR08(0x3C4, 0x08),
 	CR2E(0x3D4, 0x2E),
 	CR30(0x3D4, 0x30),
 	CR38(0x3D4, 0x38),
@@ -19,8 +21,8 @@ int s3_enable_feature_connector(pcidev_t vga)
 
 	// N.b. this code assumes that all S3 boards have the same S3
 	// extended register SRD that controls the feature connector.
-	disable();
-	int old_lock = inp_3c4(0x08);
+	NO_INTR_SCOPE();
+	vga_port_save save_lock(SR08);
 	outp_3c4(0x08, 0x06); // Unlock S3 extension registers
 	// Enable FC on register 0Dh:
 	// Bit 0: EN_FEAT - 1: Enable Feature Connector
@@ -29,14 +31,13 @@ int s3_enable_feature_connector(pcidev_t vga)
 	// Bits 4-5: HSYNC Control: 00 - Normal Operation
 	// Bits 6-7: VSYNC Control: 00 - Normal Operation
 	outp_3c4(0x0D, 0x03);
-	outp_3c4(0x08, old_lock); // Restore lock to S3 extension registers
-	enable();
 	return 1;
 }
 
 int detect_s3(char *dst)
 {
 	LOG("S3");
+	NO_INTR_SCOPE();
 	// The following code is adapted from S3.txt, s3_trio64v+.pdf and
 	// book Programmer's Guide to the EGA, VGA and Super VGA cards.
 

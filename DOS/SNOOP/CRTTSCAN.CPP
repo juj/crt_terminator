@@ -25,6 +25,7 @@ crtt_mode_info detect_current_mode()
 {
 	crtt_mode_info m = {0};
 	int i = 0x06;
+	NO_INTR_SCOPE();
 	m.pixel_clock   = crtt_read_u32(i); i += 4;
 	m.hsync_hz      = crtt_read_u32(i); i += 4;
 	m.vsync_millihz = crtt_read_u32(i); i += 4;
@@ -64,7 +65,7 @@ void crtt_scan_video_modes()
 	modes.clear();
 	vga_mode_table far *mt = get_vga_mode_table();
 	srand(1);
-	int prev_mode = get_cur_video_mode();
+	SCOPED_VIDEO_MODE();
 	for(int i = 0; i < 0x80; ++i)
 	{
 		// Do not test VGA video modes that the adapter does
@@ -101,5 +102,4 @@ void crtt_scan_video_modes()
 			modes.push(m);
 	}
 	outp(0x3C5, 0x0F); // Restore bitplane write mask to all planes
-	set_video_mode(prev_mode);
 }

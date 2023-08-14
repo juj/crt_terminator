@@ -1,7 +1,7 @@
 #include "vga.h"
 #include "vec.h"
 #include "ramdac.h"
-
+#include "intr.h"
 #include <conio.h>
 #include <dos.h>
 #include <stdio.h>
@@ -9,6 +9,7 @@
 
 int inp_vga(int port, int idx)
 {
+	NO_INTR_SCOPE();
 	// Port 3C0h has a different more complex access mechanism
 	if (port == 0x3c0) return inp_3c0(idx);
 	outp(port, idx);
@@ -21,6 +22,7 @@ int inp_3ce(int idx) { return inp_vga(0x3CE, idx); }
 
 void outp_vga(int port, int idx, int value)
 {
+	NO_INTR_SCOPE();
 	// Port 3C0h has a different more complex access mechanism
 	if (port == 0x3c0) { outp_3c0(idx, value); return; }
 	outp(port, idx);     // could use 16-bit writes here, but use
@@ -29,6 +31,7 @@ void outp_vga(int port, int idx, int value)
 
 void vga_set_bits(int port, int idx, unsigned char bits)
 {
+	NO_INTR_SCOPE();
 	outp(port, idx);
 	++port;
 	outp(port, inp(port) | bits);
@@ -36,6 +39,7 @@ void vga_set_bits(int port, int idx, unsigned char bits)
 
 void vga_clear_bits(int port, int idx, unsigned char bits)
 {
+	NO_INTR_SCOPE();
 	outp(port, idx);
 	++port;
 	outp(port, inp(port) & ~bits);
@@ -43,6 +47,7 @@ void vga_clear_bits(int port, int idx, unsigned char bits)
 
 void vga_replace_bits(int port, int idx, unsigned char bitmask, unsigned char bits)
 {
+	NO_INTR_SCOPE();
 	outp(port, idx);
 	++port;
 	outp(port, (inp(port) & ~bitmask) | bits);
@@ -54,14 +59,13 @@ void outp_3ce(int idx, int value) { outp_vga(0x3CE, idx, value); }
 
 int inp_3c0(int sub)
 {
-//	disable();
+	NO_INTR_SCOPE();
 	inp(0x3DA);
 	int prev = inp(0x3C0);
 	outp(0x3C0, sub);
 	int val = inp(0x3C1);
 	inp(0x3DA);
 	outp(0x3C0, prev);
-//	enable();
 	return val;
 }
 
@@ -73,7 +77,7 @@ int vga_read_attr_port(int port, int sub)
 
 void outp_3c0(int sub, int val)
 {
-//	disable();
+	NO_INTR_SCOPE();
 	inp(0x3DA);
 	int prev = inp(0x3C0);
 
@@ -83,7 +87,6 @@ void outp_3c0(int sub, int val)
 
 	inp(0x3DA);
 	outp(0x3C0, prev);
-//	enable();
 }
 
 void set_video_mode(int mode)
@@ -103,6 +106,8 @@ int get_cur_video_mode()
 
 void random_fill_vga_memory(int is_gfx_mode)
 {
+	// Deliberately keep interrupts enabled in this function
+	// since this function can be slow - could skew the clock.
 	unsigned char far *addr = (unsigned char far *)MK_FP(0xA000, 0);
 	unsigned char far *addr2 = (unsigned char far *)MK_FP(0xB000, 0);
 	outp(0x3C4, 0x02); // Select write bitplane sub-register index
@@ -219,6 +224,7 @@ void print_vga_state_info(int mode)
 
 int port_writable(int port, int bitpattern)
 {
+	NO_INTR_SCOPE();
 	int old = inp(port); // save old value
 
 	int all0 = old & ~bitpattern;
@@ -239,6 +245,7 @@ int port_writable(int port, int bitpattern)
 
 int port_register_writable(int port, int idx, int bitpattern)
 {
+	NO_INTR_SCOPE();
 	int old = inp_vga(port, idx); // save old value
 
 	int all0 = old & ~bitpattern;
@@ -259,6 +266,7 @@ int port_register_writable(int port, int idx, int bitpattern)
 
 int attrc_register_writable(int idx, int bitpattern)
 {
+	NO_INTR_SCOPE();
 	int old = inp_3c0(idx); // save old value
 
 	int all0 = old & ~bitpattern;

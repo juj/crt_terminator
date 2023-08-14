@@ -1,5 +1,6 @@
 #include "vga.h"
 #include "ramdac.h"
+#include "intr.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
@@ -14,6 +15,7 @@ int has_hidden_ramdac_register()
 unsigned char read_hidden_ramdac_register()
 {
 	if (hidden_ramdac_numreads <= 0) return 0xCD + hidden_ramdac_numreads;
+	NO_INTR_SCOPE();
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 	for(int i = 0; i < hidden_ramdac_numreads; ++i)
 		inp(0x3C6);
@@ -25,6 +27,7 @@ unsigned char read_hidden_ramdac_register()
 void write_hidden_ramdac_register(unsigned char value)
 {
 	if (!hidden_ramdac_numreads) return;
+	NO_INTR_SCOPE();
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 	for(int i = 0; i < hidden_ramdac_numreads; ++i)
 		inp(0x3C6);
@@ -48,7 +51,7 @@ void detect_hidden_ramdac_register()
 	// first probe the port by doing several reads, to find a candidate
 	// write mask value that will definitely be unique to the value of the
 	// RAMDAC register.
-	disable();
+	NO_INTR_SCOPE();
 	unsigned char write_mask_value = 0xAA;
 	for(int i = 0; i < 64; ++i)
 	{
@@ -91,10 +94,14 @@ void detect_hidden_ramdac_register()
 */
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 	outp(0x3C6, 0xFF); // Restore write mask to default value
-	enable();
 
 	hidden_ramdac_numreads = reads;
-	if (reads > 0)
+}
+
+void print_ramdac_info()
+{
+	detect_hidden_ramdac_register();
+	if (hidden_ramdac_numreads > 0)
 	{
 		// Calculate how many values we read
 		int len = 1;
@@ -113,8 +120,8 @@ void detect_hidden_ramdac_register()
 		textcolor(CYAN);
 		for(int i = 0; i < len; ++i)
 			cprintf("%02Xh ", ramdac_values[i]);
-		cprintf("(type read%d-%s)", reads, ramdac_access_type);
+		cprintf("(type read%d-%s)", hidden_ramdac_numreads, ramdac_access_type);
 		textcolor(LIGHTGRAY);
 		printf("\n");
-	}
+	}	
 }

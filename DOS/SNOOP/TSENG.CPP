@@ -2,6 +2,7 @@
 #include "log.h"
 #include "crtt.h"
 #include "crttscan.h"
+#include "intr.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
@@ -17,6 +18,7 @@ port mda_3bf(0x3BF),
 int detect_tseng(char *dst)
 {
 	LOG("Tseng");
+	NO_INTR_SCOPE();
 	// Unlock Tseng 'KEY' by writing to Hercules Compat register
 	// and Mode Control register
 	// Register 3BFh is a write-only register on Tseng, but on other
@@ -81,6 +83,15 @@ void clear_256kb_vga_mem()
 	_fmemset(vga+0x8000, 0, 0x8000);
 }
 
+void set_vga_scroll_viewport_address(unsigned long address)
+{
+	NO_INTR_SCOPE();
+	outp_3d4(0x0C, address >> 10);
+	outp_3d4(0x0D, (unsigned char)(address >> 2));
+	// Set the starting coordinate with more fine grained 1-pixel granularity.
+	outp_3c0(0x13|0x20, (address & 0x03) << 1);
+}
+
 // This function interactively tests Tseng VGA address decoding quirks.
 // test_addressing_width: Specifies the VGA addressing mode
 //        to test. Pass either 1, 2 or 4 for BYTE, WORD or DWORD modes.
@@ -92,8 +103,7 @@ void clear_256kb_vga_mem()
 void test_tseng_256k_wraparound_bug(int test_addressing_width, int apply_workaround)
 {
 #define SCANLINE_WIDTH 320
-	int cur_video_mode = get_cur_video_mode();
-	set_video_mode(0x13); // VGA 320x200@256c
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	// Set display scanline stride to 512 bytes so scanlines align with amount
 	// of total VGA memory.
 //	outp_3d4(0x13, SCANLINE_WIDTH / (2*4));
@@ -170,36 +180,21 @@ void test_tseng_256k_wraparound_bug(int test_addressing_width, int apply_workaro
 	unsigned long vga_start_address = 0;
 	while(!kbhit())
 	{
-		// Choose displayed video area via CRTC Start Address register.
-		// This allows only 4-pixel granularity.
-		outp_3d4(0x0C, vga_start_address >> 10);
-		outp_3d4(0x0D, (unsigned char)(vga_start_address >> 2));
-		// Set the starting coordinate with more fine grained 1-pixel granularity.
-		outp_3c0(0x13|0x20, (vga_start_address & 0x03) << 1);
+		set_vga_scroll_viewport_address(vga_start_address);
 		vga_start_address += SCANLINE_WIDTH;
 		wait_for_vsync();
 	}
-	while(kbhit()) getch(); // consume keys
-	set_video_mode(cur_video_mode);
+	clear_kbhit(); // consume keys
 	exit(0);
 }
 
-int crtt_screen_displays_green(int reset_back_to_text_mode)
+int crtt_screen_displays_green()
 {
 	sleep(1); // Give CRTT some frames to stabilize the image
 	crtt_mode_info mi = detect_current_mode();
 	// Allow for tiny bit of leeway, since there might be a black border
 	// around the green color.
-	if (reset_back_to_text_mode) set_video_mode(reset_back_to_text_mode);
 	return (mi.num_distinct_colors <= 2 && mi.max_color_id == 10);
-}
-
-void set_vga_scroll_viewport_address(unsigned long address)
-{
-	outp_3d4(0x0C, address >> 10);
-	outp_3d4(0x0D, (unsigned char)(address >> 2));
-	// Set the starting coordinate with more fine grained 1-pixel granularity.
-	outp_3c0(0x13|0x20, (address & 0x03) << 1);
 }
 
 // Plots a single pixel to screen in an unchained mode using
@@ -233,8 +228,7 @@ void set_pixel_unchained_linearized(int addressing_mode,
 int crtt_fails_vga_scroll_compatibility()
 {
 	if (!detect_crtt()) return 0;
-	int prev_video_mode = get_cur_video_mode();
-	set_video_mode(0x13); // VGA 320x200@256c
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	vga_clear_bits(0x3C4, 0x04, 8); // Enable unchained mode
 	clear_256kb_vga_mem();
 	// Set BYTE addressing mode
@@ -254,7 +248,7 @@ int crtt_fails_vga_scroll_compatibility()
 	// Scroll screen so it should wrap around to beginning of display
 	// to display the green portion.
 	set_vga_scroll_viewport_address(262144 - 32000);
-	return !crtt_screen_displays_green(prev_video_mode);
+	return !crtt_screen_displays_green();
 }
 
 /* Different VGA adapters have implemented the meaning of BYTE, WORD and
@@ -273,8 +267,7 @@ int crtt_fails_vga_scroll_compatibility()
 int crtt_test_addressing_mode_does_not_affect_scanout()
 {
 	if (!detect_crtt()) return 0;
-	int prev_video_mode = get_cur_video_mode();
-	set_video_mode(0x13); // VGA 320x200@256c
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	vga_clear_bits(0x3C4, 0x04, 8); // Enable unchained mode
 	clear_256kb_vga_mem();
 
@@ -293,7 +286,6 @@ int crtt_test_addressing_mode_does_not_affect_scanout()
 	sleep(1); // Give CRTT some frames to stabilize the image
 	crtt_mode_info mi2 = detect_current_mode();
 
-	set_video_mode(prev_video_mode);
 	return mi.visible_rect[0] == mi2.visible_rect[0]
 	 && mi.visible_rect[1] == mi2.visible_rect[1]
 	 && mi.visible_rect[2] == mi2.visible_rect[2]
@@ -307,8 +299,7 @@ int crtt_test_addressing_mode_does_not_affect_scanout()
 int crtt_test_vga_256k_access_in_dword_addressing_mode()
 {
 	if (!detect_crtt()) return 0;
-	int prev_video_mode = get_cur_video_mode();
-	set_video_mode(0x13); // VGA 320x200@256c
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	vga_clear_bits(0x3C4, 0x04, 8); // Enable unchained mode
 	clear_256kb_vga_mem();
 
@@ -325,15 +316,14 @@ int crtt_test_vga_256k_access_in_dword_addressing_mode()
 	}
 	// Scroll screen to view the second page, which should now show green
 	set_vga_scroll_viewport_address(64000);
-	return !crtt_screen_displays_green(prev_video_mode);
+	return !crtt_screen_displays_green();
 }
 #endif
 
 int crtt_test_vga_dword_addressing_mode()
 {
 	if (!detect_crtt()) return 0;
-	int prev_video_mode = get_cur_video_mode();
-	set_video_mode(0x13); // VGA 320x200@256c
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	vga_clear_bits(0x3C4, 0x04, 8); // Enable unchained mode
 
 	unsigned char far *vga = (unsigned char far*)MK_FP(0xA000, 0);
@@ -354,5 +344,5 @@ int crtt_test_vga_dword_addressing_mode()
 	}
 
 	// The screen should now be fully green.
-	return !crtt_screen_displays_green(prev_video_mode);
+	return !crtt_screen_displays_green();
 }

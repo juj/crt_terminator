@@ -1,6 +1,7 @@
 #include "crtt.h"
 #include "vec.h"
 #include "vga.h"
+#include "intr.h"
 #include <dos.h>
 
 #define CRT_TERMINATOR_ID_PORT0    0x120
@@ -20,6 +21,8 @@ static int crtt_port = 0;
 int detect_crtt()
 {
 	if (crtt_port) return crtt_port; // Already detected?
+
+	NO_INTR_SCOPE();
 
 	for(int port = CRT_TERMINATOR_ID_PORT0;
 					port <= CRT_TERMINATOR_ID_PORT1;
@@ -48,18 +51,21 @@ int detect_crtt()
 
 void crtt_write_u8(int idx, int value)
 {
+	NO_INTR_SCOPE();
 	outp(CRT_TERMINATOR_INDEX_PORT, idx); // Send command
 	outp(CRT_TERMINATOR_DATA_PORT, value); // Send value
 }
 
 unsigned char crtt_read_u8(int idx)
 {
+	NO_INTR_SCOPE();
 	outp(CRT_TERMINATOR_INDEX_PORT, idx);
 	return inp(CRT_TERMINATOR_DATA_PORT);
 }
 
 unsigned int crtt_read_u16(int idx)
 {
+	NO_INTR_SCOPE();
 	union
 	{
 		unsigned char u8[4];
@@ -82,6 +88,7 @@ unsigned int crtt_read_u16(int idx)
 
 unsigned long crtt_read_u32(int idx)
 {
+	NO_INTR_SCOPE();
 	union
 	{
 		unsigned char u8[4];
@@ -110,6 +117,7 @@ void mirror_vga_palette_to_crtt()
 {
 	int crtt_port = detect_crtt();
 	if (!crtt_port) return;
+	NO_INTR_SCOPE();
 	outp(0x3C7, 0); // Switch DAC to reading active VGA palette from index 0
 	outp(crtt_port + 0x04, 0); // And CRT Terminator to writing to palette index 0
 	for(int i = 0; i < 768; ++i)

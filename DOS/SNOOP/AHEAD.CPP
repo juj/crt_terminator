@@ -2,7 +2,7 @@
 #include "vga.h"
 #include "vbios.h"
 #include "log.h"
-
+#include "intr.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -19,6 +19,8 @@ int detect_ahead(char *dst)
 		log("Vbios does not have \"AHEAD\", cannot be an Ahead card.");
 		return 0;
 	}
+
+	NO_INTR_SCOPE();
 
 	// Bit 5 of sub-reg 0Fh enables access to extended registers.
 	// Sub-reg 0Fh itself is an extended register, so unlock is needed

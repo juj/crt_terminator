@@ -1,10 +1,11 @@
-#include <dos.h>
-#include <stdio.h>
-#include <conio.h>
 #include "pci.h"
 #include "pci_str.h"
 #include "crtt.h"
 #include "log.h"
+#include "intr.h"
+#include <dos.h>
+#include <stdio.h>
+#include <conio.h>
 
 int pci_get_num_buses()
 {
@@ -19,6 +20,7 @@ int pci_get_num_buses()
 
 pcidev_t pci_find_nth_device_by_class(unsigned long cls, int n)
 {
+	NO_INTR_SCOPE();
 	unsigned int dev, failed;
 	asm {
 		mov ax, 0B103h
@@ -44,6 +46,7 @@ unsigned int pci_read_u16(pcidev_t dev, int reg_number)
 	int86(0x1A, &r, &r);
 	return r.x.cx;
 	*/
+	NO_INTR_SCOPE();
 	asm {
 		mov ax, 0B109h
 		mov bx, dev
@@ -56,6 +59,7 @@ unsigned int pci_read_u16(pcidev_t dev, int reg_number)
 
 unsigned long pci_read_u32(pcidev_t dev, int reg_number)
 {
+	NO_INTR_SCOPE();
 	unsigned long hi = pci_read_u16(dev, reg_number+2);
 	return (hi<<16) | pci_read_u16(dev, reg_number);
 }
@@ -73,6 +77,7 @@ void pci_write_u16(pcidev_t dev, int reg_number, unsigned int value)
 	int86(0x1A, &r, &r);
 //	if (r.x.cflag) printf("write word failed!\n");
 */
+	NO_INTR_SCOPE();
 	asm {
 		mov ax, 0B10Ch
 		mov bx, dev

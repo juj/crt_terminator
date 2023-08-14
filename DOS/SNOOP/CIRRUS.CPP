@@ -1,6 +1,7 @@
 #include "cirrus.h"
 #include "vga.h"
 #include "log.h"
+#include "intr.h"
 #include <dos.h>
 #include <stdio.h>
 
@@ -12,6 +13,7 @@ static vga_port
 // cl_gd542x.pdf: CL-GD5422/'24/'26/'28/'29, not on CL-GD5420.
 int cirrus_read_hidden_dac()
 {
+	NO_INTR_SCOPE();
 	inp(0x3C6);
 	inp(0x3C6);
 	inp(0x3C6);
@@ -21,6 +23,7 @@ int cirrus_read_hidden_dac()
 
 void cirrus_write_hidden_dac(int val)
 {
+	NO_INTR_SCOPE();
 	inp(0x3C6);
 	inp(0x3C6);
 	inp(0x3C6);
@@ -30,6 +33,7 @@ void cirrus_write_hidden_dac(int val)
 
 int has_hidden_dac_register()
 {
+	NO_INTR_SCOPE();
 	outp(0x3C6, 0xFF); // Set all bits in the regular VGA palette mask register.
 	int hidden_dac_value = cirrus_read_hidden_dac();
 	return hidden_dac_value != 0xFF;
@@ -38,6 +42,7 @@ int has_hidden_dac_register()
 int detect_cirrus_logic(char *dst)
 {
 	LOG("Cirrus");
+	NO_INTR_SCOPE();
 	// CL-GD542X Technical Manual, chapter 9.1 has
 	// example code on how to identify a CL card. However
 	// that code is slightly buggy (would misdetect CL-GD5425)
