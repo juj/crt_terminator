@@ -15,7 +15,7 @@
 #include "vesaxga.h"
 #include "log.h"
 #include "text.h"
-
+#include "crttscan.h"
 #include "cirrus.h"
 #include "s3.h"
 #include "tseng.h"
@@ -282,6 +282,12 @@ int main(int argc, char **argv)
 		}
 		textcolor(LIGHTGRAY);
 		nl();
+	}
+
+	if (opt("crttscan"))
+	{
+		crtt_scan_video_modes();
+		log_crtt_scanned_modes();
 	}
 
 	if (opt("regs"))

@@ -4,8 +4,11 @@
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
+#include <mem.h>
 
 static int hidden_ramdac_numreads = -1;
+static int ramdac_register_length = 1;
+static const char *ramdac_access_type = "once";
 
 int has_hidden_ramdac_register()
 {
@@ -35,10 +38,12 @@ void write_hidden_ramdac_register(unsigned char value)
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 }
 
+#define SZ 16
+static unsigned char ramdac_values[SZ];
+
 void detect_hidden_ramdac_register()
 {
-#define SZ 16
-	unsigned char ramdac_values[SZ] = {0};
+	memset(ramdac_values, 0, sizeof(ramdac_values));
 /* wip
 	set_video_mode(0x64);
 	random_fill_vga_memory(1);
@@ -96,16 +101,11 @@ void detect_hidden_ramdac_register()
 	outp(0x3C6, 0xFF); // Restore write mask to default value
 
 	hidden_ramdac_numreads = reads;
-}
-
-void print_ramdac_info()
-{
-	detect_hidden_ramdac_register();
-	if (hidden_ramdac_numreads > 0)
+	if (reads > 0)
 	{
 		// Calculate how many values we read
 		int len = 1;
-		const char *ramdac_access_type = "once";
+		ramdac_access_type = "once";
 		if (ramdac_values[1] != write_mask_value)
 		{
 			ramdac_access_type = "unlock";
@@ -116,9 +116,18 @@ void print_ramdac_info()
 				--len;
 			if (len > 1) ramdac_access_type = "complex";
 		}
+		ramdac_register_length = len;
+	}
+}
+
+void print_ramdac_info()
+{
+	detect_hidden_ramdac_register();
+	if (hidden_ramdac_numreads > 0)
+	{
 		printf("  Hidden DAC reg: ");
 		textcolor(CYAN);
-		for(int i = 0; i < len; ++i)
+		for(int i = 0; i < ramdac_register_length; ++i)
 			cprintf("%02Xh ", ramdac_values[i]);
 		cprintf("(type read%d-%s)", hidden_ramdac_numreads, ramdac_access_type);
 		textcolor(LIGHTGRAY);

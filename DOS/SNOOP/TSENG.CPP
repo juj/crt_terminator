@@ -3,6 +3,7 @@
 #include "crtt.h"
 #include "crttscan.h"
 #include "intr.h"
+#include "key.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
