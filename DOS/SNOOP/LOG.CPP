@@ -36,13 +36,13 @@ void log(const char *string, int new_line)
 		}
 		if (start_of_line) fprintf(log_file, "[%s] ", log_category);
 		fprintf(log_file, "%s", string);
-		if (new_line) fprintf(log_file, "\n");
+		if (new_line && string[strlen(string)-1] != '\n') fprintf(log_file, "\n");
 	}
 	if (log_stdout_enabled)
 	{
 		if (start_of_line) printf("[%s] ", log_category);
 		printf("%s", string);
-		if (new_line) printf("\n");
+		if (new_line && string[strlen(string)-1] != '\n') printf("\n");
 	}
 	start_of_line = (new_line || string[strlen(string)-1] == '\n');
 }
