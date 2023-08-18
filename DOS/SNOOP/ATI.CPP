@@ -73,7 +73,6 @@ int crtt_test_ati_incorrect_dot_clock_halving()
 	// Video BIOS has the correct value, but test if the actual output
 	// pixel clock looks like 12.5 MHz or 25.2 MHz.
 
-	sleep(3); // Give CRT Terminator a little bit of time to stabilize
 	crtt_mode_info mi = detect_current_mode();
 	// Pixel clock in Mode 13h should be about 12.5 MHz.
 	return (mi.pixel_clock > 15000000) ? 2 : 0;

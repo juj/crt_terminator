@@ -16,6 +16,7 @@
 #include "log.h"
 #include "text.h"
 #include "crttscan.h"
+#include "quirks.h"
 #include "cirrus.h"
 #include "s3.h"
 #include "tseng.h"
@@ -59,6 +60,7 @@ int inp_pci(int port, int idx)
 	return (unsigned char)((idx&1) ? (p>>8) : p);
 }
 
+void test();
 int main(int argc, char **argv)
 {
 	ac = argc; av = argv;
@@ -87,6 +89,8 @@ int main(int argc, char **argv)
 	if (opt("log")) set_log_stdout_enabled(1);
 	if (opt("logfile")) set_log_file_enabled(1);
 
+//test();
+
 	int workaround_mode = opt("tseng") ? 1 : (opt("trident") ? 2 : 0);
 	if (opt("vga_addr1")) test_tseng_256k_wraparound_bug(1, workaround_mode);
 	if (opt("vga_addr2")) test_tseng_256k_wraparound_bug(2, workaround_mode);
@@ -99,10 +103,7 @@ int main(int argc, char **argv)
 
 	if (opt("quirks"))
 	{
-		fails_vga_scroll_test = crtt_fails_vga_scroll_compatibility();
-		fails_dword_addressing_test = crtt_test_vga_dword_addressing_mode();
-		addressing_mode_does_not_affect_scanout = crtt_test_addressing_mode_does_not_affect_scanout();
-		fails_dot_clock_halving = crtt_test_ati_incorrect_dot_clock_halving();
+		test_vga_quirks();
 	}
 
 	vga = find_pci_vga_adapter();

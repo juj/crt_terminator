@@ -9,24 +9,6 @@
 
 #define CONCAT(a, b) a##b
 
-vga_state_info get_vga_state_info()
-{
-	REGS r = {0};
-	SREGS s = {0};
-	r.h.ah = 0x1B;
-	vga_state_info i = {0};
-	r.x.di = FP_OFF(&i);
-	s.es = FP_SEG(&i);
-	int86x(0x10, &r, &r, &s);
-	return i;
-}
-
-vga_mode_table far *get_vga_mode_table()
-{
-	vga_state_info s = get_vga_state_info();
-	return s.mode_table;
-}
-
 // In some fields, the programmed numbers are not the exact values,
 // but are off by a few clocks due to quirks of the VGA hardware.
 static const int VTOTAL_OFFSET = -2;
@@ -399,6 +381,8 @@ void test()
 
 crtt_mode_info detect_current_mode()
 {
+	sleep(2); // Give the video mode some time to stabilize in case this
+						// mode was just entered a moment ago.
 	crtt_mode_info m = {0};
 	int i = 0x06;
 	NO_INTR_SCOPE();
@@ -447,7 +431,7 @@ void crtt_scan_video_modes()
 	{
 		// Do not test VGA video modes that the adapter does
 		// not advertise supporting
-		if (i <= 0x13 && !(mt->mode_supported & (1ul<<i))) continue;
+		if (!is_vga_mode_possibly_supported(i)) continue;
 		set_video_mode(i);
 		if (get_cur_video_mode() != i) continue;
 
@@ -492,10 +476,13 @@ void log_crtt_scanned_modes()
 	LOG("vga_mode_table");
 	{
 		vga_mode_table far *m = modes[0].vi.mode_table;
-		HEX_FIELD(mode_supported);
-		HEX_FIELD(mode_supported2[0]);
-		HEX_FIELD(mode_supported2[1]);
-		HEX_FIELD(mode_supported2[2]);
+		HEX_FIELD(mode_supported[0]);
+		HEX_FIELD(mode_supported[1]);
+		HEX_FIELD(mode_supported[2]);
+		HEX_FIELD(mode_supported[3]);
+		HEX_FIELD(mode_supported[4]);
+		HEX_FIELD(mode_supported[5]);
+		HEX_FIELD(mode_supported[6]);
 		HEX_FIELD(scanlines_supported);
 		FIELD(num_char_blocks);
 		FIELD(max_char_blocks);

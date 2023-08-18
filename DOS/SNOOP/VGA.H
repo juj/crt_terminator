@@ -19,6 +19,7 @@ void outp_3d4(int idx, int value);
 void outp_3ce(int idx, int value);
 void outp_3c0(int idx, int value);
 
+int is_vga_mode_possibly_supported(int mode);
 void set_video_mode(int mode);
 int get_cur_video_mode();
 void random_fill_vga_memory(int is_gfx_mode);
@@ -30,7 +31,46 @@ void wait_for_vsync();
 
 void print_vga_state_info(int mode);
 
-int port_writable(int port, int bitpattern);
+struct vga_mode_table
+{
+	unsigned char mode_supported[7];
+	unsigned char scanlines_supported; // bits [0-2] specify if [200, 350, 400] scanlines supported
+	unsigned char num_char_blocks;
+	unsigned char max_char_blocks;
+	unsigned int misc_function_support;
+	unsigned int reserved;
+	unsigned char save_ptr_flags;
+	unsigned char reserved2;
+};
+
+struct vga_state_info
+{
+	vga_mode_table far *mode_table;
+	unsigned char cur_video_mode;
+	unsigned int num_columns;
+	unsigned int regen_buf_length;
+	unsigned int regen_start_addr;
+	unsigned int cursor_pos[8];
+	unsigned int cursor_type;
+	unsigned char active_page;
+	unsigned int crtc_port_address;
+	unsigned char port_03x8, port_03x9;
+	unsigned char num_rows;
+	unsigned int bytes_per_char;
+	unsigned char dcc_active_display, dcc_alternate_display;
+	unsigned int num_colors; // 0 or 1 is mono
+	unsigned char num_pages;
+	unsigned char num_scanlines; // [0,3] correspond to [200, 350, 400, 480]
+	unsigned char reserved[64]; // size of this struct is 64 bytes total, but overcount padding as 64 bytes total to avoid programming errors
+};
+
+vga_state_info get_vga_state_info(void);
+vga_mode_table far *get_vga_mode_table(void);
+
+// If read_port==-1, read from same port as 'port'. Otherwise,
+// write to 'port', and read from read_port.
+int port_writable(int port, int bitpattern, int read_port = -1);
+
 int port_register_writable(int port, int idx, int bitpattern);
 
 class scoped_set_video_mode
@@ -79,26 +119,27 @@ public:
 
 class port
 {
-	int io_addr;
+	int read_io_addr, write_io_addr;
 public:
-	port(int io_addr):io_addr(io_addr) {}
+	port(int io_addr):read_io_addr(io_addr), write_io_addr(io_addr) {}
+	port(int read_io_addr, int write_io_addr):read_io_addr(read_io_addr), write_io_addr(write_io_addr) {}
 
 	void write(unsigned char val)
 	{
-		outp(io_addr, val);
+		outp(write_io_addr, val);
 	}
-	unsigned char read() { return inp(io_addr); }
+	unsigned char read() { return inp(read_io_addr); }
 	int writable(unsigned char mask)
 	{
-		return port_writable(io_addr, mask);
+		return port_writable(write_io_addr, mask, read_io_addr);
 	}
 	void clear_bits(unsigned char bitmask)
 	{
-		outp(io_addr, inp(io_addr) & ~bitmask);
+		outp(write_io_addr, inp(read_io_addr) & ~bitmask);
 	}
 	void set_bits(unsigned char bitmask)
 	{
-		outp(io_addr, inp(io_addr) | bitmask);
+		outp(write_io_addr, inp(read_io_addr) | bitmask);
 	}
 };
 
@@ -112,5 +153,7 @@ public:
 };
 
 void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title, int detect_rw);
+
+extern port vga_misc_output;
 
 #endif

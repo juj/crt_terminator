@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <mem.h>
 
+port vga_misc_output(0x3CC, 0x3C2);
+
 int inp_vga(int port, int idx)
 {
 	NO_INTR_SCOPE();
@@ -120,39 +122,6 @@ void random_fill_vga_memory(int is_gfx_mode)
 	}
 }
 
-struct vga_mode_table
-{
-	unsigned char mode_supported[7];
-	unsigned char scanlines_supported; // bits [0-2] specify if [200, 350, 400] scanlines supported
-	unsigned char num_char_blocks;
-	unsigned char max_char_blocks;
-	unsigned int misc_function_support;
-	unsigned int reserved;
-	unsigned char save_ptr_flags;
-	unsigned char reserved2;
-};
-
-struct vga_state_info
-{
-	vga_mode_table far *mode_table;
-	unsigned char cur_video_mode;
-	unsigned int num_columns;
-	unsigned int regen_buf_length;
-	unsigned int regen_start_addr;
-	unsigned int cursor_pos[8];
-	unsigned int cursor_type;
-	unsigned char active_page;
-	unsigned int crtc_port_address;
-	unsigned char port_03x8, port_03x9;
-	unsigned char last_row;
-	unsigned int bytes_per_char;
-	unsigned char dcc_active_display, dcc_alternate_display;
-	unsigned int num_colors; // 0 or 1 is mono
-	unsigned char num_pages;
-	unsigned char num_scanlines; // [0,3] correspond to [200, 350, 400, 480]
-	unsigned char reserved[64]; // size of this struct is 64 bytes total, but overcount padding as 64 bytes total to avoid programming errors
-};
-
 int get_cur_text_screen_width()
 {
 	REGS r = {0};
@@ -176,7 +145,34 @@ int get_cur_text_screen_height()
 	s.es = FP_SEG(&i);
 	int86x(0x10, &r, &r, &s);
 	if (r.h.al != 0x1B) return 25; // not supported, assume default
-	return i.last_row;
+	return i.num_rows;
+}
+
+vga_state_info get_vga_state_info()
+{
+	REGS r = {0};
+	SREGS s = {0};
+	r.h.ah = 0x1B;
+	vga_state_info i = {0};
+	r.x.di = FP_OFF(&i);
+	s.es = FP_SEG(&i);
+	int86x(0x10, &r, &r, &s);
+	return i;
+}
+
+vga_mode_table far *get_vga_mode_table()
+{
+	vga_state_info s = get_vga_state_info();
+	return s.mode_table;
+}
+
+int is_vga_mode_possibly_supported(int mode)
+{
+	if (mode > 0x13) return 1;
+	vga_mode_table far *mt = get_vga_mode_table();
+	int byteidx = mode >> 3;
+	int bitidx = mode & 7;
+	return mt->mode_supported[byteidx] & (1 << bitidx);
 }
 
 void print_vga_state_info(int mode)
@@ -203,7 +199,7 @@ void print_vga_state_info(int mode)
 	printf("Num columns: %d\n", i.num_columns);
 	printf("Num colors: %d\n", i.num_colors);
 	printf("Num scanlines: %d\n", (int)i.num_scanlines);
-	printf("Num rows: %d\n", (int)i.last_row);
+	printf("Num rows: %d\n", (int)i.num_rows);
 	printf("bytes/char: %d\n", i.bytes_per_char);
 	vga_mode_table far *m = i.mode_table;
 	printf("Scanlines supported: %X\n", m->scanlines_supported);
@@ -222,20 +218,21 @@ void print_vga_state_info(int mode)
 	printf("\n");
 }
 
-int port_writable(int port, int bitpattern)
+int port_writable(int port, int bitpattern, int read_port)
 {
+	if (read_port == -1) read_port = port;
 	NO_INTR_SCOPE();
-	int old = inp(port); // save old value
+	int old = inp(read_port); // save old value
 
 	int all0 = old & ~bitpattern;
 	outp(port, all0);
-	int read_all0 = inp(port),
+	int read_all0 = inp(read_port),
 		all1 = all0, read_all1 = read_all0;
 	if (all0 == read_all0)
 	{
 		all1 = old | bitpattern;
 		outp(port, all1);
-		read_all1 = inp(port);
+		read_all1 = inp(read_port);
 	}
 
 	if (old != read_all1) outp(port, old); // restore old value
@@ -297,6 +294,12 @@ static int block_repeats_every_n(unsigned char *regs, int n)
 
 static int in_vsync() { return inp(0x3DA) & 8; }
 
+void wait_for_vsync()
+{
+	while(!in_vsync()) /*nop*/;
+	while(in_vsync()) /*nop*/;
+}
+
 static const char hex[] = "0123456789ABCDEF";
 
 static int SCREEN_WIDTH = 80;
@@ -338,12 +341,6 @@ static void draw_frame(const char *title, int num_regs)
 		t[1] = hex[i] | 0x0600;
 		t[2] = 'h' | 0x0800;
 	}
-}
-
-void wait_for_vsync()
-{
-	while(!in_vsync()) /*nop*/;
-	while(in_vsync()) /*nop*/;
 }
 
 void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title, int detect_rw)
