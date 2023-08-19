@@ -14,12 +14,11 @@ unsigned char random_u1() // Generate one random bit
 	outp(0x3D4, 0x11);
 	unsigned char rng = inp(0x3D5);
 	outp(0x3D4, 0x10);
-	rng ^= inp(0x3D5);
+	rng ^= inp(0x3D5); // Fold high and low addresses together
 	enable();
-	// Fold all bits together to mix randomness.
-	rng = (rng&0x0F) ^ (rng>>4);
-	rng = (rng&0x03) ^ (rng>>2);
-	return ((rng&0x01) ^ (rng>>1)) & 1;
+	rng = rng ^ (rng>>4); // Fold all bits together to mix randomness.
+	rng = rng ^ (rng>>2);
+	return (rng ^ (rng>>1)) & 1;
 }
 
 unsigned char random_u8()
@@ -40,7 +39,6 @@ int init_rng() // Returns 1 if supported
 	outp(0x3D4, 0x11);
 	outp(0x3D5, c11); // Restore write protect on CRTC registers
 	enable();
-
 	// Detect whether the Light Pen register can be used as a hardware RNG.
 	unsigned char test_rng = 0;
 	for(int j = 0; j < 32; ++j) test_rng ^= random_u8();
@@ -56,13 +54,13 @@ int main()
 		return 1;
 	}
 #define N 65536ul
+	printf("Light Pen Registers supported! Generating %lu random uint8's...\n", N);
 	unsigned char far *rng = (unsigned char far*)farmalloc(N);
 	if (!rng)
 	{
 		printf("Unable to farmalloc %lu bytes!", N);
 		return 1;
 	}
-	printf("Light Pen Registers supported! Generating %lu random uint8's...\n", N);
 	long t0 = tick();
 	for(unsigned long i = 0; i < N; ++i) rng[i] = random_u8();
 	long t1 = tick();
@@ -124,7 +122,7 @@ int main()
 		unsigned long x = rng[i], y = rng[i+1];
 		int inside = (x*x+y*y <= 65536ul);
 		inside_circle += inside;
-		if (y < 240)
+		if (y < 240) // Plot a quartercircle on 320x240 screen
 		{
 			outpw(0x3C4, 0x02 | (0x100 << (x&3)));
 			unsigned long addr = ((239-y)*320+x+32)>>2;
