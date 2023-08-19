@@ -58,10 +58,10 @@ static void set_palette()
 		21, 0, 0, // Red gradient
 		42, 0, 0,
 		63, 0, 0,
+		63, 16, 16,
 		63, 32, 32,
-		63, 45, 45,
 #define RED_5 12
-		63, 63, 63
+		63, 45, 45
 	};
 	for(int i = 0; i < sizeof(palette); ++i)
 		outp(0x3C9, palette[i]);

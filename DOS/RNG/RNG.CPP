@@ -124,10 +124,12 @@ int main()
 		inside_circle += inside;
 		if (y < 240) // Plot a quartercircle on 320x240 screen
 		{
-			outpw(0x3C4, 0x02 | (0x100 << (x&3)));
+			outpw(0x3C4, 0x02 | (0x100 << (x&3))); // Update Write Map Mask
+			outpw(0x3CE, 0x04 | ((x&3) << 8)); // Update Read Map Select
 			unsigned long addr = ((239-y)*320+x+32)>>2;
-			if (inside) A000h[addr] = A000h[addr] ? MIN(A000h[addr]+1, GREEN_5) : GREEN_0;
-			else        A000h[addr] = A000h[addr] ? MIN(A000h[addr]+1,   RED_5) : RED_0;
+			unsigned char color = A000h[addr];
+			if (!color) A000h[addr] = (inside ? GREEN_0 : RED_0);
+			else A000h[addr] = MIN(color+1, inside ? GREEN_5 : RED_5);
 		}
 	}
 	getch();
