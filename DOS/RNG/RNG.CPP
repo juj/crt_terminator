@@ -3,7 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <conio.h>
+#include <mem.h>
 #include <math.h>
+#include "tick.inl"
+#include "vga.inl"
 
 unsigned char random_u1() // Generate one random bit
 {
@@ -21,9 +24,9 @@ unsigned char random_u1() // Generate one random bit
 
 unsigned char random_u8()
 {
-	return random_u1()       | (random_u1() << 1) | (random_u1() << 2)
-			| (random_u1() << 3) | (random_u1() << 4) | (random_u1() << 5)
-			| (random_u1() << 6) | (random_u1() << 7);
+	return random_u1() | (random_u1() << 1) | (random_u1() << 2)
+	| (random_u1() << 3) | (random_u1() << 4) | (random_u1() << 5)
+	| (random_u1() << 6) | (random_u1() << 7);
 }
 
 int init_rng() // Returns 1 if supported
@@ -36,11 +39,11 @@ int init_rng() // Returns 1 if supported
 	outp(0x3D5, inp(0x3D5) & 0x7F); // Unmask access to Light Pen register
 	outp(0x3D4, 0x11);
 	outp(0x3D5, c11); // Restore write protect on CRTC registers
+	enable();
 
 	// Detect whether the Light Pen register can be used as a hardware RNG.
 	unsigned char test_rng = 0;
-	for(int j = 0; j < 16; ++j) test_rng ^= random_u8();
-	enable();
+	for(int j = 0; j < 32; ++j) test_rng ^= random_u8();
 	return test_rng != 0;
 }
 
@@ -60,19 +63,24 @@ int main()
 		return 1;
 	}
 	printf("Light Pen Registers supported! Generating %lu random uint8's...\n", N);
+	long t0 = tick();
 	for(unsigned long i = 0; i < N; ++i) rng[i] = random_u8();
+	long t1 = tick();
+	double seconds = (t1-t0)/1000.0;
+	printf("Generated %lu random bits in %.3f seconds (%.3f kbits/second).\n\n",
+		N*8, seconds, N*8/seconds/1024);
 
 	// Test how many ones vs zeros got generated?
 	unsigned long ones = 0, zeros = 0;
 	for(i = 0; i < N; ++i)
-		for(int b = 1; b < 8; ++b)
+		for(int b = 0; b < 8; ++b)
 			if (rng[i] & (1<<b)) ++ones;
 			else                 ++zeros;
-	printf("Generated %lu random bits: # of zeros: %lu. # of ones: %lu (%.2f%%).\n\n",
-		N*8ul, zeros, ones, (ones * 100.0 / (zeros+ones)));
+	printf("Ones vs zeros balance: # of zeros: %lu. # of ones: %lu (%.2f%%).\n\n",
+		zeros, ones, (ones * 100.0 / (zeros+ones)));
 
-	// Test a 1D linear histogramming test.
-#define B 5
+	// Do a 1D linear histogramming test.
+#define B 7
 	unsigned long buckets[B] = {0};
 	for(i = 0; i < N; ++i)
 		++buckets[rng[i] % B];
@@ -81,13 +89,51 @@ int main()
 		printf("%lu (mod 5): %lu (%.2f%%)\n", i, buckets[i], buckets[i]*100.0 / N);
 	printf("\n");
 
+	// Calculate run lengths
+#define MIN(x,y) ((x) < (y) ? (x) : (y))
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
+	unsigned long run_lengths[64] = {0}, total_runs = 0;
+	int prev_bit = rng[N-1]&0x80, run_length = 1, max_run_length = 0;
+	for(i = 0; i < N; ++i)
+		for(b = 0; b < 8; ++b)
+		{
+			int bit = (rng[i]&(1<<b))?1:0;
+			if (bit != prev_bit)
+			{
+				max_run_length = MAX(max_run_length, run_length);
+				++run_lengths[MIN(run_length, 63)];
+				run_length = 1;
+				prev_bit = bit;
+				++total_runs;
+			}
+			else ++run_length;
+		}
+	printf("Coin flip run length frequency (should be ~50%, ~25%, ~12.5%, ~6.25%, ...):\n");
+	for(i = 1; i < MIN(max_run_length+1, 13); ++i)
+		printf("%.2f%% ", run_lengths[i]*100.0/total_runs);
+	printf("\n\n");
+
+	save_screen();
+	set_320x240_unchained();
+	set_palette();
+
 	// Test calculating Pi via Monte Carlo simulation.
 	unsigned long inside_circle = 0;
 	for(i = 0; i < N; i += 2)
 	{
 		unsigned long x = rng[i], y = rng[i+1];
-		if (x*x+y*y <= 65536ul) ++inside_circle;
+		int inside = (x*x+y*y <= 65536ul);
+		inside_circle += inside;
+		if (y < 240)
+		{
+			outpw(0x3C4, 0x02 | (0x100 << (x&3)));
+			unsigned long addr = ((239-y)*320+x+32)>>2;
+			if (inside) A000h[addr] = A000h[addr] ? MIN(A000h[addr]+1, GREEN_5) : GREEN_0;
+			else        A000h[addr] = A000h[addr] ? MIN(A000h[addr]+1,   RED_5) : RED_0;
+		}
 	}
+	getch();
+	restore_screen();
 	double pi = inside_circle * 4.0 / (N>>1);
 	double abs_error = fabs(M_PI - pi), rel_error = abs_error / M_PI;
 	printf("Monte carlo estimate of Pi: %f. Abs. error: %f, rel. error: %.2f%%\n",
