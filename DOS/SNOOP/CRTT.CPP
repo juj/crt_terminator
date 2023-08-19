@@ -4,29 +4,18 @@
 #include "intr.h"
 #include <dos.h>
 
-#define CRT_TERMINATOR_ID_PORT0    0x120
-#define CRT_TERMINATOR_ID_PORT1    0x160
+#define CRTT_PORT0    0x120
+#define CRTT_PORT1    0x160
+#define CRTT_INDEX_PORT (crtt_port + 0x1)
+#define CRTT_DATA_PORT  (crtt_port + 0x2)
 static int crtt_port = 0;
-
-#define CRT_TERMINATOR_INDEX_PORT (crtt_port + 0x1)
-#define CRT_TERMINATOR_DATA_PORT  (crtt_port + 0x2)
-
-#define CMD_SHOW_STATUS_HUD             0x01
-#define CMD_ENABLE_CGA_COMPOSITE_COLORS 0x02
-#define CMD_ENABLE_SCANLINES            0x03
-#define CMD_ENABLE_VSYNC                0x04
-#define CMD_ENABLE_BORDER               0x05
 
 // Returns the port address that CRT Terminator is detected at
 int detect_crtt()
 {
 	if (crtt_port) return crtt_port; // Already detected?
-
-	NO_INTR_SCOPE();
-
-	for(int port = CRT_TERMINATOR_ID_PORT0;
-					port <= CRT_TERMINATOR_ID_PORT1;
-					port += (CRT_TERMINATOR_ID_PORT1 - CRT_TERMINATOR_ID_PORT0))
+	disable();
+	for(int port = CRTT_PORT0; port <= CRTT_PORT1; port += (CRTT_PORT1 - CRTT_PORT0))
 	{
 		// CRT Terminator ID port: a read-only port that cycles to return
 		// values 'C', 'R', 'T', 'T' on subsequent reads.
@@ -34,33 +23,31 @@ int detect_crtt()
 		{
 			int x = inp(port);
 			if (x == 'C') break;
-			if (x != 'R' && x != 'T') continue;
+			if (x != 'R' && x != 'T') i = 4; // Got anything else? Can't be CRTT
 		}
+		if (i >= 4) continue;
 		if (inp(port) != 'R') continue; // and 'RTT' must follow
 		if (inp(port) != 'T') continue;
 		if (inp(port) != 'T') continue;
-		if (inp(port) != 'C') continue; // For good measure, try second time
-		if (inp(port) != 'R') continue;
-		if (inp(port) != 'T') continue;
-		if (inp(port) != 'T') continue;
 		crtt_port = port;
-		return port;
+		break;
 	}
-	return 0;
+	enable();
+	return crtt_port;
 }
 
 void crtt_write_u8(int idx, int value)
 {
 	NO_INTR_SCOPE();
-	outp(CRT_TERMINATOR_INDEX_PORT, idx); // Send command
-	outp(CRT_TERMINATOR_DATA_PORT, value); // Send value
+	outp(CRTT_INDEX_PORT, idx); // Send command
+	outp(CRTT_DATA_PORT, value); // Send value
 }
 
 unsigned char crtt_read_u8(int idx)
 {
 	NO_INTR_SCOPE();
-	outp(CRT_TERMINATOR_INDEX_PORT, idx);
-	return inp(CRT_TERMINATOR_DATA_PORT);
+	outp(CRTT_INDEX_PORT, idx);
+	return inp(CRTT_DATA_PORT);
 }
 
 unsigned int crtt_read_u16(int idx)
