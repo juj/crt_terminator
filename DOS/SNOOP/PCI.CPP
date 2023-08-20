@@ -3,6 +3,7 @@
 #include "crtt.h"
 #include "log.h"
 #include "intr.h"
+#include "text.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
@@ -213,13 +214,8 @@ void print_pci_info(pcidev_t vga)
 		device = pci_read_u16(vga, 2);
 		revision = pci_read_u16(vga, 8) & 0xFF;
 
-	textcolor(LIGHTCYAN);
-	 printf("   PCI Vendor ID: ");
-	cprintf("%04Xh  %s\r\n", vendor, pci_vendor_str(vendor));
-	 printf("   PCI Device ID: ");
-	cprintf("%04Xh  %s", device, pci_device_str(vendor, device));
-	 printf("  PCI Rev: ");
-	cprintf("%02Xh\r\n", revision);
+	Printf("   PCI Vendor ID: $B%04Xh  %s$7\n", vendor, pci_vendor_str(vendor));
+	Printf("   PCI Device ID: $B%04Xh  %s$7  PCI Rev: $B%02Xh$7\n", device, pci_device_str(vendor, device), revision);
 
 	int header_type = pci_read_u16(vga, 0xE);
 	if ((header_type & 0x7F) == 0)
@@ -229,15 +225,9 @@ void print_pci_info(pcidev_t vga)
 		if (vendor != subvendor || device != subdevice)
 		{
 			if (subvendor && subvendor != 0xFFFF)
-			{
-				 printf("PCI Subvendor ID: ");
-				cprintf("%04Xh  %s\r\n", subvendor, pci_vendor_str(subvendor));
-			}
+				Printf("PCI Subvendor ID: $B%04Xh  %s$7\n", subvendor, pci_vendor_str(subvendor));
 			if (subdevice && subdevice != 0xFFFF)
-			{
-			 printf("PCI Subdevice ID: ");
-				cprintf("%04Xh  %s\r\n", subdevice, pci_subdevice_str(vendor, device, subvendor, subdevice));
-			}
+				Printf("PCI Subdevice ID: $B%04Xh  %s$7\n", subdevice, pci_subdevice_str(vendor, device, subvendor, subdevice));
 		}
 	}
 }

@@ -1,6 +1,6 @@
 #include "vbios.h"
 #include "vec.h"
-
+#include "text.h"
 #include <dos.h>
 #include <ctype.h>
 #include <conio.h>
@@ -30,13 +30,6 @@ unsigned long calculate_video_bios_crc32()
 {
 	unsigned char huge *ptr = (unsigned char huge *)MK_FP(0xC000, 0);
 	return crc32(ptr, get_video_bios_size());
-}
-
-void advancex(int x)
-{
-	if (wherex() >= x) return;
-	int n = x - wherex();
-	for(int i = 0; i < n; ++i) printf(" ");
 }
 
 static int is_vowel(char ch)
@@ -95,14 +88,9 @@ static void print_strings(unsigned long addr, unsigned long size)
 			if (seen_strings.find(crc) < 0)
 			{
 				seen_strings.push(crc); // Don't print duplicate strings
-				textcolor(BROWN);
-				cprintf("%04lX:%04lXh", addr>>4, i);
-				textcolor(LIGHTGRAY);
-				cprintf(": ");
-				textcolor(CYAN);
-				while(i < j) cprintf("%c", ptr[i++]);
-				textcolor(LIGHTGRAY);
-				cprintf("\r\n");
+				Printf("$6%04lX:%04lXh$7: $3", addr>>4, i);
+				while(i < j) Printf("%c", ptr[i++]);
+				Printf("$7\n");
 			}
 			i = j;
 		}
@@ -111,7 +99,7 @@ static void print_strings(unsigned long addr, unsigned long size)
 
 void print_rom_strings()
 {
-	printf("\nROM strings:\n");
+	Printf("\nROM strings:\n");
 	unsigned long addr = 0xC0000u;
 	while(addr < 0x100000ul)
 	{
@@ -130,25 +118,19 @@ void print_rom_strings()
 void print_video_bios_info()
 {
 	long video_bios_size = get_video_bios_size();
-	textcolor(LIGHTGRAY);
-	cprintf("      Video BIOS: ");
-	textcolor(LIGHTCYAN);
-	if (video_bios_size < 0) cprintf("Unknown\r\n");
+	Printf("      Video BIOS: ");
+	if (video_bios_size < 0) Printf("$BUnknown\n");
 	else
 	{
-		cprintf("C0000h-%05lXh ",
+		Printf("$BC0000h-%05lXh ",
 			0xC0000ul + video_bios_size - 1);
-		if (video_bios_size % 1024 == 0) cprintf("(%lu KB)", video_bios_size / 1024);
-		else cprintf("(%lu B)", video_bios_size);
+		if (video_bios_size % 1024 == 0) Printf("(%lu KB)", video_bios_size / 1024);
+		else Printf("(%lu B)", video_bios_size);
 
-		textcolor(LIGHTGRAY);
 		advancex(RIGHT_COLUMN - strlen("VBIOS CRC32"));
-		cprintf("VBIOS CRC32: ");
-		textcolor(LIGHTCYAN);
-		cprintf("%08lXh\r\n", calculate_video_bios_crc32());
-		textcolor(LIGHTGRAY);
+		Printf("$7VBIOS CRC32: $B%08lXh$7\n", calculate_video_bios_crc32());
 	}
-	textcolor(LIGHTGRAY);
+	Printf("$7");
 
 	unsigned long addr = (0xC0000u + video_bios_size + 2047) & ~2047ul;
 	int found_roms = 0;
@@ -158,19 +140,18 @@ void print_video_bios_info()
 		if (ptr[0] == 0x55 && ptr[1] == 0xAA)
 		{
 			unsigned long size = (unsigned long)ptr[2] * 512;
-			if (!found_roms) cprintf("     Option ROMs: ");
-			textcolor(CYAN);
+			if (!found_roms) Printf("     Option ROMs: ");
 			found_roms = 1;
-			cprintf("%05lXh-%05lXh ", addr, addr + size - 1);
-			if (size % 1024 == 0) cprintf("(%lu KB) ", size / 1024);
-			else cprintf("(%lu B) ", size);
+			Printf("$3%05lXh-%05lXh ", addr, addr + size - 1);
+			if (size % 1024 == 0) Printf("(%lu KB) ", size / 1024);
+			else Printf("(%lu B) ", size);
 			addr += (size + 2047) & ~2047ul;
 		}
 		else
 			addr += 2048;
 	}
-	textcolor(LIGHTGRAY);
-	if (found_roms) cprintf("\r\n");
+	Printf("$7");
+	if (found_roms) Printf("\n");
 //	print_vga_state_info();
 }
 

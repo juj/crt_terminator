@@ -17,6 +17,8 @@
 #include "text.h"
 #include "crttscan.h"
 #include "quirks.h"
+#include "perf.h"
+
 #include "cirrus.h"
 #include "s3.h"
 #include "tseng.h"
@@ -42,14 +44,7 @@ void test_adapter(detect_func fn)
 {
 	char adapter[128] = {0};
 	fn(adapter);
-	if (adapter[0])
-	{
-		printf("     VGA adapter: ");
-		textcolor(LIGHTCYAN);
-		cprintf("%s", adapter);
-		textcolor(LIGHTGRAY);
-		nl();
-	}
+	if (adapter[0]) Printf("     VGA adapter: $B%s$7\n", adapter);
 }
 
 pcidev_t vga = 0;
@@ -66,22 +61,23 @@ int main(int argc, char **argv)
 	ac = argc; av = argv;
 	if (opt("?") || opt("/?") || opt("-?") || opt("-h") || opt("/h"))
 	{
-		printf("SNOOP.EXE v.%s: ", __DATE__);
-		printf("Enables PCI VGA adapter palette snoop and\n");
-		printf("                         Feature Connector for use with CRT Terminator\n\n");
-		printf("Usage: Run SNOOP.EXE to activate, or add it to AUTOEXEC.BAT\n");
-		printf("       to configure at boot.\n\n");
-		printf("Pass option \"nos3test\" to skip detecting S3 video cards.\n");
-		printf("Pass option \"nomodetest\" to skip testing for buggy video mode change behavior.\n");
-		printf("Pass option \"novesatest\" to skip testing for VESA support.\n");
-		printf("Pass option \"disable\" to instead disable snoop support.\n");
-		printf("Pass option \"quiet\" to skip any printing.\n");
-		printf("Pass option \"strings\" to detect any human-readable strings in Video BIOS and Option ROMs.\n");
-		printf("Pass option \"menu\" to view an interactive menu.\n");
-		printf("Pass option \"vga_addrX\" to interactively test VGA memory addressing support. Pass X=1,2 or 4.\n");
-		printf("Add option \"tseng\" to apply Tseng workaround.\n");
-		printf("Pass option \"quirks\" to test for different VGA hardware bugs.\n");
-		printf("Pass option \"regs\" to open a deep VGA register debugger. (! Experimental: This has theoretical chance to harm the system hardware!)\n");
+		Printf("SNOOP.EXE v.%s: ", __DATE__);
+		Printf("Enables PCI VGA adapter palette snoop and\n");
+		Printf("                         Feature Connector for use with CRT Terminator\n\n");
+		Printf("Usage: Run SNOOP.EXE to activate, or add it to AUTOEXEC.BAT\n");
+		Printf("       to configure at boot.\n\n");
+		Printf("Pass option \"nos3test\" to skip detecting S3 video cards.\n");
+		Printf("Pass option \"nomodetest\" to skip testing for buggy video mode change behavior.\n");
+		Printf("Pass option \"novesatest\" to skip testing for VESA support.\n");
+		Printf("Pass option \"disable\" to instead disable snoop support.\n");
+		Printf("Pass option \"quiet\" to skip any printing.\n");
+		Printf("Pass option \"strings\" to detect any human-readable strings in Video BIOS and Option ROMs.\n");
+		Printf("Pass option \"menu\" to view an interactive menu.\n");
+		Printf("Pass option \"vga_addrX\" to interactively test VGA memory addressing support. Pass X=1,2 or 4.\n");
+		Printf("Add option \"tseng\" to apply Tseng workaround.\n");
+		Printf("Pass option \"perf\" to measure VGA performance.\n");
+		Printf("Pass option \"quirks\" to test for different VGA hardware bugs.\n");
+		Printf("Pass option \"regs\" to open a deep VGA register debugger. (! Experimental: This has theoretical chance to harm the system hardware!)\n");
 		return 0;
 	}
 
@@ -134,6 +130,9 @@ int main(int argc, char **argv)
 		else enable_vga_palette_snoop(vga);
 	}
 
+	video_speed vs;
+	if (opt("perf")) vs = measure_vga_mem_speed();
+
 	if (quiet) return 0;
 
 	// Change working directory to the directory where SNOOP.EXE resides,
@@ -147,27 +146,11 @@ int main(int argc, char **argv)
 
 	// Detect CRT Terminator
 	int crtt = detect_crtt();
-	printf("  CRT Terminator: ");
-	if (crtt)
-	{
-		unsigned int product_id = crtt_product_id();
-		textcolor(BROWN);
-		cprintf("DV%d ISA 8-bit", product_id);
-		textcolor(LIGHTGRAY);
-		cprintf(", I/O: ");
-		textcolor(BROWN);
-		cprintf("%04Xh", crtt);
-	}
-	else
-	{
-		textcolor(DARKGRAY);
-		cprintf("Not Detected.");
-	}
-	textcolor(DARKGRAY);
+	Printf("  CRT Terminator: ");
+	if (crtt) Printf("$6DV%d ISA 8-bit$7, I/O: $6%04Xh", crtt_product_id(), crtt);
+	else Printf("$8Not Detected.");
 	advancex(RIGHT_COLUMN - strlen("SNOOP"));
-	cprintf("SNOOP v.%s.", __DATE__);
-	textcolor(LIGHTGRAY);
-	nl();
+	Printf("$8SNOOP v.%s.$7\n", __DATE__);
 
 	if (found_pci_vga) print_pci_info(vga);
 	test_adapter(detect_cirrus_logic);
@@ -185,104 +168,67 @@ int main(int argc, char **argv)
 
 	detect_hidden_ramdac_register();
 
-	if (!opt("novesatest"))
-	{
-		vesa_print_info();
-	}
+	if (opt("perf")) print_video_speed(vs);
+
+	if (!opt("novesatest")) vesa_print_info();
 
 	if (found_pci_vga)
 	{
 //		printf("\n");
-		if (is_s3_board) printf("S3 video card detected. Enabled Feature Connector via S3 register 03C5:0Dh.\n");
+		if (is_s3_board) Printf("S3 video card detected. Enabled Feature Connector via S3 register 03C5:0Dh.\n");
 
 		if (opt("disable"))
 		{
-			if (!snoop_already_enabled) printf("PCI VGA adapter palette snoop was already disabled.\n");
-			else printf("PCI VGA adapter palette snoop disabled.\n");
+			if (!snoop_already_enabled) Printf("PCI VGA adapter palette snoop was already disabled.\n");
+			else Printf("PCI VGA adapter palette snoop disabled.\n");
 		}
 		else if (!snoop_enabled)
 		{
-			textcolor(RED);
-			cprintf("Unable to enable VGA palette snoop. Register seems to be read-only?");
-			nl();
+			Printf("$4Unable to enable VGA palette snoop. Register seems to be read-only?$7\n");
 			if (snoop_enabled_after_mode_change)
-			{
-				cprintf("... but odd, changing video mode spontaneously enabled it?!");
-				nl();
-			}
+				Printf("... but odd, changing video mode spontaneously enabled it?!\n");
 		}
 		else if (snoop_already_enabled)
 		{
 //			printf("PCI VGA adapter palette snoop was already enabled.\n");
 		}
 		else
-		{
-			textcolor(LIGHTCYAN);
-			cprintf("PCI VGA adapter palette snoop is now enabled.");
-			nl();
-		}
+			Printf("$BPCI VGA adapter palette snoop is now enabled.$7\n");
 
 		if (snoop_enabled && !snoop_enabled_after_mode_change)
 		{
 			// At least PCI Vendor 1013h Cirrus Logic, Device 00A8h GD 5434-8 Alpine
 			// has this bug.
-			textcolor(YELLOW);
-			nl();
-			cprintf("This VGA adapter is buggy and clears PCI palette snoop register on video mode");
-			nl();
-			cprintf("change. Please use PALTSR.EXE to latch VGA palette snoop to stay enabled.");
-			nl();
+			Printf("\n$EThis VGA adapter is buggy and clears PCI palette snoop register on video mode\n");
+			Printf("change. Please use PALTSR.EXE to latch VGA palette snoop to stay enabled.$7\n");
 		}
 	}
 	if (opt("strings")) print_rom_strings();
 
 	if (fails_vga_scroll_test)
 	{
-		textcolor(YELLOW);
-		nl();
-		printf("This adapter does not properly implement VGA hardware scroll wrapping near the");
-		nl();
-		printf("256KB address limit. Keen games will need SVGA Compatibility option enabled.");
-		textcolor(LIGHTGRAY);
-		nl();
+		Printf("\n$EThis adapter does not properly implement VGA hardware scroll wrapping near the\n");
+		Printf("256KB address limit. Keen games will need SVGA Compatibility option enabled.$7\n");
 	}
 	if (addressing_mode_does_not_affect_scanout)
 	{
-		textcolor(YELLOW);
-		nl();
-		printf("Adjusting pixel addressing mode on this adapter (BYTE/DWORD) does not affect");
-		nl();
-		printf("pixel scanout.");
-		textcolor(LIGHTGRAY);
-		nl();
+		Printf("\n$EAdjusting pixel addressing mode on this adapter (BYTE/DWORD) does not affect\n");
+		Printf("pixel scanout.$7\n");
 	}
 	if (fails_dword_addressing_test)
 	{
-		textcolor(YELLOW);
-		nl();
-		printf("This adapter does not properly implement VGA address decoding in unchained");
-		nl();
-		printf("DWORD mode.");
-		textcolor(LIGHTGRAY);
-		nl();
+		Printf("\n$EThis adapter does not properly implement VGA address decoding in unchained\n");
+		Printf("DWORD mode.$7\n");
 	}
 	if (fails_dot_clock_halving)
 	{
-		textcolor(YELLOW);
 		if (fails_dot_clock_halving == 2)
-		{
-			nl();
-			cprintf("This adapter does not correctly halve pixel clock when 3C4h/01h register has Dot Clock mode halved.");
-		}
+			Printf("\n$EThis adapter does not correctly halve pixel clock when 3C4h/01h register has Dot Clock mode halved.$7\n");
 		else
 		{
-			nl();
-			cprintf("The Video BIOS for this adapter programs Mode 13h at 25.2MHz and not 12.5 MHz.");
-			nl();
-			cprintf("This can adversely affect CRT Terminator video mode detection heuristics.");
+			Printf("\n$EThe Video BIOS for this adapter programs Mode 13h at 25.2MHz and not 12.5 MHz.\n");
+			Printf("This can adversely affect CRT Terminator video mode detection heuristics.$7\n");
 		}
-		textcolor(LIGHTGRAY);
-		nl();
 	}
 
 	if (opt("crttscan"))

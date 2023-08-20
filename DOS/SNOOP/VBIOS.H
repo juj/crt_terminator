@@ -7,7 +7,4 @@ unsigned long calculate_video_bios_crc32();
 void print_rom_strings();
 void print_video_bios_info();
 
-#define RIGHT_COLUMN 60
-void advancex(int x);
-
 #endif

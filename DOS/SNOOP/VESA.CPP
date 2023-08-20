@@ -112,43 +112,32 @@ const char *bpp_to_str(int bpp)
 void vesa_print_info()
 {
 	int vesa_version = vesa_detect();
-	textcolor(LIGHTGRAY);
-	cprintf("            VESA: ");
+	Printf("            VESA: ");
 	if (!vesa_version)
 	{
-		textcolor(DARKGRAY);
-		cprintf("Not supported.");
-		textcolor(LIGHTGRAY);
-		nl();
+		Printf("$8Not supported.$7\n");
 		return;
 	}
-	textcolor(CYAN);
-	cprintf("%d.%d", vesa_version>>8, vesa_version&0xff);
-	textcolor(LIGHTGRAY);
+	Printf("$3%d.%d$7", vesa_version>>8, vesa_version&0xff);
 
 	if (vbe.version >= 0x0101) // Acumos AVGA2 is VBE 1.1 and implements VRAM field
 	{
 		advancex(RIGHT_COLUMN - strlen("VRAM"));
-		cprintf("VRAM: ");
-		textcolor(CYAN);
+		Printf("VRAM: ");
 		unsigned long kbytes = (unsigned long)vbe.vram * 64;
-		if (kbytes > 65536 && kbytes % 1024 == 0) cprintf("%lu MB", kbytes/1024);
-		else cprintf("%lu KB", kbytes);
-		textcolor(LIGHTGRAY);
+		if (kbytes > 65536 && kbytes % 1024 == 0) Printf("$3%lu MB$7", kbytes/1024);
+		else Printf("$3%lu KB$7", kbytes);
 	}
-	nl();
+	Printf("\n");
 
 	print_field(16, "   VESA OEM", vbe.oem, 0);
 
 	if (vbe.version >= 0x0200)
 	{
 		advancex(RIGHT_COLUMN - strlen("OEM Rev"));
-		cprintf("OEM Rev: ");
-		textcolor(CYAN);
-		cprintf("%d.%d", vbe.oem_rev>>8, vbe.oem_rev&0xff);
-		textcolor(LIGHTGRAY);
+		Printf("OEM Rev: $3%d.%d$7", vbe.oem_rev>>8, vbe.oem_rev&0xff);
 	}
-	nl();
+	Printf("\n");
 
 	if (vbe.version >= 0x0200)
 	{
@@ -160,7 +149,7 @@ void vesa_print_info()
 
 	if (vbe.version >= 0x0102) // TODO: Unclear if this should be 1.2 or 1.1
 	{
-		cprintf("            Caps:");
+		Printf("            Caps:");
 		print_cap("8bpp-dac", vbe.caps & 1);
 		if (vbe.version >= 0x0200)
 		{
@@ -171,10 +160,9 @@ void vesa_print_info()
 		{
 			print_cap("hw-stereo", vbe.caps & 8);
 			if ((vbe.caps & 8))
-				cprintf(":%s", (vbe.caps & 16) ? "ext" : "evc");
+				Printf(":%s", (vbe.caps & 16) ? "ext" : "evc");
 		}
-		textcolor(LIGHTGRAY);
-		nl();
+		Printf("$7\n");
 	}
 
 	if (!vbe.modes) return;
@@ -275,40 +263,34 @@ void vesa_print_info()
 
 	if (texts.size() > 0)
 	{
-		cprintf(" VESA Text modes:");
-		textcolor(CYAN);
+		Printf(" VESA Text modes:$3");
 		for(int i = 0; i < texts.size(); ++i)
 		{
-			cprintf(" ");
+			Printf(" ");
 			if (i + 1 >= texts.size() || texts[i+1].h != texts[i].h)
-				cprintf("%dx%d", texts[i].h, texts[i].w);
+				Printf("%dx%d", texts[i].h, texts[i].w);
 			else
 			{
-				cprintf("%dx{%d", texts[i].h, texts[i].w);
+				Printf("%dx{%d", texts[i].h, texts[i].w);
 				int j = i++;
 				while(i < texts.size() && texts[i].h == texts[j].h)
-					cprintf(",%d", texts[i++].w);
-				cprintf("}");
+					Printf(",%d", texts[i++].w);
+				Printf("}");
 			}
 		}
-		textcolor(LIGHTGRAY);
-		nl();
+		Printf("$7\n");
 	}
 
 	if (gfxs.size() == 0) return;
 
 	int x0 = wherex() + 18, y0 = wherey() + 1;
 
-	cprintf("  VESA Gfx modes: ");
-	textcolor(BROWN);
-	for(int i = 0; i < bpp.size(); ++i) cprintf("%s ", bpp_to_str(bpp[i]));
-	nl();
+	Printf("  VESA Gfx modes: $6");
+	for(int i = 0; i < bpp.size(); ++i) Printf("%s ", bpp_to_str(bpp[i]));
+	Printf("\n");
 	for(i = 0; i < gfxs.size(); ++i)
-	{
-		cprintf("        %4dx%4d", gfxs.data[i].w, gfxs.data[i].h);
-		nl();
-	}
-	textcolor(LIGHTGRAY);
+		Printf("        %4dx%4d\n", gfxs.data[i].w, gfxs.data[i].h);
+	Printf("$7");
 
 	int x1 = wherex(), y1 = wherey();
 	int legend_no_hw = 0, legend_mono = 0, legend_no_lfb = 0,
@@ -324,9 +306,7 @@ void vesa_print_info()
 			gotoxy(x0 + x*4, y0+y);
 			if (!(mode.attr&1)) // mode supported in hardware?
 			{
-				textcolor(DARKGRAY);
-				cprintf("[-]");
-				textcolor(LIGHTGRAY);
+				Printf("$8[-]$7");
 				legend_no_hw = 1;
 			}
 			else
@@ -334,86 +314,80 @@ void vesa_print_info()
 				// We have very little space, so only can show one
 				// attribute bit. Choose which attribute to show
 				// by ordering from most interesting to least interesting.
-				textcolor(mode.attr&16?LIGHTCYAN:LIGHTGRAY); // color/mono mode?
+				Printf(mode.attr&16?"$B":"$7"); // color/mono mode?
 				if (!(mode.attr&16)) legend_mono = 1;
 				if (vbe.version >= 0x0200 && !(mode.attr&128)) // no linear framebuffer available?
 				{
-					cprintf("[l]");
+					Printf("[l]");
 					legend_no_lfb = 1;
 				}
 				else if (vbe.version >= 0x0200 && (mode.attr&64))
 				{
-					cprintf("[w]"); // no vga windowed memory mode available
+					Printf("[w]"); // no vga windowed memory mode available
 					legend_no_windowed = 1;
 				}
 				else if (vbe.version >= 0x0200 && (mode.attr&32))
 				{
-					cprintf("[v]"); // not a vga compatible mode
+					Printf("[v]"); // not a vga compatible mode
 					legend_no_vga = 1;
 				}
 				else if (vbe.version >= 0x0300 && (mode.attr & 0x100))
 				{
-					cprintf("[d]"); // double scan mode available
+					Printf("[d]"); // double scan mode available
 					legend_dbl_scan = 1;
 				}
 				else if (vbe.version >= 0x0300 && (mode.attr & 0x200))
 				{
-					cprintf("[i]"); // interlaced mode available
+					Printf("[i]"); // interlaced mode available
 					legend_interlaced = 1;
 				}
 				else if (vbe.version >= 0x0300 && (mode.attr & 0x400))
 				{
-					cprintf("[3]"); // hardware triplebuffering support
+					Printf("[3]"); // hardware triplebuffering support
 					legend_triple_buffering = 1;
 				}
 				else if (vbe.version >= 0x0300 && (mode.attr & 0x800))
 				{
-					cprintf("[s]"); // hardware stereoscopic display support
+					Printf("[s]"); // hardware stereoscopic display support
 					legend_hw_stereo = 1;
 				}
 				else if (vbe.version >= 0x0300 && (mode.attr & 0x1000))
 				{
-					cprintf("[D]"); // dual display start address
+					Printf("[D]"); // dual display start address
 					legend_dual_disp_start = 1;
 				}
 				else if (!(mode.attr&4))
 				{
-					cprintf("[b]"); // no bios text write support
+					Printf("[b]"); // no bios text write support
 					legend_no_bios_text = 1;
 				}
 				else
 				{
-					cprintf("[x]"); // supported
+					Printf("[x]"); // supported
 				}
-				textcolor(LIGHTGRAY);
 			}
 		}
 
-	textcolor(LIGHTGRAY);
+	Printf("$7");
 	gotoxy(x1, y1);
 	if (legend_no_hw || legend_mono || legend_no_lfb || legend_no_windowed
 		|| legend_no_vga || legend_no_bios_text || legend_dbl_scan
 		|| legend_interlaced || legend_triple_buffering || legend_hw_stereo
 		|| legend_dual_disp_start)
 	{
-		cprintf("      Legend: [x] Supported ");
-
-		if (legend_no_hw) cprintf("[-] Not now ");
-		if (legend_mono)
-		{
-			textcolor(LIGHTCYAN); cprintf("[] color");
-			textcolor(LIGHTGRAY); cprintf(" [] mono ");
-		}
-		if (legend_no_lfb) cprintf("[l] No LFB ");
-		if (legend_dbl_scan) cprintf("[d] Dblscan ");
-		if (legend_triple_buffering) cprintf("[3] Triple-buffering ");
-		if (legend_hw_stereo) cprintf("[s] Stereoscopic ");
-		if (legend_dual_disp_start) cprintf("[D] Dual display start address ");
-		if (legend_interlaced) cprintf("[i] Interlaced ");
-		if (legend_no_windowed) cprintf( "[w] No VGA window ");
-		if (legend_no_vga) cprintf("[v] No VGA-compat ");
-		if (legend_no_bios_text) cprintf("[b] No BIOS TTY ");
-		nl();
+		Printf("      Legend: [x] Supported ");
+		if (legend_no_hw) Printf("[-] Not now ");
+		if (legend_mono) Printf("$B[] color$7 [] mono");
+		if (legend_no_lfb) Printf("[l] No LFB ");
+		if (legend_dbl_scan) Printf("[d] Dblscan ");
+		if (legend_triple_buffering) Printf("[3] Triple-buffering ");
+		if (legend_hw_stereo) Printf("[s] Stereoscopic ");
+		if (legend_dual_disp_start) Printf("[D] Dual display start address ");
+		if (legend_interlaced) Printf("[i] Interlaced ");
+		if (legend_no_windowed) Printf( "[w] No VGA window ");
+		if (legend_no_vga) Printf("[v] No VGA-compat ");
+		if (legend_no_bios_text) Printf("[b] No BIOS TTY ");
+		Printf("\n");
 	}
 
 }

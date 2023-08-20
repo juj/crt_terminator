@@ -1,6 +1,7 @@
 #include "vga.h"
 #include "ramdac.h"
 #include "intr.h"
+#include "text.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
@@ -125,12 +126,9 @@ void print_ramdac_info()
 	detect_hidden_ramdac_register();
 	if (hidden_ramdac_numreads > 0)
 	{
-		printf("  Hidden DAC reg: ");
-		textcolor(CYAN);
+		Printf("  Hidden DAC reg: ");
 		for(int i = 0; i < ramdac_register_length; ++i)
-			cprintf("%02Xh ", ramdac_values[i]);
-		cprintf("(type read%d-%s)", hidden_ramdac_numreads, ramdac_access_type);
-		textcolor(LIGHTGRAY);
-		printf("\n");
-	}	
+			Printf("$3%02Xh ", ramdac_values[i]);
+		Printf("(type read%d-%s)$7\n", hidden_ramdac_numreads, ramdac_access_type);
+	}
 }

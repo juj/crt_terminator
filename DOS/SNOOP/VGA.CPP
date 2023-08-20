@@ -2,6 +2,7 @@
 #include "vec.h"
 #include "ramdac.h"
 #include "intr.h"
+#include "text.h"
 #include <conio.h>
 #include <dos.h>
 #include <stdio.h>
@@ -195,27 +196,27 @@ void print_vga_state_info(int mode)
 			int86(0x10, &q, &q);
 
 	if (r.h.al != 0x1B) return; // not supported
-	printf("Cur video mode: %X\n", (int)i.cur_video_mode);
-	printf("Num columns: %d\n", i.num_columns);
-	printf("Num colors: %d\n", i.num_colors);
-	printf("Num scanlines: %d\n", (int)i.num_scanlines);
-	printf("Num rows: %d\n", (int)i.num_rows);
-	printf("bytes/char: %d\n", i.bytes_per_char);
+	Printf("Cur video mode: %X\n", (int)i.cur_video_mode);
+	Printf("Num columns: %d\n", i.num_columns);
+	Printf("Num colors: %d\n", i.num_colors);
+	Printf("Num scanlines: %d\n", (int)i.num_scanlines);
+	Printf("Num rows: %d\n", (int)i.num_rows);
+	Printf("bytes/char: %d\n", i.bytes_per_char);
 	vga_mode_table far *m = i.mode_table;
-	printf("Scanlines supported: %X\n", m->scanlines_supported);
-	printf("200 scanlines supported: %d\n", (m->scanlines_supported & 1)?1:0);
-	printf("350 scanlines supported: %d\n", (m->scanlines_supported & 2)?1:0);
-	printf("400 scanlines supported: %d\n", (m->scanlines_supported & 4)?1:0);
-	printf("480 scanlines supported: %d\n", (m->scanlines_supported & 8)?1:0);
-	printf("Modes supported: ");
+	Printf("Scanlines supported: %X\n", m->scanlines_supported);
+	Printf("200 scanlines supported: %d\n", (m->scanlines_supported & 1)?1:0);
+	Printf("350 scanlines supported: %d\n", (m->scanlines_supported & 2)?1:0);
+	Printf("400 scanlines supported: %d\n", (m->scanlines_supported & 4)?1:0);
+	Printf("480 scanlines supported: %d\n", (m->scanlines_supported & 8)?1:0);
+	Printf("Modes supported: ");
 	for(int j = 0; j < 56; ++j)
 	{
 		int byteidx = j >> 3;
 		int bitidx = j & 7;
 		if ((m->mode_supported[byteidx] & bitidx) != 0)
-			printf("%02Xh ", j);
+			Printf("%02Xh ", j);
 	}
-	printf("\n");
+	Printf("\n");
 }
 
 int port_writable(int port, int bitpattern, int read_port)
@@ -318,10 +319,8 @@ unsigned int far *screen_ptr(int x, int y)
 
 static void draw_frame(const char *title, int num_regs)
 {
-	textcolor(LIGHTGRAY);
 	gotoxy(1,1);
-	cprintf("%s", title);
-	textcolor(BROWN);
+	Printf("$7%s$6", title);
 
 	int reg_idx = 0;
 	for(int i = 0; i < (num_regs+REGS_PER_ROW-1)/REGS_PER_ROW; ++i)
@@ -473,7 +472,6 @@ getch();
 		break;
 	}
 	_setcursortype(_NORMALCURSOR);
-	textcolor(LIGHTGRAY);
 //	gotoxy(1, 25);
-//	cprintf("RAMDAC: %02Xh", (unsigned int)ramdac);
+//	Printf("RAMDAC: %02Xh", (unsigned int)ramdac);
 }
