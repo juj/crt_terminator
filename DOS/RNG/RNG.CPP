@@ -5,6 +5,7 @@
 #include <conio.h>
 #include <mem.h>
 #include <math.h>
+#include <string.h>
 #include "tick.inl"
 #include "vga.inl"
 
@@ -16,9 +17,10 @@ unsigned char random_u1() // Generate one random bit
 	outp(0x3D4, 0x10);
 	rng ^= inp(0x3D5); // Fold high and low addresses together
 	enable();
-	rng = rng ^ (rng>>4); // Fold all bits together to mix randomness.
-	rng = rng ^ (rng>>2);
-	return (rng ^ (rng>>1)) & 1;
+	rng ^= rng >> 4; // Fold all bits together to mix randomness.
+	rng ^= rng >> 2;
+	rng ^= rng >> 1;
+	return rng & 1;
 }
 
 unsigned char random_u8()
@@ -28,7 +30,30 @@ unsigned char random_u8()
 	| (random_u1() << 6) | (random_u1() << 7);
 }
 
-int init_rng() // Returns 1 if supported
+// This is a second method that washes the biased entropy source
+// from the Light Pen input register by mixing it through a small
+// 8-tap LFSR. This method runs much faster than the random_u8()
+// method above, and might be a little bit more random even
+// (needs testing).
+static unsigned char p = 0, s = 0;
+unsigned char random_u8_lfsr()
+{
+	disable();
+	outp(0x3D4, 0x10);
+	unsigned char rng = inp(0x3D5);
+	outp(0x3D4, 0x11);
+	rng ^= inp(0x3D5);
+	enable();
+#define WASH() s = rng ^ (s<<1) ^ (((s>>7)^(s>>5)^(s>>4)^(s>>3)^1)&1)
+	WASH();
+	if ((rng-p)&1) WASH();
+	p = rng;
+	return s;
+}
+
+// Returns 1 if supported. N.b. must be called again after each video
+// mode change.
+int init_rng()
 {
 	disable();
 	outp(0x3D4, 0x11);
@@ -38,21 +63,51 @@ int init_rng() // Returns 1 if supported
 	outp(0x3D5, inp(0x3D5) & 0x7F); // Unmask access to Light Pen register
 	outp(0x3D4, 0x11);
 	outp(0x3D5, c11); // Restore write protect on CRTC registers
-	enable();
+
 	// Detect whether the Light Pen register can be used as a hardware RNG.
-	unsigned char test_rng = 0;
-	for(int j = 0; j < 32; ++j) test_rng ^= random_u8();
-	return test_rng != 0;
+	unsigned char seen[256] = {0};
+	int num_distinct = 0;
+	for(int i = 0; i < 64; ++i)
+	{
+		unsigned char maybe_random = inp(0x3D5);
+		num_distinct += 1-seen[maybe_random];
+		seen[maybe_random] = 1;
+	}
+	enable();
+
+	return (num_distinct > 16);
 }
 
-int main()
+static int ac;
+static char **av;
+
+int opt(char *name)
 {
+	for(int i = 1; i < ac; ++i) if (!strcmpi(av[i], name)) return 1;
+	return 0;
+}
+
+int main(int argc, char **argv)
+{
+	ac = argc; av = argv;
+	if (opt("?") || opt("/?") || opt("-?") || opt("h") || opt("-h") || opt("/h") || opt("help") || opt("-help") || opt("/help"))
+	{
+		printf("RNG.EXE: IBM EGA/VGA Graphics Adapter Light Pen Hardware RNG test\n");
+		printf("Build v. %s\n\n", __DATE__);
+		printf("Usage: RNG [options], where options are a combination of:\n\n", argv[0]);
+		printf("  rng2: Uses a second different method to wash entropy into random numbers.\n");
+		printf("  interactive: Displays an interactive Monte Carlo Pi search simulation.\n\n");
+		printf("Example: \"RNG rng2 interactive\"\n");
+		return 1;
+	}
+
 	if (!init_rng())
 	{
 		printf("VGA adapter does not implement access to memory scan counter in\n");
 		printf("Light Pen registers. No hardware RNG generation available. :(\n");
 		return 1;
 	}
+
 #define N 65536ul
 	printf("Light Pen Registers supported! Generating %lu random uint8's...\n", N);
 	unsigned char far *rng = (unsigned char far*)farmalloc(N);
@@ -61,16 +116,31 @@ int main()
 		printf("Unable to farmalloc %lu bytes!", N);
 		return 1;
 	}
-	long t0 = tick();
-	for(unsigned long i = 0; i < N; ++i) rng[i] = random_u8();
-	long t1 = tick();
+
+	long t0, t1;
+	unsigned char (*rngfunc)(void) = 0;
+	if (opt("rng2"))
+	{
+		rngfunc = random_u8_lfsr;
+		t0 = tick();
+		for(unsigned long i = 0; i < N; ++i) rng[i] = random_u8_lfsr();
+		t1 = tick();
+	}
+	else
+	{
+		rngfunc = random_u8;
+		t0 = tick();
+		for(unsigned long i = 0; i < N; ++i) rng[i] = random_u8();
+		t1 = tick();
+	}
+
 	double seconds = (t1-t0)/1000.0;
 	printf("Generated %lu random bits in %.3f seconds (%.3f kbits/second).\n\n",
 		N*8, seconds, N*8/seconds/1024);
 
 	// Test how many ones vs zeros got generated?
 	unsigned long ones = 0, zeros = 0;
-	for(i = 0; i < N; ++i)
+	for(unsigned long i = 0; i < N; ++i)
 		for(int b = 0; b < 8; ++b)
 			if (rng[i] & (1<<b)) ++ones;
 			else                 ++zeros;
@@ -114,14 +184,19 @@ int main()
 	save_screen();
 	set_320x240_unchained();
 	set_palette();
+	init_rng(); // RNG must be reinitialized after a mode change
 
 	// Test calculating Pi via Monte Carlo simulation.
-	unsigned long inside_circle = 0;
+	unsigned long inside_circle = 0, outside_circle = 0;
+	int interactive = opt("interactive");
 	for(i = 0; i < N; i += 2)
 	{
-		unsigned long x = rng[i], y = rng[i+1];
+		if (interactive) i = kbhit() ? N : 0;
+		unsigned long x = interactive ? rngfunc() : rng[i],
+									y = interactive ? rngfunc() : rng[i+1];
 		int inside = (x*x+y*y <= 65536ul);
 		inside_circle += inside;
+		outside_circle += 1-inside;
 		if (y < 240) // Plot a quartercircle on 320x240 screen
 		{
 			outpw(0x3C4, 0x02 | (0x100 << (x&3))); // Update Write Map Mask
@@ -134,7 +209,7 @@ int main()
 	}
 	getch();
 	restore_screen();
-	double pi = inside_circle * 4.0 / (N>>1);
+	double pi = inside_circle * 4.0 / (inside_circle+outside_circle);
 	double abs_error = fabs(M_PI - pi), rel_error = abs_error / M_PI;
 	printf("Monte carlo estimate of Pi: %f. Abs. error: %f, rel. error: %.2f%%\n",
 		pi, abs_error, rel_error * 100.0);
