@@ -59,7 +59,7 @@ void test();
 int main(int argc, char **argv)
 {
 	ac = argc; av = argv;
-	if (opt("?") || opt("/?") || opt("-?") || opt("-h") || opt("/h"))
+	if (opt("?") || opt("/?") || opt("-?") || opt("h") || opt("-h") || opt("/h") || opt("help") || opt("-help") || opt("/help"))
 	{
 		Printf("SNOOP.EXE v.%s: ", __DATE__);
 		Printf("Enables PCI VGA adapter palette snoop and\n");
