@@ -17,6 +17,19 @@ unsigned char random_u1() // Generate one random bit
 	outp(0x3D4, 0x10);
 	rng ^= inp(0x3D5); // Fold high and low addresses together
 	enable();
+	/*
+	asm {
+		mov al, [rng]
+		or al, al
+		lahf
+		mov al, ah
+		shr al, 1
+		shr al, 1
+		and al, 1
+		mov [rng], al
+	}
+	return rng;
+	*/
 	rng ^= rng >> 4; // Fold all bits together to mix randomness.
 	rng ^= rng >> 2;
 	rng ^= rng >> 1;

@@ -109,9 +109,9 @@ int detect_cirrus_logic(char *dst)
 			case 0x20: version = "5425"; break;
 			case 0x24: version = "5426"; break;
 			case 0x26: version = "5428"; break;
-			// From CL_GD543X.PDF, page 9-75
-			// (TODO: Did they have a typo that both cards really have the same ID number? Hunt down a CL-GD5440 to double-check)
-			// On my CL-GD5430-QC-C (PCI Vendor/Device 1013h/00B8h, Rev.48h) ID 0x28 does correspond to 5430.
+			// From CL_GD543X.PDF, page 9-75: oddly Cirrus assigned same ID for 5430 and 5440.
+			// on my CL-GD5430-QC-C   (PCI Vendor/Device 1013h/00B8h, Rev.48h) ID 0x28 does correspond to 5430.
+			// on my CL-GD5440-J-QC-B (PCI Vendor/Device 1013h/00A0h, Rev.47h) there is that same ID 0x28 to denote 5440.
 			case 0x28: version = "5430/5440"; break;
 			case 0x2A: version = "5434"; break; // From CL_GD543X.PDF, page 9-75
 			case 0x2B: version = "5436"; break; // From CL_GD543X.PDF, page 9-75
