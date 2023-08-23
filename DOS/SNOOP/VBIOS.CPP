@@ -89,7 +89,8 @@ static void print_strings(unsigned long addr, unsigned long size)
 			{
 				seen_strings.push(crc); // Don't print duplicate strings
 				Printf("$6%04lX:%04lXh$7: $3", addr>>4, i);
-				while(i < j) Printf("%c", ptr[i++]);
+				// TODO: BUG: Using Printf() here causes an infinite loop hang?
+				while(i < j) { printf("%c", ptr[i] == '\n' ? ' ' : ptr[i]); ++i; }
 				Printf("$7\n");
 			}
 			i = j;
@@ -108,6 +109,7 @@ void print_rom_strings()
 		{
 			unsigned long size = (unsigned long)ptr[2] * 512;
 			print_strings(addr, size);
+			if (size == 0) ++size; // Avoid stalling the loop on degenerate data
 			addr += (size + 2047) & ~2047ul;
 		}
 		else
@@ -145,6 +147,7 @@ void print_video_bios_info()
 			Printf("$3%05lXh-%05lXh ", addr, addr + size - 1);
 			if (size % 1024 == 0) Printf("(%lu KB) ", size / 1024);
 			else Printf("(%lu B) ", size);
+			if (size == 0) ++size; // Avoid stalling the loop on degenerate data
 			addr += (size + 2047) & ~2047ul;
 		}
 		else

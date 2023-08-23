@@ -13,19 +13,33 @@ static char buffer[256];
 static int buffer2[256];
 static unsigned int cur_color = 0x0700;
 
+void set_cursor_pos(int x, int y)
+{
+	REGS q;
+	q.h.ah = 0x02;
+	q.h.bh = 0;
+	q.h.dh = y;
+	q.h.dl = x;
+	int86(0x10, &q, &q);
+}
+
 void Printf(char *fmt, ...)
 {
 	va_list va;
 	va_start(va, fmt);
-	vsprintf(buffer, fmt, va);
+	int num_chars = vsprintf(buffer, fmt, va);
 	va_end(va);
+	if (num_chars < 0) return;
+	buffer[num_chars] = 0;
+	buffer2[num_chars] = 0;
 	buffer2[255] = 0;
 	int d = 0;
 	char *f = &buffer[0];
-	while(*f && d < 200)
+	for(int l = 0; l < num_chars; ++l)
 	{
 		if (*f == '$')
 		{
+			++l;
 			++f;
 			if (*f == '$') buffer2[d++] = cur_color | '$';
 			else if (*f >= 'a') cur_color = (cur_color & 0xF000) | ((*f-'a'+10) << 8);
@@ -43,7 +57,7 @@ void Printf(char *fmt, ...)
 		{
 			if (cursor_address >= screen_width*(screen_height-1))
 			{
-				scroll_screen_up(1);
+				scroll_screen_up(1, /*scroll_text_cursor=*/0);
 				cursor_address = ((cursor_address / screen_width)) * screen_width;
 			}
 			else
@@ -52,12 +66,8 @@ void Printf(char *fmt, ...)
 		else
 			B800h[cursor_address++] = buffer2[i];
 	}
-	REGS q;
-	q.h.ah = 0x02;
-	q.h.bh = 0;
-	q.h.dh = cursor_address / screen_width;
-	q.h.dl = cursor_address % screen_width;
-	int86(0x10, &q, &q);
+	set_cursor_pos(cursor_address % screen_width,
+		cursor_address / screen_width);
 }
 
 /*
@@ -105,7 +115,7 @@ void print_cap(const char *name, int supported)
 	Printf(" [%c] %s", supported ? 'x' : ' ', name);
 }
 
-void scroll_screen_up(int lines)
+void scroll_screen_up(int lines, int scroll_text_cursor)
 {
 	REGS r = {0};
 	r.h.ah = 6;
@@ -114,6 +124,14 @@ void scroll_screen_up(int lines)
 	r.h.dh = screen_height;
 	r.h.dl = screen_width;
 	int86(0x10, &r, &r);
+
+	if (scroll_text_cursor)
+	{
+		// todo use custom functions
+		int x = wherex();
+		int y = wherey();
+		gotoxy(x, y-lines);
+	}
 }
 
 void print_no_newlines(char far *ptr)

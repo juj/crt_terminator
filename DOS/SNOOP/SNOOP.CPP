@@ -18,6 +18,8 @@
 #include "crttscan.h"
 #include "quirks.h"
 #include "perf.h"
+#include "lightpen.h"
+#include "vintr.h"
 
 #include "cirrus.h"
 #include "s3.h"
@@ -85,7 +87,8 @@ int main(int argc, char **argv)
 	if (opt("log")) set_log_stdout_enabled(1);
 	if (opt("logfile")) set_log_file_enabled(1);
 
-//test();
+	int fires_vret_interrupt = test_fires_vertical_retrace_interrupt();
+	int supports_lightpen_rng = test_supports_lightpen_rng();
 
 	int workaround_mode = opt("tseng") ? 1 : (opt("trident") ? 2 : 0);
 	if (opt("vga_addr1")) test_tseng_256k_wraparound_bug(1, workaround_mode);
@@ -165,6 +168,11 @@ int main(int argc, char **argv)
 	test_adapter(detect_genoa);
 	detect_vesa_xga();
 	print_video_bios_info();
+
+	Printf("        VGA Caps:");
+	print_cap("IRQ2", fires_vret_interrupt);
+	print_cap("lp-rng", supports_lightpen_rng);
+	Printf("$7\n");
 
 	detect_hidden_ramdac_register();
 

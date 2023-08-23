@@ -3,6 +3,7 @@
 #include "vec.h"
 #include "vbios.h"
 #include "text.h"
+#include "log.h"
 
 #include <dos.h>
 #include <string.h>
@@ -111,14 +112,17 @@ const char *bpp_to_str(int bpp)
 
 void vesa_print_info()
 {
+	LOG("VESA");
 	int vesa_version = vesa_detect();
 	Printf("            VESA: ");
 	if (!vesa_version)
 	{
+		log("Not supported.");
 		Printf("$8Not supported.$7\n");
 		return;
 	}
 	Printf("$3%d.%d$7", vesa_version>>8, vesa_version&0xff);
+	Log << "Version " << (vesa_version>>8) << "." << (vesa_version&0xff) << "\n";
 
 	if (vbe.version >= 0x0101) // Acumos AVGA2 is VBE 1.1 and implements VRAM field
 	{
@@ -165,101 +169,40 @@ void vesa_print_info()
 		Printf("$7\n");
 	}
 
-	if (!vbe.modes) return;
+	if (!vbe.modes)
+	{
+		log("Acquired VBE modes pointer is null!");
+		return;
+	}
 
 	vec<char> bpp;
 	vec<res> gfxs;
 	vec<res> texts;
 
 	for(unsigned int far *m = vbe.modes; *m != 0xFFFF; ++m)
-		if (get_mode_info(*m))
-		{
-			if (is_text_mode(&mode))
-			{
-				res r = { mode.height, mode.width };
-				if (texts.find(r) < 0) texts.push(r);
-			}
-			else
-			{
-				res r = { mode.width, mode.height };
-				if (bpp.find(mode.bits_per_pixel) < 0) bpp.push(mode.bits_per_pixel);
-				if (gfxs.find(r) < 0) gfxs.push(r);
-			}
-		}
-
-#if 0
-		// xxxxxxxxxxxxxx
-	for(m = vbe.modes; *m != 0xFFFF; ++m)
-		if (get_mode_info(*m) && mode.width == 640 && mode.height == 480 && mode.bits_per_pixel >= 24)
-		{
-			set_vesa_mode(*m);
-			int failed = 0;
-#if 0 /// S3 test
-
-	write_seq(0x08, 0x06); // Unlock S3 extension registers
-	write_3d4(0x39, 0xA5);
-
-	unsigned int x = read_seq(0x0B);
 	{
-		x &= 15;
-		x |= 0x78;
-		sound(440); delay(10); nosound();
-		write_seq(0x0B, x);
-		x = read_seq(0x0B);
-		if ((x & 0x78) != 0x78) failed = 1;
+		if (!get_mode_info(*m))
+		{
+			Log << "BIOS call for get VESA mode info for mode " << hex(*m) << " failed!\n";
+			continue;
+		}
+		Log << hex(*m) << ": " << mode.width << "x" << mode.height << "@" << mode.bits_per_pixel << "\n";
+		if (is_text_mode(&mode))
+		{
+			res r = { mode.height, mode.width };
+			if (texts.find(r) < 0) texts.push(r);
+		}
+		else
+		{
+			res r = { mode.width, mode.height };
+			if (bpp.find(mode.bits_per_pixel) < 0) bpp.push(mode.bits_per_pixel);
+			if (gfxs.find(r) < 0) gfxs.push(r);
+		}
 	}
 
-	x = read_3d4(0x67);
-	write_3d4(0x67, x & 15);
-	x = read_3d4(0x67);
-	if ((x & ~15)) failed = 1;
-#endif
-
-	disable();
-	int hidden_dac_value = read_hidden_dac();
-	int n = hidden_dac_value | 0x20;
-	write_hidden_dac(n);
-	int new_dac = read_hidden_dac();
-
-	outp(0x3CE, 0x0e);
-	int a = inp(0x3CF);
-	outp(0x3CF, a | 1);
-	enable();
-
-
-
-			getch();
-
-			REGS r;
-			r.x.ax = 0x03;
-			int86(0x10, &r, &r);
-
-	printf("prev: %02X, now: %02X, a: %02X\n", hidden_dac_value, new_dac, a);
-
-			if (failed) {
-			printf("FAILED!\n");
-			}
-			getch();
-
-			break;
-		}
-		//xxxxxxxxxxxxxxxxxx
-#endif
-						/*
-	for(int z = 0; z < 10; ++z)
-	{
-		scroll_screen_up(3);
-		getch();
-		printf("X");
-		getch();
-		printf("\n");
-		getch();
-	}
-	*/
 	bpp.sort();
 	gfxs.sort();
 	texts.sort();
-//	scroll_screen_up(gfxs.size()+4);
 
 	if (texts.size() > 0)
 	{
@@ -283,11 +226,15 @@ void vesa_print_info()
 
 	if (gfxs.size() == 0) return;
 
-	int x0 = wherex() + 18, y0 = wherey() + 1;
-
 	Printf("  VESA Gfx modes: $6");
 	for(int i = 0; i < bpp.size(); ++i) Printf("%s ", bpp_to_str(bpp[i]));
 	Printf("\n");
+
+	int lines_left = get_cur_text_screen_height() - wherey();
+	if (gfxs.size() > lines_left)
+		scroll_screen_up(gfxs.size()-lines_left);
+
+	int x0 = wherex() + 18, y0 = wherey();
 	for(i = 0; i < gfxs.size(); ++i)
 		Printf("        %4dx%4d\n", gfxs.data[i].w, gfxs.data[i].h);
 	Printf("$7");
@@ -297,6 +244,7 @@ void vesa_print_info()
 			legend_no_windowed = 0, legend_no_vga = 0, legend_no_bios_text = 0,
 			legend_dbl_scan = 0, legend_interlaced = 0, legend_triple_buffering = 0,
 			legend_hw_stereo = 0, legend_dual_disp_start = 0;
+
 	for(m = vbe.modes; *m != 0xFFFF; ++m)
 		if (get_mode_info(*m) && !is_text_mode(&mode))
 		{
@@ -314,7 +262,7 @@ void vesa_print_info()
 				// We have very little space, so only can show one
 				// attribute bit. Choose which attribute to show
 				// by ordering from most interesting to least interesting.
-				Printf(mode.attr&16?"$B":"$7"); // color/mono mode?
+				Printf((mode.attr&16)?"$B":"$7"); // color/mono mode?
 				if (!(mode.attr&16)) legend_mono = 1;
 				if (vbe.version >= 0x0200 && !(mode.attr&128)) // no linear framebuffer available?
 				{
