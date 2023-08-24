@@ -88,6 +88,11 @@ void pci_write_u16(pcidev_t dev, int reg_number, unsigned int value)
 	}
 }
 
+int pci_support_66mhz(pcidev_t dev)
+{
+	return pci_read_u16(dev, 0x06) & 0x20;
+}
+
 void log_pci_info(pcidev_t dev)
 {
 	LOG("pci");

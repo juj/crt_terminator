@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+unsigned int far *B800h = (unsigned int far *)MK_FP(0xB800, 0);
+
 int screen_width = 80, screen_height = 25;
 
 static char buffer[256];
@@ -21,6 +23,48 @@ void set_cursor_pos(int x, int y)
 	q.h.dh = y;
 	q.h.dl = x;
 	int86(0x10, &q, &q);
+}
+
+static int num_lines_printed = 0;
+
+int set_80x50_text_mode() // returns 1 on success
+{
+	if (get_cur_video_mode() != 0x03) return 0;
+	REGS r = {0};
+	r.x.ax = 0x1112; // Enable 8x8 font for 80x50 in VGA
+	int86(0x10, &r, &r);
+	screen_height = 50;
+	return 1;
+}
+
+static int mode_80x50_disabled = 0;
+void disable_80x50_mode()
+{
+	mode_80x50_disabled = 1;
+}
+
+static void write_text_on_screen(unsigned int ofs, const char *text)
+{
+	while (*text) B800h[ofs++] = 0x0700 | (unsigned char)*text++;
+}
+
+// Call when starting a new line
+void ensure_output_log_fits()
+{
+	++num_lines_printed;
+	if (num_lines_printed == 24)
+	{
+		if (!mode_80x50_disabled) set_80x50_text_mode();
+		else
+		{
+			unsigned int save[80];
+			unsigned int ofs = screen_width*(screen_height-1);
+			_fmemcpy(save, &B800h[ofs], sizeof(save));
+			write_text_on_screen(ofs, " --- more ---");
+			getch();
+			_fmemcpy(&B800h[ofs], save, sizeof(save));
+		}
+	}
 }
 
 void Printf(char *fmt, ...)
@@ -50,11 +94,11 @@ void Printf(char *fmt, ...)
 		++f;
 	}
 	unsigned int cursor_address = ((unsigned int)inp_3d4(0x0E) << 8) | inp_3d4(0x0F);
-	unsigned int far *B800h = (unsigned int far *)MK_FP(0xB800, 0);
 	for(int i = 0; i < d; ++i)
 	{
 		if ((buffer2[i] & 0xFF) == '\n')
 		{
+			ensure_output_log_fits();
 			if (cursor_address >= screen_width*(screen_height-1))
 			{
 				scroll_screen_up(1, /*scroll_text_cursor=*/0);

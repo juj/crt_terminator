@@ -3,25 +3,6 @@
 #include <conio.h>
 #include <dos.h>
 
-// This is a rng method that washes the biased entropy source
-// from the Light Pen input register by mixing it through a small
-// 8-tap LFSR.
-static unsigned char p = 0, s = 0;
-unsigned char random_u8_lfsr()
-{
-	disable();
-	outp(0x3D4, 0x10);
-	unsigned char rng = inp(0x3D5);
-	outp(0x3D4, 0x11);
-	rng ^= inp(0x3D5);
-	enable();
-#define WASH() s = rng ^ (s<<1) ^ (((s>>7)^(s>>5)^(s>>4)^(s>>3)^1)&1)
-	WASH();
-	if ((rng-p)&1) WASH();
-	p = rng;
-	return s;
-}
-
 int test_supports_lightpen_rng()
 {
 	NO_INTR_SCOPE();
@@ -37,7 +18,8 @@ int test_supports_lightpen_rng()
 	int num_distinct = 0;
 	for(int i = 0; i < 64; ++i)
 	{
-		unsigned char maybe_random = random_u8_lfsr();
+		unsigned char maybe_random = inp(0x3D5);
+		delay(1);
 		num_distinct += 1-seen[maybe_random];
 		seen[maybe_random] = 1;
 	}

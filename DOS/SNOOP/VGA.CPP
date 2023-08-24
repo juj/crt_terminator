@@ -350,7 +350,7 @@ void view_vga_registers(int (*read_func)(int port, int subreg), int port, const 
 
 	unsigned char regs[256] = {0};
 	unsigned char writable_bits[256] = {0};
-	unsigned char ramdac = 0xCC;
+//	unsigned char ramdac = 0xCC;
 
 	int num_regs = 256;
 

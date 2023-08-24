@@ -50,7 +50,6 @@ void detect_hidden_ramdac_register()
 	random_fill_vga_memory(1);
 */
 
-	int reads = 0;
 	// Probe port 3C6h to see if it changes values when read multiple times.
 	// But in order to do that reliably, so that we don't miss the case if
 	// the RAMDAC value might have the same value as the write mask value,
@@ -62,63 +61,47 @@ void detect_hidden_ramdac_register()
 	for(int i = 0; i < 64; ++i)
 	{
 		unsigned char v = inp(0x3C6);
-		if (write_mask_value == v) { ++write_mask_value; i = 0; }
+		if (write_mask_value == v)
+		{
+			inp(0x3C8); // Clear old 03C6h read/write counter state to restart search from scratch
+			++write_mask_value;
+			i = 0;
+		}
 	}
 
 	// Now we have a write mask value that is different from any of the
-	// values that the hidden RAMDAC register currently has. Apply that
-	// value.
+	// values that the hidden RAMDAC register currently has (even if the
+	// RAMDAC register consists of multiple bytes). Apply that value.
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 	outp(0x3C6, write_mask_value); // Set write mask value
 	inp(0x3C8); // Clear again for good measure
 	// Find how many times the register needs to be read to access the
-	// hidden RAMDAC register, and read the RAMDAC register values.
+	// hidden RAMDAC register, and read all the RAMDAC register values.
 	// VGADOC RAMDAC.TXT states that there may be a complex access pattern
 	// sequence that will be seen, so read multiple values.
-	for(i = 0; i < 16; ++i)
+	unsigned char ramdac_register_length = 0;
+	for(i = 0; i < 64; ++i)
 	{
 		unsigned char maybe_ramdac_value = inp(0x3C6);
 		if (maybe_ramdac_value == write_mask_value) continue;
 
-		reads = i;
+		hidden_ramdac_numreads = i;
 		ramdac_values[0] = maybe_ramdac_value;
-		for(int j = 1; j < SZ; ++j) ramdac_values[j] = inp(0x3C6);
+		ramdac_register_length = 1;
+		ramdac_access_type = "once";
+		while(ramdac_register_length < 64)
+		{
+			ramdac_values[ramdac_register_length] = inp(0x3C6);
+			if (ramdac_values[ramdac_register_length] == write_mask_value) break;
+			if (ramdac_register_length == 1) ramdac_access_type = "unlock";
+			if (ramdac_values[ramdac_register_length] != ramdac_values[ramdac_register_length-1])
+				ramdac_access_type = "complex";
+			++ramdac_register_length;
+		}
 		break;
 	}
-/* wip
-	unsigned char val = read_hidden_ramdac_register(reads);
-	getch();
-	write_hidden_ramdac_register(reads, ~val);// & ~(33));
-	unsigned char val2 = read_hidden_ramdac_register(reads);
-	inp(0x3C8);
-	unsigned char ii = inp(0x3C6);
-	outp(0x3C6, 0xFF);
-	enable();
-	getch();
-	set_video_mode(0x03);
-	printf("val1: %02Xh, val2: %02Xh (i=%02Xh)\n", (int)val, (int)val2, ii);
-*/
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 	outp(0x3C6, 0xFF); // Restore write mask to default value
-
-	hidden_ramdac_numreads = reads;
-	if (reads > 0)
-	{
-		// Calculate how many values we read
-		int len = 1;
-		ramdac_access_type = "once";
-		if (ramdac_values[1] != write_mask_value)
-		{
-			ramdac_access_type = "unlock";
-			// Looks like the RAMDAC register stays unlocked for reading
-			// after multiple reads. Find how many distinct values we have seen.
-			len = SZ;
-			while(len > 1 && ramdac_values[len-1] == ramdac_values[len-2])
-				--len;
-			if (len > 1) ramdac_access_type = "complex";
-		}
-		ramdac_register_length = len;
-	}
 }
 
 void print_ramdac_info()

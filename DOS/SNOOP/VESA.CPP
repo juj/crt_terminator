@@ -153,7 +153,7 @@ void vesa_print_info()
 
 	if (vbe.version >= 0x0102) // TODO: Unclear if this should be 1.2 or 1.1
 	{
-		Printf("            Caps:");
+		Printf("       VESA Caps:");
 		print_cap("8bpp-dac", vbe.caps & 1);
 		if (vbe.version >= 0x0200)
 		{

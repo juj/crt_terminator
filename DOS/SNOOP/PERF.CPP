@@ -49,7 +49,7 @@ video_speed measure_vga_mem_speed()
 
 void print_video_speed(const video_speed &vs)
 {
-	Printf("320x200 8bit R/W: $5%.3f$7/$5%.3f$7 KB/sec",
+	Printf("320x200 8bit R/W: $6%.3f$7/$6%.3f$7 KB/sec",
 		vs.read_bytes_per_second / 1024.0,
 		vs.write_bytes_per_second / 1024.0);
 
@@ -57,7 +57,7 @@ void print_video_speed(const video_speed &vs)
 	if (isa_bus_speed && isa_bus_speed != 0xFFFFFFFFul)
 	{
 		advancex(RIGHT_COLUMN - strlen("ISA bus"));
-		Printf("ISA bus: $5%.3f$7 MHz\n", isa_bus_speed / 1000000.0);
+		Printf("ISA bus: $6%.3f$7 MHz\n", isa_bus_speed / 1000000.0);
 	}
 	else
 		Printf("\n");

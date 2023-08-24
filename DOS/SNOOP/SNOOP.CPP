@@ -71,24 +71,29 @@ int main(int argc, char **argv)
 		Printf("Pass option \"nos3test\" to skip detecting S3 video cards.\n");
 		Printf("Pass option \"nomodetest\" to skip testing for buggy video mode change behavior.\n");
 		Printf("Pass option \"novesatest\" to skip testing for VESA support.\n");
+		Printf("Pass option \"noperftest\" to skip measuring VGA performance.\n");
+		Printf("Pass option \"noirqtest\" to disable SNOOP from attempting to test IRQ2/IRQ9 presence.\n");
+		Printf("Pass option \"nolightpentest\" to disable SNOOP from attempting to test light pen entropy source presence.\n");
+
+		Printf("Pass option \"no80x50\" to disable SNOOP from changing video mode to 80x50 when the output listing is too long.\n");
 		Printf("Pass option \"disable\" to instead disable snoop support.\n");
 		Printf("Pass option \"quiet\" to skip any printing.\n");
 		Printf("Pass option \"strings\" to detect any human-readable strings in Video BIOS and Option ROMs.\n");
 		Printf("Pass option \"menu\" to view an interactive menu.\n");
 		Printf("Pass option \"vga_addrX\" to interactively test VGA memory addressing support. Pass X=1,2 or 4.\n");
 		Printf("Add option \"tseng\" to apply Tseng workaround.\n");
-		Printf("Pass option \"perf\" to measure VGA performance.\n");
 		Printf("Pass option \"quirks\" to test for different VGA hardware bugs.\n");
 		Printf("Pass option \"regs\" to open a deep VGA register debugger. (! Experimental: This has theoretical chance to harm the system hardware!)\n");
 		return 0;
 	}
 
+	if (opt("no80x50")) disable_80x50_mode();
 	int quiet = opt("quiet");
 	if (opt("log")) set_log_stdout_enabled(1);
 	if (opt("logfile")) set_log_file_enabled(1);
 
-	int fires_vret_interrupt = test_fires_vertical_retrace_interrupt();
-	int supports_lightpen_rng = test_supports_lightpen_rng();
+	int fires_vret_interrupt = !opt("noirqtest") ? test_fires_vertical_retrace_interrupt() : 0;
+	int supports_lightpen_rng = !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
 
 	int workaround_mode = opt("tseng") ? 1 : (opt("trident") ? 2 : 0);
 	if (opt("vga_addr1")) test_tseng_256k_wraparound_bug(1, workaround_mode);
@@ -100,10 +105,7 @@ int main(int argc, char **argv)
 		addressing_mode_does_not_affect_scanout = 0,
 		fails_dot_clock_halving = 0;
 
-	if (opt("quirks"))
-	{
-		test_vga_quirks();
-	}
+	if (opt("quirks")) test_vga_quirks();
 
 	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
@@ -112,8 +114,6 @@ int main(int argc, char **argv)
 
 	if (found_pci_vga)
 	{
-		print_pci_info(vga);
-
 		if (!opt("nos3test")) is_s3_board = s3_enable_feature_connector(vga);
 		snoop_already_enabled = pci_is_palette_snoop_enabled(vga);
 		if (!snoop_already_enabled) enable_vga_palette_snoop(vga);
@@ -121,12 +121,7 @@ int main(int argc, char **argv)
 
 		if (!opt("nomodetest"))
 		{
-			int cur_video_mode = get_cur_video_mode();
-			REGS r;
-			r.x.ax = 0x13;
-			int86(0x10, &r, &r);
-			r.x.ax = cur_video_mode;
-			int86(0x10, &r, &r);
+			SCOPED_SET_VIDEO_MODE(0x13); // Reset video mode by switching to 13h temporarily and then back
 		}
 		snoop_enabled_after_mode_change = pci_is_palette_snoop_enabled(vga);
 		if (opt("disable")) disable_vga_palette_snoop(vga);
@@ -134,7 +129,7 @@ int main(int argc, char **argv)
 	}
 
 	video_speed vs;
-	if (opt("perf")) vs = measure_vga_mem_speed();
+	if (!opt("noperftest")) vs = measure_vga_mem_speed();
 
 	if (quiet) return 0;
 
@@ -169,14 +164,18 @@ int main(int argc, char **argv)
 	detect_vesa_xga();
 	print_video_bios_info();
 
-	Printf("        VGA Caps:");
-	print_cap("IRQ2", fires_vret_interrupt);
-	print_cap("lp-rng", supports_lightpen_rng);
+	Printf("    Adapter Caps:");
+	if (!opt("noirqtest")) print_cap("IRQ2", fires_vret_interrupt);
+	if (!opt("nolightpentest")) print_cap("lp-rng", supports_lightpen_rng);
+	// N.b. I believe this pci-66mhz cap means that the PCI device supports
+	// 66 MHz operation mode, but it does not specify whether 66 MHz mode is
+	// actually currently activated.
+	if (found_pci_vga) print_cap("pci-66mhz", pci_support_66mhz(vga));
 	Printf("$7\n");
 
 	detect_hidden_ramdac_register();
 
-	if (opt("perf")) print_video_speed(vs);
+	if (!opt("noperftest")) print_video_speed(vs);
 
 	if (!opt("novesatest")) vesa_print_info();
 

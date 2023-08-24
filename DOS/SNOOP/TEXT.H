@@ -2,6 +2,7 @@
 #define TEXT_H
 
 #define RIGHT_COLUMN 60
+void disable_80x50_mode(void);
 void set_cursor_pos(int x, int y);
 void advancex(int x);
 void print_cap(const char *name, int supported);
