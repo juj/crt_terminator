@@ -60,6 +60,7 @@ int inp_pci(int port, int idx)
 void test();
 int main(int argc, char **argv)
 {
+	init_text();
 	ac = argc; av = argv;
 	if (opt("?") || opt("/?") || opt("-?") || opt("h") || opt("-h") || opt("/h") || opt("help") || opt("-help") || opt("/help"))
 	{
@@ -72,13 +73,13 @@ int main(int argc, char **argv)
 		Printf("Pass option \"nomodetest\" to skip testing for buggy video mode change behavior.\n");
 		Printf("Pass option \"novesatest\" to skip testing for VESA support.\n");
 		Printf("Pass option \"noperftest\" to skip measuring VGA performance.\n");
-		Printf("Pass option \"noirqtest\" to disable SNOOP from attempting to test IRQ2/IRQ9 presence.\n");
-		Printf("Pass option \"nolightpentest\" to disable SNOOP from attempting to test light pen entropy source presence.\n");
+		Printf("Pass option \"noirqtest\" to disable SNOOP from attempting to test IRQ2/IRQ9\n          presence.\n");
+		Printf("Pass option \"nolightpentest\" to disable SNOOP from attempting to test light pen\nentropy source presence.\n");
 
-		Printf("Pass option \"no80x50\" to disable SNOOP from changing video mode to 80x50 when the output listing is too long.\n");
+		Printf("Pass option \"no80x50\" to disable SNOOP from changing video mode to 80x50 when\nthe output listing is too long.\n");
 		Printf("Pass option \"disable\" to instead disable snoop support.\n");
 		Printf("Pass option \"quiet\" to skip any printing.\n");
-		Printf("Pass option \"strings\" to detect any human-readable strings in Video BIOS and Option ROMs.\n");
+		Printf("Pass option \"strings\" to detect any human-readable strings in Video BIOS and\nOption ROMs.\n");
 		Printf("Pass option \"menu\" to view an interactive menu.\n");
 		Printf("Pass option \"vga_addrX\" to interactively test VGA memory addressing support. Pass X=1,2 or 4.\n");
 		Printf("Add option \"tseng\" to apply Tseng workaround.\n");

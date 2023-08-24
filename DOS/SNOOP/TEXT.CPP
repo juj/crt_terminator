@@ -15,6 +15,21 @@ static char buffer[256];
 static int buffer2[256];
 static unsigned int cur_color = 0x0700;
 
+void init_text()
+{
+	int px_height = 400;
+
+	int cur_video_mode = get_cur_video_mode();
+	if (cur_video_mode == 0x02 || cur_video_mode == 0x03)
+		screen_width = 80;
+	else if (cur_video_mode < 2)
+		screen_width = 40;
+	else if (cur_video_mode == 0x0F || cur_video_mode == 0x10)
+		px_height = 350;
+	int char_height = (inp_3d4(0x09) & 31) + 1;
+	screen_height = px_height / char_height;
+}
+
 void set_cursor_pos(int x, int y)
 {
 	REGS q;
