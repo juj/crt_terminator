@@ -27,7 +27,8 @@ void random_fill_vga_memory(int is_gfx_mode);
 int get_cur_text_screen_width(void);
 int get_cur_text_screen_height(void);
 
-void wait_for_vsync();
+int in_vsync(void);
+void wait_for_vsync(void);
 
 void print_vga_state_info(int mode);
 
@@ -153,6 +154,7 @@ public:
 };
 
 void view_vga_registers(int (*read_func)(int port, int subreg), int port, const char *title, int detect_rw);
+int print_display_combination_code(void);
 
 extern port vga_misc_output;
 

@@ -2,13 +2,15 @@
 #include "ramdac.h"
 #include "intr.h"
 #include "text.h"
+#include "debug.h"
+#include "log.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
 #include <mem.h>
 
 static int hidden_ramdac_numreads = -1;
-static int ramdac_register_length = 1;
+static int ramdac_register_length = 0;
 static const char *ramdac_access_type = "once";
 
 int has_hidden_ramdac_register()
@@ -42,8 +44,9 @@ void write_hidden_ramdac_register(unsigned char value)
 #define SZ 16
 static unsigned char ramdac_values[SZ];
 
-void detect_hidden_ramdac_register()
+int detect_hidden_ramdac_register()
 {
+	DEBUG("ramdac", "Tests if the VGA adapter has a hidden RAMDAC register at port 3C6h");
 	memset(ramdac_values, 0, sizeof(ramdac_values));
 /* wip
 	set_video_mode(0x64);
@@ -79,7 +82,7 @@ void detect_hidden_ramdac_register()
 	// hidden RAMDAC register, and read all the RAMDAC register values.
 	// VGADOC RAMDAC.TXT states that there may be a complex access pattern
 	// sequence that will be seen, so read multiple values.
-	unsigned char ramdac_register_length = 0;
+	ramdac_register_length = 0;
 	for(i = 0; i < 64; ++i)
 	{
 		unsigned char maybe_ramdac_value = inp(0x3C6);
@@ -102,6 +105,7 @@ void detect_hidden_ramdac_register()
 	}
 	inp(0x3C8); // Clear old 03C6h read/write counter state
 	outp(0x3C6, 0xFF); // Restore write mask to default value
+	return ramdac_register_length;
 }
 
 void print_ramdac_info()

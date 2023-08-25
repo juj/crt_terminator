@@ -20,6 +20,7 @@
 #include "perf.h"
 #include "lightpen.h"
 #include "vintr.h"
+#include "debug.h"
 
 #include "cirrus.h"
 #include "s3.h"
@@ -57,7 +58,27 @@ int inp_pci(int port, int idx)
 	return (unsigned char)((idx&1) ? (p>>8) : p);
 }
 
-void test();
+int is_s3_board = 0, snoop_already_enabled = 0, snoop_enabled = 0;
+int snoop_enabled_after_mode_change = 0;
+
+int enable_pci_vga_palette_snoop()
+{
+	DEBUG("pci-snoop", "Tests and enables VGA palette snoop.");
+	if (!opt("nos3test")) is_s3_board = s3_enable_feature_connector(vga);
+	snoop_already_enabled = pci_is_palette_snoop_enabled(vga);
+	if (!snoop_already_enabled) enable_vga_palette_snoop(vga);
+	snoop_enabled = pci_is_palette_snoop_enabled(vga);
+
+	if (!opt("nomodetest"))
+	{
+		SCOPED_SET_VIDEO_MODE(0x13); // Reset video mode by switching to 13h temporarily and then back
+	}
+	snoop_enabled_after_mode_change = pci_is_palette_snoop_enabled(vga);
+	if (opt("disable")) disable_vga_palette_snoop(vga);
+	else enable_vga_palette_snoop(vga);
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	init_text();
@@ -75,6 +96,7 @@ int main(int argc, char **argv)
 		Printf("Pass option \"noperftest\" to skip measuring VGA performance.\n");
 		Printf("Pass option \"noirqtest\" to disable SNOOP from attempting to test IRQ2/IRQ9\n          presence.\n");
 		Printf("Pass option \"nolightpentest\" to disable SNOOP from attempting to test light pen\nentropy source presence.\n");
+		Printf("Pass option \"noxgatest\" to disable SNOOP from attempting to check for XGA compatible BIOS presence.\n");
 
 		Printf("Pass option \"no80x50\" to disable SNOOP from changing video mode to 80x50 when\nthe output listing is too long.\n");
 		Printf("Pass option \"disable\" to instead disable snoop support.\n");
@@ -88,6 +110,8 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+	set_debug_enabled(opt("debug"));
+
 	if (opt("no80x50")) disable_80x50_mode();
 	int quiet = opt("quiet");
 	if (opt("log")) set_log_stdout_enabled(1);
@@ -95,39 +119,21 @@ int main(int argc, char **argv)
 
 	int fires_vret_interrupt = !opt("noirqtest") ? test_fires_vertical_retrace_interrupt() : 0;
 	int supports_lightpen_rng = !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
+	int is_xga_compatible = !opt("noxgatest") ? detect_vesa_xga() : 0;
 
 	int workaround_mode = opt("tseng") ? 1 : (opt("trident") ? 2 : 0);
 	if (opt("vga_addr1")) test_tseng_256k_wraparound_bug(1, workaround_mode);
 	if (opt("vga_addr2")) test_tseng_256k_wraparound_bug(2, workaround_mode);
 	if (opt("vga_addr4")) test_tseng_256k_wraparound_bug(4, workaround_mode);
 
-	int fails_vga_scroll_test = 0,
-			fails_dword_addressing_test = 0,
-		addressing_mode_does_not_affect_scanout = 0,
-		fails_dot_clock_halving = 0;
+	int fails_vga_scroll_test = crtt_fails_vga_scroll_compatibility();
+	int fails_dot_clock_halving = crtt_test_ati_incorrect_dot_clock_halving();
 
 	if (opt("quirks")) test_vga_quirks();
 
 	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
-	int is_s3_board = 0, snoop_already_enabled = 0, snoop_enabled = 0;
-	int snoop_enabled_after_mode_change = 0;
-
-	if (found_pci_vga)
-	{
-		if (!opt("nos3test")) is_s3_board = s3_enable_feature_connector(vga);
-		snoop_already_enabled = pci_is_palette_snoop_enabled(vga);
-		if (!snoop_already_enabled) enable_vga_palette_snoop(vga);
-		snoop_enabled = pci_is_palette_snoop_enabled(vga);
-
-		if (!opt("nomodetest"))
-		{
-			SCOPED_SET_VIDEO_MODE(0x13); // Reset video mode by switching to 13h temporarily and then back
-		}
-		snoop_enabled_after_mode_change = pci_is_palette_snoop_enabled(vga);
-		if (opt("disable")) disable_vga_palette_snoop(vga);
-		else enable_vga_palette_snoop(vga);
-	}
+	if (found_pci_vga) enable_pci_vga_palette_snoop();
 
 	video_speed vs;
 	if (!opt("noperftest")) vs = measure_vga_mem_speed();
@@ -162,12 +168,13 @@ int main(int argc, char **argv)
 	test_adapter(detect_video7);
 	test_adapter(detect_ahead);
 	test_adapter(detect_genoa);
-	detect_vesa_xga();
 	print_video_bios_info();
+	print_display_combination_code();
 
 	Printf("    Adapter Caps:");
 	if (!opt("noirqtest")) print_cap("IRQ2", fires_vret_interrupt);
 	if (!opt("nolightpentest")) print_cap("lp-rng", supports_lightpen_rng);
+	if (!opt("noxgatest")) print_cap("XGA", is_xga_compatible);
 	// N.b. I believe this pci-66mhz cap means that the PCI device supports
 	// 66 MHz operation mode, but it does not specify whether 66 MHz mode is
 	// actually currently activated.
@@ -218,6 +225,7 @@ int main(int argc, char **argv)
 		Printf("\n$EThis adapter does not properly implement VGA hardware scroll wrapping near the\n");
 		Printf("256KB address limit. Keen games will need SVGA Compatibility option enabled.$7\n");
 	}
+/*
 	if (addressing_mode_does_not_affect_scanout)
 	{
 		Printf("\n$EAdjusting pixel addressing mode on this adapter (BYTE/DWORD) does not affect\n");
@@ -228,6 +236,7 @@ int main(int argc, char **argv)
 		Printf("\n$EThis adapter does not properly implement VGA address decoding in unchained\n");
 		Printf("DWORD mode.$7\n");
 	}
+*/
 	if (fails_dot_clock_halving)
 	{
 		if (fails_dot_clock_halving == 2)

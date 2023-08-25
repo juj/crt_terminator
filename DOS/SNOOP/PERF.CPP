@@ -3,12 +3,16 @@
 #include "tick.h"
 #include "crtt.h"
 #include "text.h"
+#include "debug.h"
 #include <stdio.h>
 #include <string.h>
 
 video_speed measure_vga_mem_speed()
 {
-	video_speed v;
+	video_speed v = {0};
+	if (!prompt_debug_run("benchmark-vga-speed", "Measures what the read/write speed of VGA memory is in 320x200 Mode 13h (individual byte/pixel accesses)"))
+		return v;
+
 	SCOPED_SET_VIDEO_MODE(0x13);
 	// Measure VGA Mode 13h Chained video read speed.
 	tick_t t0 = tick();

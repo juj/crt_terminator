@@ -2,6 +2,7 @@
 #include "intr.h"
 #include "vga.h"
 #include "log.h"
+#include "debug.h"
 
 #include <stdio.h>//xxx
 #include <stdlib.h>//xxx
@@ -61,7 +62,7 @@ static void set_interrupt_vector(unsigned char vector, INTERRUPT_PROC new_vector
 
 int test_fires_vertical_retrace_interrupt()
 {
-	LOG("vertical-retrace");
+	DEBUG("vertical-retrace", "Tests whether VGA adapter provides the IRQ2/IRQ9 vertical retrace interrupt.");
 
 	log("Before test start, enabled hardware interrupts:");
 	prev_masked_irqs = ((unsigned int)inp(0xA1) << 8) | (unsigned char)inp(0x21);

@@ -3,13 +3,14 @@
 #include "crtt.h"
 #include "crttscan.h"
 #include "log.h"
+#include "debug.h"
 #include <dos.h>
 #include <string.h>
 #include <stdio.h>
 
 int detect_ati(char *dst)
 {
-	LOG("ATI");
+	DEBUG("ATI", "Detects if current VGA adapter is from ATI.");
 	unsigned char far *vbios = (unsigned char far*)MK_FP(0xC000, 0);
 	if (_fstrncmp(&vbios[0x31], "761295520", 9))
 	{
@@ -63,6 +64,7 @@ int detect_ati(char *dst)
 int crtt_test_ati_incorrect_dot_clock_halving()
 {
 	if (!detect_crtt()) return 0;
+	DEBUG("pixel-clock-halving", "Tests whether VGA adapter correctly halves the pixel clock for Mode 13h and other 320 pixels wide modes.");
 	SCOPED_SET_VIDEO_MODE(0x13);
 	/* Looks like this does not quite work? Did I misinterpret this
 	register, or do a mistake in implementation?

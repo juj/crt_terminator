@@ -2,6 +2,7 @@
 #include "vga.h"
 #include "log.h"
 #include "intr.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 
@@ -41,7 +42,7 @@ int has_hidden_dac_register()
 
 int detect_cirrus_logic(char *dst)
 {
-	LOG("Cirrus");
+	DEBUG("Cirrus", "Detects if current VGA adapter is from Cirrus Logic.");
 	NO_INTR_SCOPE();
 	// CL-GD542X Technical Manual, chapter 9.1 has
 	// example code on how to identify a CL card. However

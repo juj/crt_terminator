@@ -2,12 +2,13 @@
 #include "vga.h"
 #include "vbios.h"
 #include "log.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 
 int detect_genoa(char *dst)
 {
-	LOG("Genoa");
+	DEBUG("Genoa", "Detects if current VGA adapter is from Genoa.");
 
 	if (!find_vbios_string("GENOA"))
 	{

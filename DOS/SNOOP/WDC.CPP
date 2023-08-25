@@ -1,6 +1,7 @@
 #include "wdc.h"
 #include "vga.h"
 #include "log.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 #include <string.h>
@@ -16,7 +17,7 @@ static vga_port
 
 int detect_wdc(char *dst)
 {
-	LOG("Paradise/WDC");
+	DEBUG("Paradise/WDC", "Detects if current VGA adapter is from Paradise/WDC.");
 	// On Paradise and WDC cards, bits 0-2 in register 03CEh:0Fh
 	// are a lock register that locks read/write access to
 	// extended registers 03CEh:09h-0Fh

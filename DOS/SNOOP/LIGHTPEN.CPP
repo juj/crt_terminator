@@ -1,10 +1,12 @@
 #include "lightpen.h"
 #include "intr.h"
+#include "debug.h"
 #include <conio.h>
 #include <dos.h>
 
 int test_supports_lightpen_rng()
 {
+	DEBUG("lightpen-rng", "Tests whether VGA adapter provides free-running Light Pen Address counter registers that can be used as an entropy source.");
 	NO_INTR_SCOPE();
 	outp(0x3D4, 0x11);
 	unsigned char c11 = inp(0x3D5);

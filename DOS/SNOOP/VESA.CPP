@@ -4,6 +4,7 @@
 #include "vbios.h"
 #include "text.h"
 #include "log.h"
+#include "debug.h"
 
 #include <dos.h>
 #include <string.h>
@@ -110,16 +111,16 @@ const char *bpp_to_str(int bpp)
 	return tmp;
 }
 
-void vesa_print_info()
+int vesa_print_info()
 {
-	LOG("VESA");
+	DEBUG("VESA", "Detects and prints VESA mode information.");
 	int vesa_version = vesa_detect();
 	Printf("            VESA: ");
 	if (!vesa_version)
 	{
 		log("Not supported.");
 		Printf("$8Not supported.$7\n");
-		return;
+		return 0;
 	}
 	Printf("$3%d.%d$7", vesa_version>>8, vesa_version&0xff);
 	Log << "Version " << (vesa_version>>8) << "." << (vesa_version&0xff) << "\n";
@@ -172,7 +173,7 @@ void vesa_print_info()
 	if (!vbe.modes)
 	{
 		log("Acquired VBE modes pointer is null!");
-		return;
+		return 0;
 	}
 
 	vec<char> bpp;
@@ -224,7 +225,7 @@ void vesa_print_info()
 		Printf("$7\n");
 	}
 
-	if (gfxs.size() == 0) return;
+	if (gfxs.size() == 0) return 0;
 
 	Printf("  VESA Gfx modes: $6");
 	for(int i = 0; i < bpp.size(); ++i) Printf("%s ", bpp_to_str(bpp[i]));
@@ -337,5 +338,5 @@ void vesa_print_info()
 		if (legend_no_bios_text) Printf("[b] No BIOS TTY ");
 		Printf("\n");
 	}
-
+	return 1;
 }

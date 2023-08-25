@@ -3,6 +3,6 @@
 
 // This file implements unit tests for different VGA behavior
 
-void test_vga_quirks(void);
+int test_vga_quirks(void);
 
 #endif

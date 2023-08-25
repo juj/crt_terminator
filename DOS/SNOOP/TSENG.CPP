@@ -4,6 +4,7 @@
 #include "crttscan.h"
 #include "intr.h"
 #include "key.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
@@ -18,7 +19,7 @@ port mda_3bf(0x3BF),
 
 int detect_tseng(char *dst)
 {
-	LOG("Tseng");
+	DEBUG("Tseng", "Detects if current VGA adapter is from Tseng.");
 	NO_INTR_SCOPE();
 	// Unlock Tseng 'KEY' by writing to Hercules Compat register
 	// and Mode Control register

@@ -1,4 +1,7 @@
 #include "vesaxga.h"
+#include "log.h"
+#include "debug.h"
+#include "text.h"
 #include <dos.h>
 #include <stdio.h>
 
@@ -31,16 +34,15 @@ void xga_set_feature_connector_state(int enabled, int is_output)
 	r.x.bx = enabled | (is_output << 1);
 	r.x.dx = 0;
 	int86(0x10, &r, &r);
-	if (r.x.ax != 0x004E)
-		printf("XGA set feature connector state failed!\n");
-	else
-		printf("XGA feature connector is now in output mode!\n");
+	if (r.x.ax != 0x004E) log("XGA set feature connector state failed!");
+	else log("XGA feature connector is now in output mode!");
 }
 
 void print_field(int pad_length, const char *field_name, char far *value, int nl);
 
-void detect_vesa_xga()
+int detect_vesa_xga()
 {
+	DEBUG("XGA", "Detects whether adapter supports the XGA graphics BIOS interface.");
 	REGS r;
 	SREGS s;
 	r.x.ax = 0x4E00;
@@ -50,31 +52,28 @@ void detect_vesa_xga()
 	if (r.x.ax == 0x004E)
 	{
 		const char *bus[4] = { "MCA", "ISA", "EISA", "?" };
-		printf("VESA XGA: Supported on bus: %s. ", bus[xga.env_flags&0x03]);
-		if ((xga.env_flags&4)) printf("Bus mastering.\n");
-		else printf("No bus mastering.\n");
-		/*
-		printf("Flags: %08lXh. # of XGA adapters: %d\n",
-			bus[xga.env_flags&0x03], ?1:0,
-			xga.env_flags, xga.num_adapters);
-		*/
-		print_field(10, "XGA OEM", xga.oem, 1);
+		Log << "VESA XGA: Is supported on bus: " << bus[xga.env_flags&0x03];
+		if ((xga.env_flags&4)) Log << ", bus mastering.\n";
+		else Log << ", not bus mastering.\n";
+		Log << "Flags: " << hex(xga.env_flags) << "\n";
+		Log << "# of XGA adapters: " << xga.num_adapters << "\n";
+		Log << "XGA OEM: " << xga.oem << "\n";
+//		print_field(10, "XGA OEM", xga.oem, 1);
 		int state = xga_get_feature_connector_state();
-		if (!(state & 1)) printf("XGA: Feature connector disabled.\n");
-		else printf("XGA: Feature connector enabled as %s.\n", (state & 2) ? "output" : "input");
+		if (!(state & 1)) Log << "XGA: Feature connector disabled.\n";
+		else Log << "XGA: Feature connector enabled as " << ((state & 2) ? "output" : "input") << "\n";
 		if ((state & 3) != 3)
 		{
 			xga_set_feature_connector_state(1, 1);
 			if ((xga_get_feature_connector_state() & 3) == 3)
-				printf("Successfully enabled feature connector as output.\n");
+				Printf("Successfully enabled XGA feature connector as output.\n");
 			else
-				printf("Failed to enable feature connector as output!\n");
+				Printf("Failed to enable XGA feature connector as output!\n");
 		}
+		return 1;
 	}
-	/*
-	else
-		printf("VESA XGA not detected.\n");
-	*/
+	Log << "Not detected.\n";
+	return 0;
 }
 
 

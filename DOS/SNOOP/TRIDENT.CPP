@@ -2,13 +2,14 @@
 #include "vga.h"
 #include "log.h"
 #include "intr.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 #include <string.h>
 
 int detect_trident(char *dst)
 {
-	LOG("Trident");
+	DEBUG("Trident", "Detects if current VGA adapter is from Trident.");
 	NO_INTR_SCOPE();
 	// Trident boards have this uniquely interesting register
 	// 03C4h:0Eh that flips the second bit written to it,

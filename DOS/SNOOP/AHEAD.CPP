@@ -3,6 +3,7 @@
 #include "vbios.h"
 #include "log.h"
 #include "intr.h"
+#include "debug.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -12,7 +13,7 @@ static vga_port
 
 int detect_ahead(char *dst)
 {
-	LOG("Ahead");
+	DEBUG("Ahead", "Detects if current VGA adapter is from Ahead.");
 	// First check BIOS memory area if we can find an AHEAD bios.
 	if (!find_vbios_string("AHEAD"))
 	{

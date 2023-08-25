@@ -3,6 +3,7 @@
 #include "vbios.h"
 #include "log.h"
 #include "intr.h"
+#include "debug.h"
 #include <conio.h>
 #include <stdio.h>
 
@@ -77,7 +78,7 @@ static vga_port
 
 int detect_oak(char *dst)
 {
-	LOG("Oak");
+	DEBUG("Oak", "Detects if current VGA adapter is from Oak.");
 
 	// First check BIOS memory area if we can find an OAK bios.
 	if (!find_vbios_string("OAK TECHNOLOGY"))

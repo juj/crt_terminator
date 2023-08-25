@@ -4,6 +4,7 @@
 #define RIGHT_COLUMN 60
 void init_text();
 void disable_80x50_mode(void);
+int get_cursor_offset(void);
 void set_cursor_pos(int x, int y);
 void advancex(int x);
 void print_cap(const char *name, int supported);

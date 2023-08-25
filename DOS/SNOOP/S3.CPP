@@ -2,6 +2,7 @@
 #include "vga.h"
 #include "log.h"
 #include "intr.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 
@@ -36,7 +37,7 @@ int s3_enable_feature_connector(pcidev_t vga)
 
 int detect_s3(char *dst)
 {
-	LOG("S3");
+	DEBUG("S3", "Detects if current VGA adapter is from S3.");
 	NO_INTR_SCOPE();
 	// The following code is adapted from S3.txt, s3_trio64v+.pdf and
 	// book Programmer's Guide to the EGA, VGA and Super VGA cards.

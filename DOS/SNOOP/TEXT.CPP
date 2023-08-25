@@ -58,6 +58,11 @@ void disable_80x50_mode()
 	mode_80x50_disabled = 1;
 }
 
+int get_cursor_offset(void)
+{
+	return (wherey()-1) * screen_width + (wherex()-1);
+}
+
 static void write_text_on_screen(unsigned int ofs, const char *text)
 {
 	while (*text) B800h[ofs++] = 0x0700 | (unsigned char)*text++;

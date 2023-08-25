@@ -7,6 +7,7 @@
 #include "log.h"
 #include "ati.h"
 #include "bmp.h"
+#include "debug.h"
 #include <mem.h>
 #include <time.h>
 #include <conio.h>
@@ -262,6 +263,7 @@ void set_pixel_unchained_linearized(int addressing_mode,
 int crtt_fails_vga_scroll_compatibility()
 {
 	if (!detect_crtt()) return 0;
+	DEBUG("vga-scroll", "Tests whether VGA adapter correctly implements VGA scrolling wraparound at 256KB memory limit (if not, needs Keen \"SVGA Compatibility\" option).");
 	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	vga_clear_bits(0x3C4, 0x04, 8); // Enable unchained mode
 	clear_256kb_vga_mem();
@@ -819,36 +821,7 @@ CRTT_TEST(host_odd_even_doesnt_affect_scanout)
 		FAIL("Host Odd/Even register should not affect pixel data scanout, but it did");
 }
 
-// This test checks if the Light Pen registers can be used to generate
-// random numbers
-TEST(light_pen_rng)
-	vga_port c11(0x3D4, 0x11), c03(0x3D4, 0x03);
-	vga_port_save sc11(c11), sc03(c03);
-	// First remove write protect on register 3D4h/03h
-	c11.clear_bits(0x80);
-	// Then unmask access to reading Light Pen registers
-	c03.clear_bits(0x80);
-
-	if ((inp_3d4(0x03)>>7)) FAIL("Was unable to enable access to Light Pen registers");
-	// Print some values of the register to user
-	Log << "Light Pen Low Address values: " <<
-		hex(inp_3d4(0x11)) << " " << hex(inp_3d4(0x11)) << " " << hex(inp_3d4(0x11)) << " " << hex(inp_3d4(0x11)) << " " << hex(inp_3d4(0x11)) << "\n";
-
-	// Read 8-bit lsb Light Pen Low Address register
-	unsigned char maybe_rng = inp_3d4(0x11);
-	// Keep reading again, and observe if the value changes.
-	int fail = 1;
-	for(int i = 0; i < 128; ++i)
-		if (inp_3d4(0x11) != maybe_rng)
-		{
-			fail = 0;
-			break;
-		}
-	if (fail)
-		FAIL("3D4h/11h does not provide access to a free-running memory address counter");
-}
-
-void test_vga_quirks()
+int test_vga_quirks()
 {
 //	test_vga_mode_registers();
 	//test_vga_ram_enable();
@@ -864,7 +837,6 @@ void test_vga_quirks()
 	test_vga_host_odd_even_affects_decoding();
 	test_vga_host_odd_even_doesnt_affect_scanout();
 */
-	test_vga_light_pen_rng();
 
 //	test2();
 
@@ -877,4 +849,5 @@ void test_vga_quirks()
 	crtt_test_addressing_mode_does_not_affect_scanout();
 	crtt_test_ati_incorrect_dot_clock_halving();
 	*/
+	return 0;
 }

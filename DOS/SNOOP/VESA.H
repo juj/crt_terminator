@@ -59,6 +59,6 @@ struct modeinfo
 extern vbeinfo vbe;
 
 int vesa_detect(void);
-void vesa_print_info(void);
+int vesa_print_info(void);
 
 #endif

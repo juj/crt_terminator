@@ -2,11 +2,12 @@
 #include "vbios.h"
 #include "vga.h"
 #include "log.h"
+#include "debug.h"
 #include <stdio.h>
 
 int detect_video7(char *dst)
 {
-	LOG("Video7");
+	DEBUG("Video7", "Detects if current VGA adapter is from Headland/Video 7.");
 	// First check BIOS memory area if we can find a Video 7 bios.
 	if (!find_vbios_string("Video Seven"))
 	{

@@ -3,6 +3,7 @@
 #include "ramdac.h"
 #include "intr.h"
 #include "text.h"
+#include "debug.h"
 #include <conio.h>
 #include <dos.h>
 #include <stdio.h>
@@ -290,15 +291,12 @@ static int block_repeats_every_n(unsigned char *regs, int n)
 	return 1;
 }
 
-//static int xxx = 0;
-//static int in_vsync() { xxx = !xxx; return xxx; }
-
-static int in_vsync() { return inp(0x3DA) & 8; }
+int in_vsync() { return inp(0x3DA) & 8; }
 
 void wait_for_vsync()
 {
-	while(!in_vsync()) /*nop*/;
 	while(in_vsync()) /*nop*/;
+	while(!in_vsync()) /*nop*/;
 }
 
 static const char hex[] = "0123456789ABCDEF";
@@ -474,4 +472,41 @@ getch();
 	_setcursortype(_NORMALCURSOR);
 //	gotoxy(1, 25);
 //	Printf("RAMDAC: %02Xh", (unsigned int)ramdac);
+}
+
+int print_display_combination_code()
+{
+	DEBUG("DCC", "Prints information about connected display and the adapter (INT:10h/AX:1A00h check).");
+
+	REGS r = {0};
+	r.h.ah = 0x1A;
+	int86(0x10, &r, &r);
+
+	Printf("   Display (DCC): ");
+	if (r.h.al != 0x1A)
+	{
+		Printf("Not supported\n");
+		return 0;
+	}
+
+	const char *possible_displays[] = {
+		"No display connected",
+		"Monochrome adapter on monochrome display",
+		"CGA on color display",
+		"Reserved",
+		"EGA on color display",
+		"EGA on monochrome display",
+		"PGA on color display",
+		"VGA on monochrome analog display",
+		"VGA on color analog display",
+		"Reserved",
+		"MCGA on digital color display",
+		"MCGA on monochrome analog display",
+		"MCGA on color analog display",
+		"Unknown",
+	};
+	unsigned char d = r.h.bl;
+	const char *display = possible_displays[d < 0xD ? d : 0xD];
+	Printf("$3%02Xh$7 - %s\n", (unsigned int)d, display);
+	return 1;
 }
