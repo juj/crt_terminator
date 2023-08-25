@@ -131,6 +131,7 @@ int main(int argc, char **argv)
 
 	if (opt("quirks")) test_vga_quirks();
 
+	int supports_pci_20 = detect_pci_20_bios_supported();
 	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
 	if (found_pci_vga) enable_pci_vga_palette_snoop();

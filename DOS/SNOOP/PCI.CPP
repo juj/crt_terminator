@@ -4,12 +4,35 @@
 #include "log.h"
 #include "intr.h"
 #include "text.h"
+#include "debug.h"
 #include <dos.h>
 #include <stdio.h>
 #include <conio.h>
 
+static int pci_20_supported = 0;
+
+int detect_pci_20_bios_supported()
+{
+	if (pci_20_supported) return 1; // Already checked?
+	DEBUG("PCI2.0-check", "Tests if BIOS supports PCI 2.0 version.");
+	REGS r = {0};
+	r.x.ax = 0xB101;
+	int86(0x1A, &r, &r);
+	if (r.h.ah != 0 || r.x.dx != 0x4350)
+	{
+		Log << "INT 1Ah/AX=B101h check failed: BIOS is not PCI 2.0 compatible. Error code: " << hex(r.h.ah) << "\n";
+		return 0;
+	}
+	Log << "BIOS supported PCI version: " << r.h.bh << "." << r.h.bl << "\n";
+	Log << "Configuration access space mechanism 1 supported: " << (r.h.al&1) << "\n";
+	Log << "Configuration access space mechanism 2 supported: " << (r.h.al&2) << "\n";
+	pci_20_supported = 1;
+	return 1;
+}
+
 int pci_get_num_buses()
 {
+	if (!pci_20_supported) return 0;
 	// http://www.ctyme.com/intr/rb-2371.htm
 	// INT 1Ah/AX=B101h - PCI BIOS v2.0c+ - INSTALLATION CHECK
 	REGS r = {0};
@@ -21,6 +44,7 @@ int pci_get_num_buses()
 
 pcidev_t pci_find_nth_device_by_class(unsigned long cls, int n)
 {
+	if (!pci_20_supported) return 0;
 	NO_INTR_SCOPE();
 	unsigned int dev, failed;
 	asm {
@@ -37,6 +61,7 @@ pcidev_t pci_find_nth_device_by_class(unsigned long cls, int n)
 
 unsigned int pci_read_u16(pcidev_t dev, int reg_number)
 {
+	if (!pci_20_supported) return 0;
 	// http://www.ctyme.com/intr/rb-2376.htm
 	// INT 1Ah/AX=B109h - PCI BIOS v2.0c+ - READ CONFIGURATION WORD
 	/*
@@ -60,6 +85,7 @@ unsigned int pci_read_u16(pcidev_t dev, int reg_number)
 
 unsigned long pci_read_u32(pcidev_t dev, int reg_number)
 {
+	if (!pci_20_supported) return 0;
 	NO_INTR_SCOPE();
 	unsigned long hi = pci_read_u16(dev, reg_number+2);
 	return (hi<<16) | pci_read_u16(dev, reg_number);
@@ -67,6 +93,7 @@ unsigned long pci_read_u32(pcidev_t dev, int reg_number)
 
 void pci_write_u16(pcidev_t dev, int reg_number, unsigned int value)
 {
+	if (!pci_20_supported) return;
 /*
 	// http://www.ctyme.com/intr/rb-2390.htm
 	// INT 1Ah/AX=B10Ch - PCI BIOS v2.0c+ - WRITE CONFIGURATION WORD
@@ -93,9 +120,10 @@ int pci_support_66mhz(pcidev_t dev)
 	return pci_read_u16(dev, 0x06) & 0x20;
 }
 
-void log_pci_info(pcidev_t dev)
+int log_pci_info(pcidev_t dev)
 {
-	LOG("pci");
+	if (!pci_20_supported) return 0;
+	DEBUG("PCI-dump", "Dumps detailed PCI adapter information to log file.");
 	Log << "Vendor ID: " << hex(pci_read_u16(dev, 0)) << "\n";
 	Log << "Device ID: " << hex(pci_read_u16(dev, 0x02)) << "\n";
 
@@ -169,6 +197,7 @@ void log_pci_info(pcidev_t dev)
 		Log << "Interrupt Pin: " << hex((int_lat>>8)&0xFF) << "\n";
 		Log << "Interrupt Line: " << hex(int_lat&0xFF) << "\n";
 	}
+	return 1;
 }
 
 int pci_is_palette_snoop_enabled(pcidev_t vga)
@@ -194,6 +223,7 @@ void disable_vga_palette_snoop(pcidev_t vga)
 
 pcidev_t find_pci_vga_adapter()
 {
+	if (!pci_20_supported) return 0;
 	// Standard PCI VGA adapters follow
 	// class 03h (display), subclass 00h (vga), programming i/f 00h
 	pcidev_t dev = pci_find_nth_device_by_class(0x30000, 0);
@@ -210,9 +240,11 @@ pcidev_t find_pci_vga_adapter()
 	return 0;
 }
 
-void print_pci_info(pcidev_t vga)
+int print_pci_info(pcidev_t vga)
 {
+	if (!pci_20_supported) return 0;
 	log_pci_info(vga);
+	DEBUG("PCI", "Prints out PCI adapter information.");
 
 	unsigned int vendor = 0, device = 0, revision = 0;
 		vendor = pci_read_u16(vga, 0);
@@ -235,5 +267,6 @@ void print_pci_info(pcidev_t vga)
 				Printf("PCI Subdevice ID: $B%04Xh  %s$7\n", subdevice, pci_subdevice_str(vendor, device, subvendor, subdevice));
 		}
 	}
+	return 1;
 }
 
