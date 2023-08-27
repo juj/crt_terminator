@@ -11,6 +11,16 @@ public:
 	T *data;
 	vec():sz(0),cap(0),data(0) {}
 	~vec() { free(data); }
+	void push_n(unsigned int n, const T &val)
+	{
+		if (sz + n > cap)
+		{
+			cap = (sz+n)+16;
+			data = (T*)realloc(data, sizeof(T)*cap);
+		}
+		for(unsigned int i = 0; i < n; ++i)
+			data[sz++] = val;
+	}
 	void push(const T &val)
 	{
 		if (sz >= cap)
@@ -36,6 +46,7 @@ public:
 				}
 	}
 	int size() const { return sz; }
+	T &operator[](int idx) { return data[idx]; }
 	const T &operator[](int idx) const { return data[idx]; }
 	void clear() { sz = 0; }
 }

@@ -20,7 +20,7 @@ void outp_3ce(int idx, int value);
 void outp_3c0(int idx, int value);
 
 int is_vga_mode_possibly_supported(int mode);
-void set_video_mode(int mode);
+int set_video_mode(int mode);
 int get_cur_video_mode();
 void random_fill_vga_memory(int is_gfx_mode);
 

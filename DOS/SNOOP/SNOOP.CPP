@@ -186,6 +186,13 @@ int main(int argc, char **argv)
 
 	if (!opt("noperftest")) print_video_speed(vs);
 
+//	if (opt("viewscan"))
+	{
+		if (load_modes_from_disk())
+			draw_crtt_scanned_modes_matrix();
+//		return 0;
+	}
+
 	if (!opt("novesatest")) vesa_print_info();
 
 	if (found_pci_vga)
@@ -249,7 +256,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (opt("crttscan"))
+	if (opt("scan"))
 	{
 		crtt_scan_video_modes();
 		log_crtt_scanned_modes();

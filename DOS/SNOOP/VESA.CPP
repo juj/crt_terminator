@@ -63,7 +63,7 @@ void fill_static_mode_info(unsigned int m)
 	}
 }
 
-int get_mode_info(unsigned int m)
+int get_vesa_mode_info(unsigned int m, modeinfo *dst)
 {
 	REGS r;
 	SREGS s;
@@ -74,7 +74,11 @@ int get_mode_info(unsigned int m)
 	memset(&mode, 0, sizeof(mode));
 	int86x(0x10, &r, &r, &s);
 	int success = (r.x.ax == 0x004F);
-	if (success) fill_static_mode_info(m);
+	if (success)
+	{
+		fill_static_mode_info(m);
+		if (dst) *dst = mode;
+	}
 	return success;
 }
 
@@ -109,6 +113,12 @@ const char *bpp_to_str(int bpp)
 	else if (bpp < 7) sprintf(tmp, "%2dc", 1<<bpp);
 	else sprintf(tmp, "%3d", 1<<bpp);
 	return tmp;
+}
+
+unsigned int far *get_vesa_modes()
+{
+	if (!vesa_detect()) return 0;
+	return vbe.modes;
 }
 
 int vesa_print_info()
@@ -182,7 +192,7 @@ int vesa_print_info()
 
 	for(unsigned int far *m = vbe.modes; *m != 0xFFFF; ++m)
 	{
-		if (!get_mode_info(*m))
+		if (!get_vesa_mode_info(*m))
 		{
 			Log << "BIOS call for get VESA mode info for mode " << hex(*m) << " failed!\n";
 			continue;
@@ -227,7 +237,7 @@ int vesa_print_info()
 
 	if (gfxs.size() == 0) return 0;
 
-	Printf("  VESA Gfx modes: $6");
+	Printf("  VESA Gfx Modes: $6");
 	for(int i = 0; i < bpp.size(); ++i) Printf("%s ", bpp_to_str(bpp[i]));
 	Printf("\n");
 
@@ -247,7 +257,7 @@ int vesa_print_info()
 			legend_hw_stereo = 0, legend_dual_disp_start = 0;
 
 	for(m = vbe.modes; *m != 0xFFFF; ++m)
-		if (get_mode_info(*m) && !is_text_mode(&mode))
+		if (get_vesa_mode_info(*m) && !is_text_mode(&mode))
 		{
 			int x = bpp.find(mode.bits_per_pixel);
 			res r = { mode.width, mode.height };

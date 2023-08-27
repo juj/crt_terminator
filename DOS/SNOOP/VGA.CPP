@@ -93,16 +93,34 @@ void outp_3c0(int sub, int val)
 	outp(0x3C0, prev);
 }
 
-void set_video_mode(int mode)
+int cur_mode_is_vesa_mode = 0;
+
+int set_video_mode(int mode)
 {
-	REGS q;
-	q.x.ax = mode;
-	int86(0x10, &q, &q);
+	REGS r = {0};
+	cur_mode_is_vesa_mode = (mode >= 0x100);
+
+	if (mode >= 0x100) // VESA mode?
+	{
+		r.x.ax = 0x4F02;
+		r.x.bx = mode;
+		int86(0x10, &r, &r);
+		return r.x.ax == 0x004F;
+	}
+	else r.x.ax = mode; // VGA mode
+	int86(0x10, &r, &r);
+	return get_cur_video_mode() == mode;
 }
 
 int get_cur_video_mode()
 {
 	REGS regs = {0};
+	if (cur_mode_is_vesa_mode)
+	{
+		regs.x.ax = 0x4F03;
+		int86(0x10, &regs, &regs);
+		return regs.x.bx;
+	}
 	regs.h.ah = 0x0F; // INT 10h, 0x0F - Get Video State
 	int86(0x10, &regs, &regs);
 	return regs.h.al;

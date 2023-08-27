@@ -15,6 +15,26 @@ int detect_video7(char *dst)
 		return 0;
 	}
 
+	// headland_v7vga.pdf data sheet page3-43:
+	// "Any value written to 3D4h/0Ch can be read back as XOR'd with EAh
+	//  at CRTC 3D4h/1Fh."
+	unsigned char r0Ch = inp_3d4(0x0C);
+	unsigned char r1Fh = inp_3d4(0x1F);
+	if (r0Ch ^ 0xEA != r1Fh)
+	{
+		log("Register 3D4h/1Fh is not equal to 3D4h/0Ch XOR EAh, cannot be Video 7 card.");
+		return 0;
+	}
+	unsigned char r0Ch_new = r0Ch|1;
+	outp_3d4(0x0C, r0Ch_new);
+	unsigned char r1Fh_new = inp_3d4(0x1F);
+	outp_3d4(0x0C, r0Ch); // restore previous value
+	if (r0Ch_new ^ 0xEA != r1Fh_new)
+	{
+		log("(2) Register 3D4h/1Fh is not equal to 3D4h/0Ch XOR EAh, not a Video 7 card.");
+		return 0;
+	}
+
 	// The following check is combined from VGADOC VIDEO7.txt
 	// and Programmer's Guide to EGA, VGA and SVGA book.
 	unsigned int ver_major = inp_vga(0x3C4, 0x8F);

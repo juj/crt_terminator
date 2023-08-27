@@ -127,6 +127,13 @@ void Printf(char *fmt, ...)
 			else
 				cursor_address = ((cursor_address / screen_width) + 1) * screen_width;
 		}
+		else if (cursor_address % screen_width == screen_width-1)
+		{
+			// Printing one more character should wrap the display.
+			B800h[cursor_address] = buffer2[i];
+			scroll_screen_up(1, /*scroll_text_cursor=*/0);
+			cursor_address = ((cursor_address / screen_width)) * screen_width;
+		}
 		else
 			B800h[cursor_address++] = buffer2[i];
 	}

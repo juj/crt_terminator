@@ -4,10 +4,29 @@
 #include "intr.h"
 #include "log.h"
 #include "key.h"
+#include "text.h"
 #include <dos.h>
 #include <conio.h>
 
 #define CONCAT(a, b) a##b
+
+int get_mode_bpp(const mode_info &m)
+{
+	if (m.is_vesa_mode) return m.vesa.bits_per_pixel;
+
+	switch((m.mi.mode_attr>>8)&3)
+	{
+	case 0:
+		if (m.mi.num_distinct_colors >= 17) return 8;
+		if (m.mi.num_distinct_colors >= 5) return 4;
+		if (m.mi.num_distinct_colors >= 3) return 2;
+		return 1;
+	case 1: return 15;
+	case 2: return 16;
+	case 3: return 24;
+	}
+	return 0;
+}
 
 // In some fields, the programmed numbers are not the exact values,
 // but are off by a few clocks due to quirks of the VGA hardware.
@@ -415,10 +434,120 @@ crtt_mode_info detect_current_mode()
 	return m;
 }
 
-static unsigned char far *addr = (unsigned char far *)MK_FP(0xA000, 0);
-static unsigned char far *addr2 = (unsigned char far *)MK_FP(0xB000, 0);
+static unsigned char far *A000h = (unsigned char far *)MK_FP(0xA000, 0);
+static unsigned char far *B000h = (unsigned char far *)MK_FP(0xB000, 0);
 
 vec<mode_info> modes;
+
+int is_stable_crtt_video_mode(const mode_info &m)
+{
+	return m.mi.max_color_id > 0 && (m.mi.mode_attr & 4)
+		&& m.mi.pixel_width >= 160 && m.mi.pixel_height >= 100;
+}
+
+void crtt_scan_mode(int mode)
+{
+	// Do not test VGA video modes that the adapter does
+	// not advertise supporting
+	if (!is_vga_mode_possibly_supported(mode)) return;
+	int success = set_video_mode(mode);
+	if (!success)
+	{
+		Log << "Unable to set video mode " << hex(mode) << " for scanning.\n";
+		return;
+	}
+
+	mode_info m = {0};
+	m.number = mode;
+	m.is_gfx_mode = inp_vga(0x3CE, 0x06)&1;
+	m.is_vesa_mode = (mode >= 0x100);
+	if (m.is_vesa_mode) get_vesa_mode_info(mode, &m.vesa);
+	random_fill_vga_memory(m.is_gfx_mode);
+	sleep(4); // Let CRTT detection settle
+	m.geom = read_crtc_geometry();
+	m.mi = detect_current_mode();
+	m.vi = get_vga_state_info();
+
+	// If CRT Terminator did not detect a scandoubled mode,
+	// detect by plotting a single pixel
+	int crtt_scandoubling = m.mi.mode_attr & 8;
+	if (m.is_gfx_mode && !crtt_scandoubling)
+	{
+		set_video_mode(mode); // Reset video mode to clear text screen
+		A000h[0] = 0xF;
+//		A000h[m.mi.pixel_width] = 0xFF;
+		sleep(2);
+		int rect[4];
+		for(int k = 0; k < 4; ++k)
+			rect[k] = crtt_read_u16(0x36+k*2);
+
+		int h = 1 + rect[3] - rect[1];
+		if (h == 2)
+		{
+			m.mi.mode_attr |= 8; // scandoubling
+			m.mi.pixel_height >>= 1;
+		}
+		/*
+		int vga_scandoubling = (unsigned char)inp_3d4(0x09) & 31;
+		int crtt_scandoubling = m.mi.mode_attr & 8;
+		if (vga_scandoubling && !crtt_scandoubling)
+			m.mi.pixel_height >>= 1;
+		*/
+	}
+
+	if (!m.is_gfx_mode)
+	{
+		set_video_mode(mode); // Reset video mode to clear text screen
+		_setcursortype(_NOCURSOR);
+		B000h[0x134] = B000h[0x8134] = '1';
+		B000h[0x135] = B000h[0x8135] = 0x7F;
+		sleep(2);
+		int rect[4];
+		for(int k = 0; k < 4; ++k)
+			rect[k] = crtt_read_u16(0x36+k*2);
+
+		int w = m.mi.pixel_width;
+		int h = m.mi.pixel_height;
+		m.char_width = 1 + rect[2] - rect[0];
+		m.char_height = 1 + rect[3] - rect[1];
+		m.text_width = (w + m.char_width/2) / m.char_width;
+		m.text_height = (h + m.char_height/2) / m.char_height;
+	}
+	else
+	{
+		int interlaced = (m.mi.mode_attr & 0x10);
+		if (interlaced) m.mi.pixel_height *= 2;
+	}
+	if (m.mi.max_color_id == 0)
+		Log << "Video mode " << hex(mode) << " gave a black screen(?)\n";
+	else if (!(m.mi.mode_attr & 4))
+		Log << "Video mode " << hex(mode) << " did not give a stable signal\n";
+	if (is_stable_crtt_video_mode(m))
+		modes.push(m);
+}
+
+int load_modes_from_disk()
+{
+	FILE *handle = fopen("modes.bin", "rb");
+	if (!handle) return 0;
+	unsigned int num_modes = 0;
+	fread(&num_modes, sizeof(unsigned int), 1, handle);
+	modes.clear();
+	mode_info empty = {0};
+	modes.push_n(num_modes, empty);
+	size_t num_read = fread(modes.data, sizeof(mode_info), num_modes, handle);
+	fclose(handle);
+	return num_read == num_modes;
+}
+
+void save_modes_to_disk()
+{
+	FILE *handle = fopen("modes.bin", "wb");
+	unsigned int num_modes = modes.size();
+	fwrite(&num_modes, sizeof(unsigned int), 1, handle);
+	fwrite(modes.data, sizeof(mode_info), modes.size(), handle);
+	fclose(handle);
+}
 
 void crtt_scan_video_modes()
 {
@@ -426,46 +555,22 @@ void crtt_scan_video_modes()
 	vga_mode_table far *mt = get_vga_mode_table();
 	srand(1);
 	SCOPED_VIDEO_MODE();
-//	for(int i = 3; i < 6/*0x80*/; ++i)
+
+	// Scan VGA modes
 	for(int i = 0; i < 0x80; ++i)
-	{
-		// Do not test VGA video modes that the adapter does
-		// not advertise supporting
-		if (!is_vga_mode_possibly_supported(i)) continue;
-		set_video_mode(i);
-		if (get_cur_video_mode() != i) continue;
-
-		mode_info m = {0};
-		m.number = i;
-		m.is_gfx_mode = inp_vga(0x3CE, 0x06)&1;
-		random_fill_vga_memory(m.is_gfx_mode);
-		sleep(4);
-		m.geom = read_crtc_geometry();
-		m.mi = detect_current_mode();
-		m.vi = get_vga_state_info();
-
-		if (!m.is_gfx_mode)
+		crtt_scan_mode(i);
+/*
+	// Scan VESA modes
+	unsigned int far *vesa_modes = get_vesa_modes();
+	if (vesa_modes)
+		while(*vesa_modes)
 		{
-			set_video_mode(i); // Reset video mode to clear text screen
-			_setcursortype(_NOCURSOR);
-			addr2[0x134] = addr2[0x8134] = '1';
-			addr2[0x135] = addr2[0x8135] = 0x7F;
-			sleep(2);
-			int rect[4];
-			for(int k = 0; k < 4; ++k)
-				rect[k] = crtt_read_u16(0x36+k*2);
-
-			int w = m.mi.pixel_width;
-			int h = m.mi.pixel_height;
-			m.char_width = 1 + rect[2] - rect[0];
-			m.char_height = 1 + rect[3] - rect[1];
-			m.text_width = (w + m.char_width/2) / m.char_width;
-			m.text_height = (h + m.char_height/2) / m.char_height;
+			// Modes [0, 0x100[ have already been scanned
+			if (*vesa_modes >= 0x100) crtt_scan_mode(*vesa_modes);
+			++vesa_modes;
 		}
-		if (m.mi.max_color_id > 0 && (m.mi.mode_attr & 4))
-			modes.push(m);
-	}
-	outp(0x3C5, 0x0F); // Restore bitplane write mask to all planes
+	*/
+	save_modes_to_disk();
 }
 
 void log_crtt_scanned_modes()
@@ -581,4 +686,126 @@ void log_crtt_scanned_modes()
 			Log << "Visible Rect: " << m->visible_rect[0] << "x" << m->visible_rect[1] << " -> " << m->visible_rect[2] << "x" << m->visible_rect[3] << "\n";
 		}
 	}
+}
+
+void draw_crtt_scanned_modes_matrix()
+{
+	// Use the VESA resolution if that is present
+	for(int i = 0; i < modes.size(); ++i)
+		if (modes[i].is_vesa_mode)
+		{
+			modes[i].mi.pixel_width = modes[i].vesa.width;
+			modes[i].mi.pixel_height = modes[i].vesa.height;
+		}
+
+	vec<int> bpp_columns;
+	for(i = 0; i < modes.size(); ++i)
+	{
+		int bpp = get_mode_bpp(modes[i]);
+		if (bpp < 1 || bpp > 32) continue;
+		if (bpp_columns.find(bpp) < 0) bpp_columns.push(bpp);
+	}
+	bpp_columns.sort();
+
+	modes.sort();
+
+	for(i = 0; i < modes.size(); ++i)
+	{
+		Log << "Mode " << hex(modes[i].number) << ", " <<
+			modes[i].mi.pixel_width << "x" << modes[i].mi.pixel_height <<
+			"@" << modes[i].mi.vsync_millihz << ", " << get_mode_bpp(modes[i]) << "\n";
+/*
+		if (!modes[i].is_gfx_mode)
+		{
+			Printf("Mode %02Xh: Text %dx%d, %dx%d font (%d colors)\n",
+				modes[i].number,
+				modes[i].text_width, modes[i].text_height,
+				modes[i].char_width, modes[i].char_height,
+				modes[i].mi.num_distinct_colors);
+		}
+*/
+	}
+
+	int first = 1;
+	int cur_column = 0;
+	Printf("(S)VGA Gfx Modes: $6");
+	for(i = 0; i < bpp_columns.size(); ++i)
+	{
+		if (bpp_columns[i] > 9) Printf("%2db ", bpp_columns[i]);
+		else if (bpp_columns[i] > 6) Printf(" %3d ", 1<<bpp_columns[i]);
+		else Printf(" %2dc", 1<<bpp_columns[i]);
+	}
+	bpp_columns.push(32767);
+	Printf("$7\n");
+	for(i = 0; i < modes.size(); ++i)
+	{
+//		Printf("%2Xh ", modes[i].number);
+		if (!modes[i].is_gfx_mode) continue;
+		if (!modes[i].is_vesa_mode && !is_stable_crtt_video_mode(modes[i]))
+			continue;
+		int res_differs = (modes[i].mi.pixel_width != modes[i-1].mi.pixel_width
+			|| modes[i].mi.pixel_height != modes[i-1].mi.pixel_height);
+//			|| (modes[i].mi.vsync_millihz + 5) / 10 != (modes[i-1].mi.vsync_millihz + 5) / 10);
+		int bpp = get_mode_bpp(modes[i]);
+		int bpp_equals = (i == 0 || bpp == get_mode_bpp(modes[i-1]));
+		if (i == 0 || res_differs// || bpp <= get_mode_bpp(modes[i-1])
+		/* || (!res_differs && bpp_equals)*/)
+		{
+			if (!first) Printf("\n");
+			first = 0;
+			// Find the refresh rate range for the modes
+			unsigned long min_vs = modes[i].mi.vsync_millihz;
+			unsigned long max_vs = modes[i].mi.vsync_millihz;
+			for(int j = i+1; j < modes.size(); ++j)
+			{
+				if (modes[i].mi.pixel_width != modes[j].mi.pixel_width
+					|| modes[i].mi.pixel_height != modes[j].mi.pixel_height
+					|| get_mode_bpp(modes[j]) == get_mode_bpp(modes[j-1]))
+					break;
+				if (modes[j].mi.vsync_millihz < min_vs) min_vs = modes[j].mi.vsync_millihz;
+				if (modes[j].mi.vsync_millihz > max_vs) max_vs = modes[j].mi.vsync_millihz;
+			}
+			Printf("$6%4d$8x$6%4d$8@",
+				modes[i].mi.pixel_width,
+				modes[i].mi.pixel_height);
+			unsigned long vs_delta = max_vs - min_vs;
+//			Printf("min vs: %d, max vs: %d\n", min_vs, max_vs);
+			unsigned long avg_vs = (min_vs + max_vs) / 2;
+			if (vs_delta < 10)
+				Printf("$6%2.2f$8Hz  ", avg_vs / 1000.0);
+			else if (vs_delta < 100)
+				Printf("$6~%2.1f$8Hz  ", avg_vs / 1000.0);
+			else if (vs_delta < 1000)
+				Printf("$6~%2.1f$8Hz  ", avg_vs / 1000.0);
+			else
+				Printf("$6%2.0f$-%2.0f8Hz  ", min_vs / 1000.0, max_vs / 1000.0);
+			cur_column = 0;
+		}
+		if (bpp < bpp_columns[cur_column])
+		{
+//			Printf(" (skip %2Xh,%db)\n ", modes[i].number,bpp);
+			continue; // already printed?
+		}
+		while (bpp > bpp_columns[cur_column])
+		{
+	//		Printf(" (no%d) ", bpp_columns[cur_column]);
+			Printf("    ");
+			++cur_column;
+		}
+		if (modes[i].number <= 0x7 || (modes[i].number >= 0xD && modes[i].number <= 0x13))
+			Printf("$3");
+		else
+			Printf("$B");
+		if (modes[i].number < 0x100)
+			Printf("%02X$8h ", modes[i].number);
+		else if (is_stable_crtt_video_mode(modes[i]))
+			Printf("%3X$8h", modes[i].number);
+		else
+			Printf("$8%3X$8h", modes[i].number);
+//		if (bpp > 8) Printf(" %02Xh: %d bpp ", modes[i].number, bpp);
+	//	else Printf(" %02Xh: %dc ", modes[i].number, (1<<bpp));
+//	Printf("\n");
+		++cur_column;
+	}
+	Printf("$7\n");
 }
