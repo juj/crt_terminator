@@ -7,6 +7,8 @@
 void intr_enable(void);
 void intr_disable(void);
 
+int interrupts_disabled(void);
+
 class scoped_intr_disable
 {
 public:

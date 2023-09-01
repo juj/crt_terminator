@@ -5,10 +5,27 @@
 #include "log.h"
 #include "key.h"
 #include "text.h"
+#include "tick.h"
 #include <dos.h>
 #include <conio.h>
 
 #define CONCAT(a, b) a##b
+
+void wait_for_n_vblanks(int n)
+{
+	// While scanning, we may set up video modes that do not
+	// generate any vsync signal. In that case, use an escape
+	// hatch to limit how long we will wait. N.b. we cannot
+	// have interrupts disabled for tick() to work.
+	if (interrupts_disabled()) enable();
+	tick_t end = tick() + (n*17);
+	for(int i = 0; i < n && tick() < end; ++i)
+	{
+		while((inp(0x3DA) & 8) && tick() < end) ;
+		while(!(inp(0x3DA) & 8) && tick() < end) ;
+	}
+	if (interrupts_disabled()) disable();
+}
 
 int get_mode_bpp(const mode_info &m)
 {
@@ -400,8 +417,10 @@ void test()
 
 crtt_mode_info detect_current_mode()
 {
-	sleep(2); // Give the video mode some time to stabilize in case this
-						// mode was just entered a moment ago.
+	// Give the video mode some time to stabilize in case this
+	// mode was just entered a moment ago.
+	wait_for_n_vblanks(100);
+
 	crtt_mode_info m = {0};
 	int i = 0x06;
 	NO_INTR_SCOPE();
@@ -445,6 +464,13 @@ int is_stable_crtt_video_mode(const mode_info &m)
 		&& m.mi.pixel_width >= 160 && m.mi.pixel_height >= 100;
 }
 
+void crtt_read_visible_rect(int rect[4])
+{
+	wait_for_n_vblanks(2);
+	for(int k = 0; k < 4; ++k)
+		rect[k] = crtt_read_u16(0x36+k*2);
+}
+
 void crtt_scan_mode(int mode)
 {
 	// Do not test VGA video modes that the adapter does
@@ -463,7 +489,6 @@ void crtt_scan_mode(int mode)
 	m.is_vesa_mode = (mode >= 0x100);
 	if (m.is_vesa_mode) get_vesa_mode_info(mode, &m.vesa);
 	random_fill_vga_memory(m.is_gfx_mode);
-	sleep(4); // Let CRTT detection settle
 	m.geom = read_crtc_geometry();
 	m.mi = detect_current_mode();
 	m.vi = get_vga_state_info();
@@ -476,10 +501,8 @@ void crtt_scan_mode(int mode)
 		set_video_mode(mode); // Reset video mode to clear text screen
 		A000h[0] = 0xF;
 //		A000h[m.mi.pixel_width] = 0xFF;
-		sleep(2);
 		int rect[4];
-		for(int k = 0; k < 4; ++k)
-			rect[k] = crtt_read_u16(0x36+k*2);
+		crtt_read_visible_rect(rect);
 
 		int h = 1 + rect[3] - rect[1];
 		if (h == 2)
@@ -501,10 +524,8 @@ void crtt_scan_mode(int mode)
 		_setcursortype(_NOCURSOR);
 		B000h[0x134] = B000h[0x8134] = '1';
 		B000h[0x135] = B000h[0x8135] = 0x7F;
-		sleep(2);
 		int rect[4];
-		for(int k = 0; k < 4; ++k)
-			rect[k] = crtt_read_u16(0x36+k*2);
+		crtt_read_visible_rect(rect);
 
 		int w = m.mi.pixel_width;
 		int h = m.mi.pixel_height;
@@ -559,6 +580,7 @@ void crtt_scan_video_modes()
 	// Scan VGA modes
 	for(int i = 0; i < 0x80; ++i)
 		crtt_scan_mode(i);
+
 /*
 	// Scan VESA modes
 	unsigned int far *vesa_modes = get_vesa_modes();

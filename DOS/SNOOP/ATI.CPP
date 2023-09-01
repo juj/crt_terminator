@@ -79,3 +79,53 @@ int crtt_test_ati_incorrect_dot_clock_halving()
 	// Pixel clock in Mode 13h should be about 12.5 MHz.
 	return (mi.pixel_clock > 15000000) ? 2 : 0;
 }
+
+int in_display_blank() { return inp(0x3DA) & 1; }
+int in_vertical_blank() { return inp(0x3DA) & 8; }
+#define WAIT(x) while(!(x())) ; while((x())) ;
+
+void set_hshift_reg(int hshift)
+{
+	inp(0x3DA);
+	outp(0x3C0, 0x33);
+	outp(0x3C0, (hshift&3)<<1);
+}
+
+// The Horizontal Pixel Shift Count register allows shifting the display
+// start address by 1-4 pixels in VGA video modes. The VGA adapter should
+// latch (register) the value of this field only during vblank, just like
+// the Display Start Address register should be done. This allows game code
+// to not need to be so timing precise when implementing hardware scrolling.
+// However, some graphics cards, e.g. ATI Mach64 VT, latch this register at
+// every hblank. This can cause timing issues to games if they do not synch-
+// ronize their scrolling code to vblank. E.g. Commander Keen requires
+// the "Fix Jerky Motion" patch because of this issue.
+int crtt_test_ati_hshift_is_latched_at_hblank()
+{
+	if (!detect_crtt()) return 0;
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
+
+	unsigned char far *A000h = (unsigned char far *)MK_FP(0xA000, 0);
+	for(int y = 0; y < 200; ++y)
+		A000h[y*320+160] = 48; // Draw a solid green vertical line
+
+	delay(100);
+	unsigned char x = crtt_read_u8(0x36);
+	unsigned char min_x = x;
+
+	for(int frame = 0; frame < 10; ++frame)
+	{
+		WAIT(in_vertical_blank); // Wait until vblank ends
+
+		for(int i = 0; i < 200; ++i) // Loop 200 visible horiz. scanlines
+		{
+			WAIT(in_display_blank); // Advance one hblank (horizontal scanline)
+			set_hshift_reg(rand()); // randomize hshift, should not affect display
+		}
+		set_hshift_reg(0); // Reset hshift to 0 for vblank.
+		unsigned char new_x = crtt_read_u8(0x36);
+		if (min_x > new_x) min_x = new_x;
+		if (min_x < x) return 1;
+	}
+	return 0;
+}

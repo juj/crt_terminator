@@ -245,12 +245,12 @@ int vesa_print_info()
 	if (gfxs.size() > lines_left)
 		scroll_screen_up(gfxs.size()-lines_left);
 
-	int x0 = wherex() + 18, y0 = wherey();
+	int x0 = get_cursor_x() + 18, y0 = get_cursor_y();
 	for(i = 0; i < gfxs.size(); ++i)
 		Printf("        %4dx%4d\n", gfxs.data[i].w, gfxs.data[i].h);
 	Printf("$7");
 
-	int x1 = wherex(), y1 = wherey();
+	int x1 = get_cursor_x(), y1 = get_cursor_y();
 	int legend_no_hw = 0, legend_mono = 0, legend_no_lfb = 0,
 			legend_no_windowed = 0, legend_no_vga = 0, legend_no_bios_text = 0,
 			legend_dbl_scan = 0, legend_interlaced = 0, legend_triple_buffering = 0,
@@ -262,7 +262,7 @@ int vesa_print_info()
 			int x = bpp.find(mode.bits_per_pixel);
 			res r = { mode.width, mode.height };
 			int y = gfxs.find(r);
-			gotoxy(x0 + x*4, y0+y);
+			set_cursor_pos(x0 + x*4, y0+y);
 			if (!(mode.attr&1)) // mode supported in hardware?
 			{
 				Printf("$8[-]$7");
@@ -328,7 +328,7 @@ int vesa_print_info()
 		}
 
 	Printf("$7");
-	gotoxy(x1, y1);
+	set_cursor_pos(x1, y1);
 	if (legend_no_hw || legend_mono || legend_no_lfb || legend_no_windowed
 		|| legend_no_vga || legend_no_bios_text || legend_dbl_scan
 		|| legend_interlaced || legend_triple_buffering || legend_hw_stereo

@@ -19,7 +19,7 @@ unsigned char far * const A000h = (unsigned char far*)MK_FP(0xA000, 0);
 unsigned char far * const B000h = (unsigned char far*)MK_FP(0xB000, 0);
 unsigned char far * const B800h = (unsigned char far*)MK_FP(0xB800, 0);
 
-void clear_256kb_vga_mem()
+void clear_256kb_vga_mem(unsigned char value = 0)
 {
 	vga_port chain(0x3C4, 0x04);
 	vga_port_save schain(chain);
@@ -36,8 +36,8 @@ void clear_256kb_vga_mem()
 	vga_replace_bits(0x3D4, 0x17, 0x40, 0x40); // Enable BYTE mode
 
 	outp_3c4(0x02, 0xF); // Write all planes
-	_fmemset(A000h, 0, 0x8000); // Clear 256KB of VGA mem
-	_fmemset(A000h+0x8000, 0, 0x8000);
+	_fmemset(A000h, value, 0x8000); // Clear 256KB of VGA mem
+	_fmemset(A000h+0x8000, value, 0x8000);
 }
 
 void fill_256kb_vga_mem_random()
@@ -131,15 +131,37 @@ void outp_addressing_width(int width)
 	vga_replace_bits(0x3D4, 0x17, 0x40, (width&1)?0x40:0);
 }
 
+void wait_for_hsync(int method)
+{
+	unsigned char status = inp(0x3DA);
+	while((status & 8)) // wait for vsync to end
+		status = inp(0x3DA);
+
+	if (method == 0)
+	{
+		// skip active scanline
+		while(!(status&1)) status = inp(0x3DA);
+		// If currently in hsync, skip it
+		while(status&1) status = inp(0x3DA);
+	}
+	else
+	{
+		// If currently in hsync, skip it
+		while(status&1) status = inp(0x3DA);
+		// skip active scanline
+		while(!(status&1)) status = inp(0x3DA);
+	}
+}
+
 void scroll_vga_until_kbhit(int scanline_width)
 {
 	// Scroll screen down using VGA registers
 	unsigned long vga_start_address = 0;
 	while(!kbhit())
 	{
-		set_vga_scroll_viewport_address(vga_start_address);
-		vga_start_address += scanline_width;
 		wait_for_vsync();
+		vga_start_address += scanline_width+1;
+		set_vga_scroll_viewport_address(vga_start_address);
 	}
 	clear_kbhit(); // consume keys
 }
@@ -159,10 +181,14 @@ void test_tseng_256k_wraparound_bug(int test_addressing_width, int apply_workaro
 
 	// Set display scanline stride to 512 bytes so scanlines align with amount
 	// of total VGA memory.
-//	outp_3d4(0x13, SCANLINE_WIDTH / (2*4));
+	outp_3d4(0x13, SCANLINE_WIDTH / (2*4));
 	// Enable normal (unchained) video addressing mode to be able
 	// to address the whole 256KB of VGA memory.
 	vga_clear_bits(0x3C4, 0x04, 8);
+
+	// Set BYTE addressing mode
+	vga_clear_bits(0x3D4, 0x14, 0x40); // Disable DWORD mode
+	vga_set_bits(0x3D4, 0x17, 0x40); // Enable BYTE mode
 
 	// Clear whole 256KB of VGA RAM. This needs to be done manually,
 	// since when transitioning to Mode 13h, which is chained, the VGA
@@ -175,7 +201,7 @@ void test_tseng_256k_wraparound_bug(int test_addressing_width, int apply_workaro
 
 	outp_addressing_width(test_addressing_width);
 
-#if 0
+#if 1
 	for(unsigned long addr = 0; addr < VGA_MEMORY_BYTES; ++addr)
 	{
 		unsigned long page = addr / 64000;
@@ -209,18 +235,22 @@ void test_tseng_256k_wraparound_bug(int test_addressing_width, int apply_workaro
 		A000h[addr>>2] = color;
 	}
 #endif
-	fill_256kb_vga_mem_pattern(); /// xxxxxxxxxx
+//	fill_256kb_vga_mem_pattern(); /// xxxxxxxxxx
+//	getch();
 //	display_image_from_disk("keen5.bmp", 0);
 
 	// 256-color shift mode + Shift Register Interleave Mode
-	int shift_mode = 0;
-	vga_replace_bits(0x3CE, 0x05, 0x60, shift_mode<<5);
+//	int shift_mode = 1;
+//	vga_replace_bits(0x3CE, 0x05, 0x60, shift_mode<<5);
+ //	getch();
 	// Chaining mode
 	int chain_mode = 0;
 	vga_replace_bits(0x3C4, 0x04, 0x0C, chain_mode<<2);
+//	getch();
 	// Addressing Width
 	int address_width = 0;
 	outp_addressing_width(address_width);
+//	getch();
 
 	scroll_vga_until_kbhit(SCANLINE_WIDTH);
 }
@@ -230,6 +260,13 @@ int crtt_screen_displays_green()
 	crtt_mode_info mi = detect_current_mode();
 	// Allow for tiny bit of leeway, since there might be a black border
 	// around the green color.
+	set_video_mode(0x03);
+	/*
+	printf("distinct colors: %d, max color id: %d\n",
+		(int)mi.num_distinct_colors,
+		(int)mi.max_color_id);
+	getch();
+	*/
 	return (mi.num_distinct_colors <= 2 && mi.max_color_id == 10);
 }
 
@@ -253,6 +290,14 @@ void set_pixel_unchained_linearized(int addressing_mode,
 	}
 }
 
+int visible_rects_equal(crtt_mode_info &mi, crtt_mode_info &mi2)
+{
+	return mi.visible_rect[0] == mi2.visible_rect[0]
+	 && mi.visible_rect[1] == mi2.visible_rect[1]
+	 && mi.visible_rect[2] == mi2.visible_rect[2]
+	 && mi.visible_rect[3] == mi2.visible_rect[3];
+}
+
 /* When setting the VGA scroll register value to a high number towards the
 	end of the VGA 256KB memory region that the visible region exceeds the
 	256KB amount, the address that the VGA adapter outputs should wrap back to
@@ -264,6 +309,14 @@ int crtt_fails_vga_scroll_compatibility()
 {
 	if (!detect_crtt()) return 0;
 	DEBUG("vga-scroll", "Tests whether VGA adapter correctly implements VGA scrolling wraparound at 256KB memory limit (if not, needs Keen \"SVGA Compatibility\" option).");
+
+	crtt_mode_info expected_geom;
+	{
+		SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
+		clear_256kb_vga_mem(10);
+		expected_geom = detect_current_mode();
+	}
+
 	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	vga_clear_bits(0x3C4, 0x04, 8); // Enable unchained mode
 	clear_256kb_vga_mem();
@@ -283,15 +336,9 @@ int crtt_fails_vga_scroll_compatibility()
 	// Scroll screen so it should wrap around to beginning of display
 	// to display the green portion.
 	set_vga_scroll_viewport_address(262144 - 32000);
+	crtt_mode_info geom = detect_current_mode();
+	if (!visible_rects_equal(geom, expected_geom)) return 1;
 	return !crtt_screen_displays_green();
-}
-
-int visible_rects_equal(crtt_mode_info &mi, crtt_mode_info &mi2)
-{
-	return mi.visible_rect[0] == mi2.visible_rect[0]
-	 && mi.visible_rect[1] == mi2.visible_rect[1]
-	 && mi.visible_rect[2] == mi2.visible_rect[2]
-	 && mi.visible_rect[3] == mi2.visible_rect[3];
 }
 
 /* Different VGA adapters have implemented the meaning of BYTE, WORD and

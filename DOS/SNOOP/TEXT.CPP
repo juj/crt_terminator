@@ -1,5 +1,6 @@
 #include "text.h"
 #include "vga.h"
+#include "intr.h"
 #include <conio.h>
 #include <dos.h>
 #include <string.h>
@@ -60,7 +61,19 @@ void disable_80x50_mode()
 
 int get_cursor_offset(void)
 {
-	return (wherey()-1) * screen_width + (wherex()-1);
+	NO_INTR_SCOPE();
+	unsigned int cursor = inp_3d4(0x0E);
+	return (cursor << 8) | inp_3d4(0x0F);
+}
+
+int get_cursor_x()
+{
+	return get_cursor_offset() % screen_width;
+}
+
+int get_cursor_y()
+{
+	return get_cursor_offset() / screen_width;
 }
 
 static void write_text_on_screen(unsigned int ofs, const char *text)
@@ -129,10 +142,16 @@ void Printf(char *fmt, ...)
 		}
 		else if (cursor_address % screen_width == screen_width-1)
 		{
-			// Printing one more character should wrap the display.
 			B800h[cursor_address] = buffer2[i];
-			scroll_screen_up(1, /*scroll_text_cursor=*/0);
-			cursor_address = ((cursor_address / screen_width)) * screen_width;
+			// Printing this character should wrap the display.
+			++num_lines_printed;
+			if (cursor_address >= screen_width*(screen_height-1))
+			{
+				scroll_screen_up(1, /*scroll_text_cursor=*/0);
+				cursor_address = ((cursor_address / screen_width)) * screen_width;
+			}
+			else
+				++cursor_address;
 		}
 		else
 			B800h[cursor_address++] = buffer2[i];
@@ -175,8 +194,8 @@ void Printf(char *format, ...)
 */
 void advancex(int x)
 {
-	if (wherex() >= x) return;
-	int n = x - wherex();
+	if (get_cursor_x() >= x) return;
+	int n = x - get_cursor_x();
 	for(int i = 0; i < n; ++i) printf(" ");
 }
 
@@ -198,10 +217,9 @@ void scroll_screen_up(int lines, int scroll_text_cursor)
 
 	if (scroll_text_cursor)
 	{
-		// todo use custom functions
-		int x = wherex();
-		int y = wherey();
-		gotoxy(x, y-lines);
+		int x = get_cursor_x();
+		int y = get_cursor_y();
+		set_cursor_pos(x, y-lines);
 	}
 }
 

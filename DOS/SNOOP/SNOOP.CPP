@@ -117,14 +117,15 @@ int main(int argc, char **argv)
 	if (opt("log")) set_log_stdout_enabled(1);
 	if (opt("logfile")) set_log_file_enabled(1);
 
+	int workaround_mode = opt("tseng") ? 1 : (opt("trident") ? 2 : 0);
+	if (opt("vga_addr1")) { test_tseng_256k_wraparound_bug(1, workaround_mode); return 0; }
+	if (opt("vga_addr2")) { test_tseng_256k_wraparound_bug(2, workaround_mode); return 0; }
+	if (opt("vga_addr4")) { test_tseng_256k_wraparound_bug(4, workaround_mode); return 0; }
+
 	int fires_vret_interrupt = !opt("noirqtest") ? test_fires_vertical_retrace_interrupt() : 0;
 	int supports_lightpen_rng = !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
 	int is_xga_compatible = !opt("noxgatest") ? detect_vesa_xga() : 0;
-
-	int workaround_mode = opt("tseng") ? 1 : (opt("trident") ? 2 : 0);
-	if (opt("vga_addr1")) test_tseng_256k_wraparound_bug(1, workaround_mode);
-	if (opt("vga_addr2")) test_tseng_256k_wraparound_bug(2, workaround_mode);
-	if (opt("vga_addr4")) test_tseng_256k_wraparound_bug(4, workaround_mode);
+	int hshift_latched_at_hblank = crtt_test_ati_hshift_is_latched_at_hblank();
 
 	int fails_vga_scroll_test = crtt_fails_vga_scroll_compatibility();
 	int fails_dot_clock_halving = crtt_test_ati_incorrect_dot_clock_halving();
@@ -248,18 +249,27 @@ int main(int argc, char **argv)
 	if (fails_dot_clock_halving)
 	{
 		if (fails_dot_clock_halving == 2)
-			Printf("\n$EThis adapter does not correctly halve pixel clock when 3C4h/01h register has Dot Clock mode halved.$7\n");
+		{
+			Printf("\n$EThis adapter does not correctly implement 1:2 Dot Clock Rate option (3C4h/01h).$7\n");
+		}
 		else
 		{
-			Printf("\n$EThe Video BIOS for this adapter programs Mode 13h at 25.2MHz and not 12.5 MHz.\n");
-			Printf("This can adversely affect CRT Terminator video mode detection heuristics.$7\n");
+			Printf("\n$EThe Video BIOS for this adapter programs Mode 13h at 25.2MHz and not 12.5 MHz.$7\n");
 		}
+		Printf("$ECRT Terminator may have problems cropping VGA border properly.$7\n");
+	}
+
+	if (hshift_latched_at_hblank)
+	{
+		Printf("\n$EThis adapter latches the Horizontal Pixel Shift Count register every hblank\n");
+		Printf("instead of only at vblank. Commander Keen needs \"Fix Jerky Motion\" enabled.\n");
 	}
 
 	if (opt("scan"))
 	{
 		crtt_scan_video_modes();
 		log_crtt_scanned_modes();
+		return 0;
 	}
 
 	if (opt("regs"))
