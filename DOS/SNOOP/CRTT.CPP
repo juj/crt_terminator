@@ -8,7 +8,7 @@
 #define CRTT_PORT1    0x160
 #define CRTT_INDEX_PORT (crtt_port + 0x1)
 #define CRTT_DATA_PORT  (crtt_port + 0x2)
-static int crtt_port = 0;
+int crtt_port = 0;
 
 // Returns the port address that CRT Terminator is detected at
 int detect_crtt()

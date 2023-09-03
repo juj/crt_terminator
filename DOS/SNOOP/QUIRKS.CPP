@@ -8,6 +8,8 @@
 #include "ati.h"
 #include "bmp.h"
 #include "debug.h"
+#include "text.h"
+#include "tick.h"
 #include <mem.h>
 #include <time.h>
 #include <conio.h>
@@ -866,6 +868,110 @@ CRTT_TEST(host_odd_even_affects_decoding)
 CRTT_TEST(host_odd_even_doesnt_affect_scanout)
 	if (op_affects_pixel_scanout(set_host_odd_even_addressing, set_unchained_mode))
 		FAIL("Host Odd/Even register should not affect pixel data scanout, but it did");
+}
+
+#define IN_VSYNC() (inp(0x3DA) & 8)
+#define IN_BLANK() (inp(0x3DA) & 9)
+
+void test_vretrace_flag_meaning()
+{
+	unsigned long frame_len = 0;
+	unsigned long frame_msecs = 0;
+	unsigned long blank = 0;
+	unsigned long vblank_len = 0;
+	unsigned long sync_len = 0;
+	unsigned long display_enable_len = 0;
+	unsigned long scanline_len = 0;
+
+	int vsync_without_blank = 0;
+	{
+		NO_INTR_SCOPE();
+		unsigned char status;
+		do if (((status = inp(0x3DA))&9) == 8) vsync_without_blank = 1;
+		while((status&8));
+		do if (((status = inp(0x3DA))&9) == 8) vsync_without_blank = 1;
+		while(!(status&8));
+		do if (((status = inp(0x3DA))&9) == 8) vsync_without_blank = 1;
+		while((status&8));
+	}
+
+	{
+		NO_INTR_SCOPE();
+		while(!IN_VSYNC()); // Go to vsync
+		while(IN_BLANK());  // Go to first visible pixel
+
+		while(!IN_VSYNC()) ++frame_len; // count one full frame
+		while(IN_BLANK()) ++frame_len;
+	}
+
+	{
+		tick();
+		while(!IN_VSYNC()); // Go to vsync
+		while(IN_BLANK());  // Go to first visible pixel
+
+		tick_t t0 = tick();
+
+		while(!IN_VSYNC()) ; // count one full frame
+		while(IN_BLANK()) ;
+		tick_t t1 = tick();
+		frame_msecs = t1 - t0;
+	}
+
+	{
+		NO_INTR_SCOPE();
+		while(!IN_VSYNC()) ; // Go to vsync
+		while(IN_BLANK()) ; // Go to first visible scanline
+
+		unsigned char status;
+		unsigned char done = 0;
+		do
+		{
+			status = inp(0x3DA);
+			if (status&9) ++blank;
+			else blank = 0;
+		} while(!(status&8));
+	}
+
+	{
+		NO_INTR_SCOPE();
+		while(!IN_VSYNC()) ; // Go to vsync
+		while(IN_BLANK()) ; // Go to first visible scanline
+
+		unsigned char status;
+		unsigned char done = 0;
+		do
+		{
+			status = inp(0x3DA);
+			if (status&9) ++vblank_len;
+			else vblank_len = 0;
+		} while(!(status&8));
+		while(IN_BLANK()) ++vblank_len;
+	}
+
+	{
+		NO_INTR_SCOPE();
+		while(IN_VSYNC()) ;
+		while(!IN_VSYNC()) ;
+		while(IN_VSYNC()) ++sync_len;
+	}
+	{
+		NO_INTR_SCOPE();
+		while(!IN_BLANK()) ;
+		while(IN_BLANK());
+		while(!IN_BLANK()) ++display_enable_len;
+	}
+	{
+		NO_INTR_SCOPE();
+		while(!IN_BLANK()) ;
+		while(IN_BLANK());
+		while(!IN_BLANK()) ++scanline_len;
+		while(IN_BLANK()) ++scanline_len;
+	}
+	if (vsync_without_blank) Printf("Inconsistency: Saw vsync without blank!\n");
+	Printf("Video frame lasts %lu I/Os, or %lu msecs.\n", frame_len, frame_msecs);
+	Printf("%lu I/Os of blank before vsync. vsync lasts %lu I/Os.\n", blank, sync_len);
+	Printf("Vblank lasts %lu I/Os. Display_enable lasts %lu I/Os.\n", vblank_len, display_enable_len);
+	Printf("Scanline lasts %lu I/Os.\n", scanline_len);
 }
 
 int test_vga_quirks()

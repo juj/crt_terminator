@@ -1,6 +1,12 @@
 #ifndef CRT_TERMINATOR_H
 #define CRT_TERMINATOR_H
 
+#define CRTT_PORT0    0x120
+#define CRTT_PORT1    0x160
+#define CRTT_INDEX_PORT (crtt_port + 0x1)
+#define CRTT_DATA_PORT  (crtt_port + 0x2)
+extern int crtt_port;
+
 // Returns the port address that CRT Terminator is detected at.
 // Call this function before calling any of crtt_read/write_*() functions.
 // If this function returns 0, do not call any of crtt_read/write_*().

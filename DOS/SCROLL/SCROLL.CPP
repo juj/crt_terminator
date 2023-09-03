@@ -1,3 +1,5 @@
+// SCROLL.CPP - Jukka Jyl„nki
+// An example of using hardware VGA scrolling capabilities
 #include <dos.h>
 #include <conio.h>
 #include <mem.h>
@@ -5,12 +7,21 @@
 #include <stdlib.h>
 #include "img.h"
 
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#define WIDTH 512
-#define HEIGHT 512
+// "Framebuffer" width and height, i.e. the VGA hardware memory area
+#define FB_WIDTH 512
+#define FB_HEIGHT 512
+// Visible screen width and height
+#define WIDTH 320
+#define HEIGHT 240
+// Max number of pixels that can be scrolled safely in one frame
+#define GUARD 1
+// Safe scrolled image size with guardband
+#define SCR_W (WIDTH+2*GUARD)
+#define SCR_H (HEIGHT+2*GUARD)
 
-int scroll_during_vblank = 0;
+IMG img;
+int scroll_update_sync_method = 3;
+unsigned char far *A000h = (unsigned char far *)MK_FP(0xA000, 0);
 
 void set_video_mode(int mode)
 {
@@ -18,8 +29,6 @@ void set_video_mode(int mode)
 	r.x.ax = mode;
 	int86(0x10, &r, &r);
 }
-
-unsigned char far *A000h = (unsigned char far *)MK_FP(0xA000, 0);
 
 void set_320x240_unchained()
 {
@@ -37,13 +46,13 @@ void set_320x240_unchained()
 	outpw(0x3D4, 0x0616); // Vertical Blank End
 	_fmemset(A000h, 0, 0x8000);
 	_fmemset(A000h+0x8000, 0, 0x8000);
-	outpw(0x3D4, ((WIDTH / (2*4))<<8) | 0x13); // Create larger virtual screen
-	set_screen_width(WIDTH);
+	outpw(0x3D4, ((FB_WIDTH / (2*4))<<8) | 0x13); // Create virtual screen
+	set_screen_width(FB_WIDTH);
 }
 
 void set_vga_scroll_viewport_address(unsigned long address)
 {
-	disable(); // Critical that we get this done while still in vblank.
+	disable(); // Critical that we get this done while still in vsync.
 	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
 	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
 	inp(0x3DA);
@@ -52,70 +61,147 @@ void set_vga_scroll_viewport_address(unsigned long address)
 	enable();
 }
 
-void wait_for_vblank()
+void wait_for_vblank_start()
+{
+	// This wait method is a bit nasty, since we must spend the rest of the
+	// frame with interrupts disabled. But e.g. on Paradise PVGA1A this
+	// is necessary, since it latches HShift register at hblank, but DispStart
+	// register at vsync start.
+	disable();
+	while((inp(0x3DA) & 1)) /*nop*/;
+	while(!(inp(0x3DA) & 1)) /*nop*/;
+	int hblank_len = 1;
+	while((inp(0x3DA) & 1)) ++hblank_len;
+	// If we find a blank period 4x longer than hblank, it must be vblank.
+	hblank_len <<= 2;
+	for(int len = 0; len < hblank_len; ++len)
+		if (!(inp(0x3DA) & 1))
+			len = 0;
+	enable();
+}
+
+void wait_for_vsync_start()
 {
 	while((inp(0x3DA) & 8)) /*nop*/;
 	while(!(inp(0x3DA) & 8)) /*nop*/;
 }
 
-IMG img;
-
-void scroll_vga_until_kbhit()
+void wait_for_vsync_end()
 {
-	unsigned long vga_start_address = 0;
-	const int MAX_GUARD_W = (WIDTH-320)/2; // 96 pixels
-	const int MAX_GUARD_H = (HEIGHT-240)/2; // 136 pixels
-	int left = 0, top = 0, right = WIDTH - 320, bottom = HEIGHT - 240;
-	int x = 0, y = 0, xdir = 1, ydir = 1;
-	while(!kbhit())
+	while(!(inp(0x3DA) & 8)) /*nop*/;
+	while((inp(0x3DA) & 8)) /*nop*/;
+}
+
+void wait_for_hblank_start()
+{
+	while((inp(0x3DA) & 9)) /*nop*/;
+	while(!(inp(0x3DA) & 9)) /*nop*/;
+}
+
+void scroll_ds_hs(unsigned long address)
+{
+	disable(); // Critical that we get this done while still in vsync.
+
+	wait_for_vsync_start();
+	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
+	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
+
+	wait_for_vsync_end();
+	inp(0x3DA);
+	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
+	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
+
+	enable();
+}
+
+void scroll_hs_ds(unsigned long address)
+{
+	disable(); // Critical that we get this done while still in vsync.
+
+	wait_for_vsync_start();
+	inp(0x3DA);
+	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
+	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
+
+	wait_for_vsync_end();
+	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
+	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
+
+	enable();
+}
+
+// Scrolls image from old top-left (x0,y0) to new (x1,y1) by adjusting
+// VGA hardware registers and repainting the necessary guardband border
+// for subsequent scrolling.
+void scroll(int x0, int y0, int x1, int y1)
+{
+	unsigned long vga_start_address = (unsigned long)y1*FB_WIDTH + x1;
+	x0 -= GUARD; y0 -= GUARD;
+	x1 -= GUARD; y1 -= GUARD;
+
+	// We will change display start address from (x0, y0) to (x1,y1). Repaint
+	// a new guardband area around the new coordinates for later scrolling.
+	int X0,X1,Xr,Y0,Y1,dW;
+	if (x1 < x0) { X0 = x1;       X1 = x0;       dW = x0-x1; Xr = x0; }
+	else         { X0 = x0+SCR_W; X1 = x1+SCR_W; dW = x1-x0; Xr = x1; }
+	if (y1 < y0) { Y0 = y1;       Y1 = y0;       }
+	else         { Y0 = y0+SCR_H; Y1 = y1+SCR_H; }
+	for(int X = X0; X < X1; ++X) draw_vline(img, X, y1, X, y1, SCR_H);
+	for(int Y = Y0; Y < Y1; ++Y) draw_hline(img, Xr, Y, Xr, Y, SCR_W - dW);
+
+	switch(scroll_update_sync_method)
 	{
-		if      (ydir > 0 && y + 240 >= img.height) ydir = -1;
-		else if (ydir < 0 && y       <= 1)          ydir =  1;
-		if      (xdir > 0 && x + 320 >= img.width)  xdir = -1;
-		else if (xdir < 0 && x       <= 1)          xdir =  1;
-
-		vga_start_address += ydir*WIDTH + xdir;
-		if (scroll_during_vblank) wait_for_vblank(); // good wait
-		else while((inp(0x3DA) & 1)) ; // wait for display enable to be very bad
+	case 1: // update DS + HS right at beginning of vsync.
+		wait_for_vsync_start();
 		set_vga_scroll_viewport_address(vga_start_address);
-		if (!scroll_during_vblank) wait_for_vblank(); // bad wait
+		break;
+	case 2: // update DS + HS right after end of vsync.
+		wait_for_vsync_end();
+		set_vga_scroll_viewport_address(vga_start_address);
+		break;
+	case 3: // DS at beginning of vsync, HS after end of vsync
+		scroll_ds_hs(vga_start_address);
+		break;
+	case 4: // HS at beginning of vsync, DS after end of vsync
+		scroll_hs_ds(vga_start_address);
+		break;
+	case 5: // update scroll after end of 100th horiz visible scanline.
+		wait_for_vsync_end();
+		for(int y = 0; y < 100; ++y) wait_for_hblank_start();
+		set_vga_scroll_viewport_address(vga_start_address);
+		break;
+	case 6: // wait until we find we are in vblank, but not yet in vsync
+		wait_for_vblank_start();
+		set_vga_scroll_viewport_address(vga_start_address);
+		break;
+	}
+}
 
-		y += ydir;
-		top    = MIN(top    + ydir, MAX_GUARD_H);
-		bottom = MIN(bottom - ydir, MAX_GUARD_H);
-		int offset = 0, nlines = 0;
-		if (ydir > 0)
-		{
-			nlines = MAX(0, MIN(MAX_GUARD_H, img.height-y-240)-bottom);
-			offset = 240+bottom;
-			bottom += nlines;
-		}
-		else
-		{
-			nlines = MAX(0, MIN(MAX_GUARD_H, y)-top);
-			offset = -top-nlines+1;
-			top += nlines;
-		}
-		for(int i = 0; i < nlines; ++i)
-			draw_hline(img, x-left, y+offset+i, x-left, y+offset+i, 320+left+right);
+void scroll_vga_until_esc()
+{
+	int x = 0, y = 0, xvel = 1, yvel = 1, key = 0;
+	int is_sound = 0;
+	while(key != 0x1B)
+	{
+		// Change direction at image edges
+		if (xvel<0 && x <= 0 || xvel > 0 && x+WIDTH  >= img.width)  xvel = -xvel;
+		if (yvel<0 && y <= 0 || yvel > 0 && y+HEIGHT >= img.height) yvel = -yvel;
+		// Move camera
+		int x1 = x+xvel;
+		int y1 = y+yvel;
+		scroll(x, y, x1, y1);
+		x = x1;
+		y = y1;
 
-		x += xdir;
-		left  = MIN(left  + xdir, MAX_GUARD_W);
-		right = MIN(right - xdir, MAX_GUARD_W);
-		if (xdir > 0)
+		if (is_sound) { nosound(); is_sound = 0; }
+		if (kbhit()) key = getch();
+		if (key >= '1' && key <= '6')
 		{
-			nlines = MAX(0, MIN(MAX_GUARD_W, img.width-x-320)-right);
-			offset = 320+right;
-			right += nlines;
+			scroll_update_sync_method = key - '0';
+			sound(50);
+			is_sound = 1;
+			key = 0;
 		}
-		else
-		{
-			nlines = MAX(0, MIN(MAX_GUARD_W, x)-left);
-			offset = -left-nlines+1;
-			left += nlines;
-		}
-		for(i = 0; i < nlines; ++i)
-			draw_vline(img, x+offset+i, y-top, x+offset+i, y-top, 240+top+bottom);
 	}
 }
 
@@ -127,38 +213,43 @@ int opt(int ac, char **av, char *name)
 
 void check_unrecognized_args(int ac, char **av)
 {
-	for(int i = 1; i < ac; ++i)
-		if (av[i])
-		{
-			printf("Unrecognized option \"%s\"!\n", av[i]);
-			exit(1);
-		}
+	for(int i = 1; i < ac; ++i) if (av[i]) { printf("Unrecognized option \"%s\"!\n", av[i]); exit(1); }
 }
 
 int main(int argc, char **argv)
 {
 	clrscr();
+	printf("SCROLL v.%s\n", __DATE__);
 	printf("This program tests VGA hardware scrolling by displaying a large 1920x1097\n");
 	printf("image. Reasonably fast disk access is needed, since the image is streamed\n");
 	printf("directly from disk.\n\n");
-	printf("In default mode, VGA hardware scrolling registers are updated during\n");
-	printf("display vblank. Run with \"SCROLL.EXE hblank\" to test scrolling updates\n");
-	printf("during visible display area.\n\n");
-	printf("Utilized test image was downloaded in good faith from\n\n");
-	printf("   https://www.artstation.com/aaa_game_art_studio\n\n");
+	printf("VGA hardware scrolling is implemented via two different registers:\n");
+	printf("Display Start Address (DS) and Horizontal Pixel Shift Count (HS).\n\n");
+	printf("Updating these registers may require careful synchronization. Five sync modes\n");
+	printf("are provided to enable testing how your adapter latches on to register updates:\n");
+	printf("1. Reprograms DS and HS right after start of vsync.\n");
+	printf("2. Reprograms DS and HS right after end of vsync (but before vblank ends).\n");
+	printf("3. Reprograms DS at vsync start and HS after vsync end (before vblank end).\n");
+	printf("4. Reprograms HS at vsync start and DS after vsync end (before vblank end).\n");
+	printf("5. Reprograms DS and HS in hblank after 100th visible scanline.\n");
+	printf("6. Reprograms DS and HS in vblank before start of vsync.\n\n");
+	printf("Press one of keys 1-6 at runtime to change the sync mode, ESC to quit.\n\n");
+	printf("Utilized test image was downloaded in good faith from\n");
+	printf("   https://www.artstation.com/aaa_game_art_studio\n");
 	printf("Not for commercial use.\n\n");
-	printf("Press any key to start.\n");
-	getch();
+	if (opt(argc, argv, "hblank")) scroll_update_sync_method = 5;
 
-	scroll_during_vblank = !opt(argc, argv, "hblank");
 	check_unrecognized_args(argc, argv);
+	printf("Press any key to start.\n");
+	int key = getch();
+	if (key == 0x1B) return 0;
+
 	img = load_img("desk.img");
 	set_320x240_unchained();
 	set_palette(img);
-	for(int i = 0; i < 512; ++i)
-		draw_hline(img, 0, i, 0, i, 512);
-	scroll_vga_until_kbhit();
+	for(int y = 0; y < FB_HEIGHT; ++y)
+		draw_hline(img, 0, y, 0, y, FB_WIDTH);
+	scroll_vga_until_esc();
 	set_video_mode(0x03);
-	while(kbhit()) getch();
 	return 0;
 }

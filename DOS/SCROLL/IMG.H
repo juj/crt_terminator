@@ -1,5 +1,5 @@
-#ifndef IMG_H
-#define IMG_H
+#ifndef _IMG_H
+#define _IMG_H
 
 #include <stdio.h>
 

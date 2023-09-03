@@ -21,6 +21,7 @@
 #include "lightpen.h"
 #include "vintr.h"
 #include "debug.h"
+#include "scroll.h"
 
 #include "cirrus.h"
 #include "s3.h"
@@ -125,14 +126,16 @@ int main(int argc, char **argv)
 	int fires_vret_interrupt = !opt("noirqtest") ? test_fires_vertical_retrace_interrupt() : 0;
 	int supports_lightpen_rng = !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
 	int is_xga_compatible = !opt("noxgatest") ? detect_vesa_xga() : 0;
-	int hshift_latched_at_hblank = crtt_test_ati_hshift_is_latched_at_hblank();
+
+	int hs_latch_position = crtt_test_hs_latch_position();
+	int ds_latch_position = crtt_test_ds_latch_position();
 
 	int fails_vga_scroll_test = crtt_fails_vga_scroll_compatibility();
 	int fails_dot_clock_halving = crtt_test_ati_incorrect_dot_clock_halving();
 
 	if (opt("quirks")) test_vga_quirks();
 
-	int supports_pci_20 = detect_pci_20_bios_supported();
+//	int supports_pci_20 = detect_pci_20_bios_supported();
 	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
 	if (found_pci_vga) enable_pci_vga_palette_snoop();
@@ -258,12 +261,8 @@ int main(int argc, char **argv)
 		}
 		Printf("$ECRT Terminator may have problems cropping VGA border properly.$7\n");
 	}
-
-	if (hshift_latched_at_hblank)
-	{
-		Printf("\n$EThis adapter latches the Horizontal Pixel Shift Count register every hblank\n");
-		Printf("instead of only at vblank. Commander Keen needs \"Fix Jerky Motion\" enabled.\n");
-	}
+	print_hs_test_result(hs_latch_position);
+	print_ds_test_result(ds_latch_position);
 
 	if (opt("scan"))
 	{
