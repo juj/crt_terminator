@@ -1,4 +1,4 @@
-// SCROLL.CPP - Jukka Jyl„nki
+// SCROLL.CPP - Jukka Jylï¿½nki
 // An example of using hardware VGA scrolling capabilities
 #include <dos.h>
 #include <conio.h>
@@ -61,25 +61,6 @@ void set_vga_scroll_viewport_address(unsigned long address)
 	enable();
 }
 
-void wait_for_vblank_start()
-{
-	// This wait method is a bit nasty, since we must spend the rest of the
-	// frame with interrupts disabled. But e.g. on Paradise PVGA1A this
-	// is necessary, since it latches HShift register at hblank, but DispStart
-	// register at vsync start.
-	disable();
-	while((inp(0x3DA) & 1)) /*nop*/;
-	while(!(inp(0x3DA) & 1)) /*nop*/;
-	int hblank_len = 1;
-	while((inp(0x3DA) & 1)) ++hblank_len;
-	// If we find a blank period 4x longer than hblank, it must be vblank.
-	hblank_len <<= 2;
-	for(int len = 0; len < hblank_len; ++len)
-		if (!(inp(0x3DA) & 1))
-			len = 0;
-	enable();
-}
-
 void wait_for_vsync_start()
 {
 	while((inp(0x3DA) & 8)) /*nop*/;
@@ -96,6 +77,48 @@ void wait_for_hblank_start()
 {
 	while((inp(0x3DA) & 9)) /*nop*/;
 	while(!(inp(0x3DA) & 9)) /*nop*/;
+}
+
+void wait_for_vblank_start()
+{
+	// VGA adapter does not provide a method to wait until a vblank start;
+	// there is only a register to wait until a vsync start. Therefore
+	// when we want to wait until a vblank start, we need to get creative,
+	// and examine lengths of the blank periods, to find the start of a blank
+	// that is considerably longer than a single hblank is, which will be the
+	// start of a vblank period.
+	// This kind of wait method is a bit nasty, since we must spend the rest
+	// of the frame with interrupts disabled. But e.g. on Paradise PVGA1A this
+	// is necessary, since it latches HShift register at hblank, but DispStart
+	// register at vsync start.
+	disable();
+	while((inp(0x3DA) & 1)) /*nop*/; // skip to next start of active scanline
+	while(!(inp(0x3DA) & 1)) /*nop*/; // skip to start of a h/vblank
+	// We are now either in start of hblank or start of vblank.
+	// We hope to be in start of hblank, so that we can measure its length.
+	unsigned char seen_status = 0;
+	unsigned int hblank_len = 1;
+	for(;;)
+	{
+		unsigned char status = inp(0x3DA);
+		seen_status |= status; // accumulate status bits to find if we got vblank
+		if (status&1) ++hblank_len;
+		else break;
+	}
+	if (seen_status&8) // bad luck, the blank we measured was a vblank.
+	{
+		wait_for_vblank_start(); // restart wait from scratch
+		return;
+	}
+	// We are now at the start of some visible scanline, and know how long
+	// a single hblank takes. Spin wait until we find ourselves in a blank
+	// region 4x longer (arbitrary) than this measured hblank length, which
+	// will tell us that we have just entered a vblank.
+	hblank_len <<= 2;
+	for(unsigned int len = 0; len < hblank_len; ++len)
+		if (!(inp(0x3DA) & 1))
+			len = 0; // we passed a hblank to visible image -> restart
+	enable();
 }
 
 void scroll_ds_hs(unsigned long address)
