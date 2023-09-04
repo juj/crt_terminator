@@ -1,4 +1,4 @@
-// SCROLL.CPP - Jukka Jylï¿½nki
+// SCROLL.CPP - Jukka Jyl„nki
 // An example of using hardware VGA scrolling capabilities
 #include <dos.h>
 #include <conio.h>
@@ -18,9 +18,11 @@
 // Safe scrolled image size with guardband
 #define SCR_W (WIDTH+2*GUARD)
 #define SCR_H (HEIGHT+2*GUARD)
+#define SCR_SIZE ((unsigned long)SCR_H*FB_WIDTH)
 
 IMG img;
-int scroll_update_sync_method = 3;
+int scroll_update_sync_method = 6;
+int scroll_cannot_wrap_256kb = 0;
 unsigned char far *A000h = (unsigned char far *)MK_FP(0xA000, 0);
 
 void set_video_mode(int mode)
@@ -123,7 +125,7 @@ void wait_for_vblank_start()
 
 void scroll_ds_hs(unsigned long address)
 {
-	disable(); // Critical that we get this done while still in vsync.
+	disable(); // Critical that we get this done synchronized
 
 	wait_for_vsync_start();
 	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
@@ -139,7 +141,7 @@ void scroll_ds_hs(unsigned long address)
 
 void scroll_hs_ds(unsigned long address)
 {
-	disable(); // Critical that we get this done while still in vsync.
+	disable(); // Critical that we get this done synchronized
 
 	wait_for_vsync_start();
 	inp(0x3DA);
@@ -153,24 +155,72 @@ void scroll_hs_ds(unsigned long address)
 	enable();
 }
 
+void scroll_ds_hblank_hs_vsync(unsigned long address)
+{
+	disable(); // Critical that we get this done synchronized
+
+	wait_for_hblank_start();
+	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
+	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
+
+	wait_for_vsync_start();
+	inp(0x3DA);
+	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
+	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
+
+	enable();
+}
+
+unsigned long vga_start_address = 0;
+
+// Repaints the image on screen, (sx,sy) position of the image scrolled to
+// be located at top-left of screen.
+void full_repaint(int sx, int sy)
+{
+	if (vga_start_address < (262144 - (SCR_SIZE>>1))) vga_start_address = GUARD*FB_WIDTH + GUARD;
+	else vga_start_address = 262144ul - SCR_SIZE - (GUARD*FB_WIDTH + GUARD);
+
+	sx -= GUARD; sy -= GUARD;
+	unsigned int dx = (vga_start_address & (FB_WIDTH-1)) - GUARD;
+	unsigned int dy = (vga_start_address >> 9) - GUARD;
+	for(int x = 0; x < SCR_W; ++x)
+		draw_vline(img, sx+x, sy, dx+x, dy, SCR_H);
+}
+
 // Scrolls image from old top-left (x0,y0) to new (x1,y1) by adjusting
 // VGA hardware registers and repainting the necessary guardband border
 // for subsequent scrolling.
 void scroll(int x0, int y0, int x1, int y1)
 {
-	unsigned long vga_start_address = (unsigned long)y1*FB_WIDTH + x1;
-	x0 -= GUARD; y0 -= GUARD;
-	x1 -= GUARD; y1 -= GUARD;
+	long addr_delta = (y1-y0)*FB_WIDTH+(x1-x0);
+	vga_start_address += addr_delta;
 
-	// We will change display start address from (x0, y0) to (x1,y1). Repaint
-	// a new guardband area around the new coordinates for later scrolling.
-	int X0,X1,Xr,Y0,Y1,dW;
-	if (x1 < x0) { X0 = x1;       X1 = x0;       dW = x0-x1; Xr = x0; }
-	else         { X0 = x0+SCR_W; X1 = x1+SCR_W; dW = x1-x0; Xr = x1; }
-	if (y1 < y0) { Y0 = y1;       Y1 = y0;       }
-	else         { Y0 = y0+SCR_H; Y1 = y1+SCR_H; }
-	for(int X = X0; X < X1; ++X) draw_vline(img, X, y1, X, y1, SCR_H);
-	for(int Y = Y0; Y < Y1; ++Y) draw_hline(img, Xr, Y, Xr, Y, SCR_W - dW);
+	// On most VGA adapters, we can just let the Display Start address wrap
+	// around freely, never needing to do a full repaint. On e.g. Tseng ET
+	// adapters with more than 256KB of VRAM however, the display memory does
+	// not wrap at 256KB mark, but rather extends beyond the 256KB limit.
+	// To resolve this incompatibility, one can either add support for Tseng
+	// bank switching and implement wrapping only at the full VRAM mark; or we
+	// can repaint the whole display at another memory address when a
+	// wraparound is about to occur.
+	if (scroll_cannot_wrap_256kb && vga_start_address > 262144ul - SCR_SIZE)
+		full_repaint(x1, y1);
+	else
+	{
+		unsigned long dx = (vga_start_address & (FB_WIDTH-1)) - GUARD;
+		unsigned long dy = (vga_start_address >> 9) - GUARD;
+		x0 -= GUARD; y0 -= GUARD;
+		x1 -= GUARD; y1 -= GUARD;
+		// We will change display start address from (x0, y0) to (x1,y1). Repaint
+		// a new guardband area around the new coordinates for later scrolling.
+		int X0,X1,Xr,Y0,Y1,dW;
+		if (x1 < x0) { X0 = x1;       X1 = x0;       dW = x0-x1; Xr = x0; }
+		else         { X0 = x0+SCR_W; X1 = x1+SCR_W; dW = x1-x0; Xr = x1; }
+		if (y1 < y0) { Y0 = y1;       Y1 = y0;       }
+		else         { Y0 = y0+SCR_H; Y1 = y1+SCR_H; }
+		for(int X = X0; X < X1; ++X) draw_vline(img, X, y1, dx+X-x1, dy+y1-y1, SCR_H);
+		for(int Y = Y0; Y < Y1; ++Y) draw_hline(img, Xr, Y, dx+Xr-x1, dy+Y-y1, SCR_W - dW);
+	}
 
 	switch(scroll_update_sync_method)
 	{
@@ -193,9 +243,12 @@ void scroll(int x0, int y0, int x1, int y1)
 		for(int y = 0; y < 100; ++y) wait_for_hblank_start();
 		set_vga_scroll_viewport_address(vga_start_address);
 		break;
-	case 6: // wait until we find we are in vblank, but not yet in vsync
+	case 6: // update DS and HS at vblank start (but before vsync start)
 		wait_for_vblank_start();
 		set_vga_scroll_viewport_address(vga_start_address);
+		break;
+	case 7: // update DS at start of hblank, HS at start of vsync
+		scroll_ds_hblank_hs_vsync(vga_start_address);
 		break;
 	}
 }
@@ -218,7 +271,7 @@ void scroll_vga_until_esc()
 
 		if (is_sound) { nosound(); is_sound = 0; }
 		if (kbhit()) key = getch();
-		if (key >= '1' && key <= '6')
+		if (key >= '1' && key <= '7')
 		{
 			scroll_update_sync_method = key - '0';
 			sound(50);
@@ -245,22 +298,22 @@ int main(int argc, char **argv)
 	printf("SCROLL v.%s\n", __DATE__);
 	printf("This program tests VGA hardware scrolling by displaying a large 1920x1097\n");
 	printf("image. Reasonably fast disk access is needed, since the image is streamed\n");
-	printf("directly from disk.\n\n");
+	printf("directly from disk.\n");
 	printf("VGA hardware scrolling is implemented via two different registers:\n");
 	printf("Display Start Address (DS) and Horizontal Pixel Shift Count (HS).\n\n");
-	printf("Updating these registers may require careful synchronization. Five sync modes\n");
+	printf("Updating these registers may require careful synchronization. Seven sync modes\n");
 	printf("are provided to enable testing how your adapter latches on to register updates:\n");
 	printf("1. Reprograms DS and HS right after start of vsync.\n");
 	printf("2. Reprograms DS and HS right after end of vsync (but before vblank ends).\n");
 	printf("3. Reprograms DS at vsync start and HS after vsync end (before vblank end).\n");
 	printf("4. Reprograms HS at vsync start and DS after vsync end (before vblank end).\n");
 	printf("5. Reprograms DS and HS in hblank after 100th visible scanline.\n");
-	printf("6. Reprograms DS and HS in vblank before start of vsync.\n\n");
+	printf("6. Reprograms DS and HS in vblank before start of vsync.\n");
+	printf("7. Reprograms DS and hblank start and HS at vsync start.\n\n");
 	printf("Press one of keys 1-6 at runtime to change the sync mode, ESC to quit.\n\n");
-	printf("Utilized test image was downloaded in good faith from\n");
-	printf("   https://www.artstation.com/aaa_game_art_studio\n");
-	printf("Not for commercial use.\n\n");
+	printf("Launch with option \"wrap\" to enable Tseng SVGA wraparound compatibility.\n\n");
 	if (opt(argc, argv, "hblank")) scroll_update_sync_method = 5;
+	scroll_cannot_wrap_256kb = opt(argc, argv, "wrap");
 
 	check_unrecognized_args(argc, argv);
 	printf("Press any key to start.\n");
@@ -270,8 +323,7 @@ int main(int argc, char **argv)
 	img = load_img("desk.img");
 	set_320x240_unchained();
 	set_palette(img);
-	for(int y = 0; y < FB_HEIGHT; ++y)
-		draw_hline(img, 0, y, 0, y, FB_WIDTH);
+	full_repaint(0, 0);
 	scroll_vga_until_esc();
 	set_video_mode(0x03);
 	return 0;
