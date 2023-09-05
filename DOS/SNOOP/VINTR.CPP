@@ -78,6 +78,10 @@ int test_fires_vertical_retrace_interrupt()
 		// Slave IRQ8-IRQ15 live in INT70-INT77.
 		old_irq2_handler = get_interrupt_vector(0xA); // 0xA = 8+2 for INT08 + index IRQ2
 		set_interrupt_vector(0xA, vsync_intr_handler);
+
+		// IRQ11 =
+//		set_interrupt_vector(0x73, vsync_intr_handler);
+
 		// Enable Hardware IRQ2 located on the Master PIC, in case it was
 		// disabled.
 		outp(0x21, prev_masked_irqs & ~2);

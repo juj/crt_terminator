@@ -83,6 +83,7 @@ void wait_for_hblank_start()
 
 void wait_for_vblank_start()
 {
+#ifdef NO_ASM
 	// VGA adapter does not provide a method to wait until a vblank start;
 	// there is only a register to wait until a vsync start. Therefore
 	// when we want to wait until a vblank start, we need to get creative,
@@ -99,13 +100,13 @@ void wait_for_vblank_start()
 	// We are now either in start of hblank or start of vblank.
 	// We hope to be in start of hblank, so that we can measure its length.
 	unsigned char seen_status = 0;
-	unsigned int hblank_len = 1;
+	unsigned char hblank_len = 0;
 	for(;;)
 	{
 		unsigned char status = inp(0x3DA);
 		seen_status |= status; // accumulate status bits to find if we got vblank
-		if (status&1) ++hblank_len;
-		else break;
+		++hblank_len;
+		if (!(status&1)) break;
 	}
 	if (seen_status&8) // bad luck, the blank we measured was a vblank.
 	{
@@ -121,22 +122,104 @@ void wait_for_vblank_start()
 		if (!(inp(0x3DA) & 1))
 			len = 0; // we passed a hblank to visible image -> restart
 	enable();
+#else
+	asm cli
+	asm mov dx, 3DAh
+
+wait_blank_end:  // if we are in hblank or vblank, wait for it to end
+	asm in al, dx  // Read 3DAh - Status Register
+	asm test al, 1 // Bit 0: Display Blank
+	asm jnz wait_blank_end
+
+wait_active_end: // wait for the end of the active scanline
+	asm in al, dx  // Read 3DAh again
+	asm test al, 1
+	asm jz wait_active_end
+
+	// We are now right at the start of a blank period, either hblank or vblank
+	// Calculate how many cycles this blank lasts.
+	asm mov cx, 0    // store in cl: seen_status, ch: hblank_len
+calc_blank_length: // measure how many I/O port read cmds we can do in blank
+	asm in al, dx    //
+	asm or cl, al    // Track in cl if this blank period contained vsync bit
+	asm inc ch       // Accumulate count of I/Os performed
+	asm test al, 1   // Still in blank period?
+	asm jnz calc_blank_length
+
+	asm test cl, 8   // Blank period is now over. Check if it included vsync
+	asm jnz wait_blank_end // If so, restart all from scratch. We wanted hblank.
+
+	asm shl ch, 2    // ch=4*hblank_len.
+search_long_blank: // Search for blank period 4x the length of hblank
+	asm mov cl, ch   // cl: loop counter
+next_iter:
+	asm in al, dx
+	asm test al, 1
+	asm jz search_long_blank // in active image? start search from scratch
+	asm dec cl
+	asm jnz next_iter
+	asm sti
+#endif
 }
 
 void scroll_ds_hs(unsigned long address)
 {
+#ifdef NO_ASM
 	disable(); // Critical that we get this done synchronized
 
-	wait_for_vsync_start();
+//	wait_for_vsync_start();
+	while((inp(0x3DA) & 8)) /*nop*/;
+	while(!(inp(0x3DA) & 8)) /*nop*/;
 	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
 	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
 
-	wait_for_vsync_end();
-	inp(0x3DA);
+//	wait_for_vsync_end();
+	while((inp(0x3DA) & 8)) /*nop*/;
 	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
 	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
 
 	enable();
+#else
+	unsigned int address16 = address >> 2;
+	unsigned char hshift = (address & 3) << 1;
+
+	asm cli
+	asm mov dx, 3DAh
+wait_vsync_end:
+	asm in al, dx
+	asm test al, 8
+	asm jnz wait_vsync_end
+
+wait_vsync_start:
+	asm in al, dx
+	asm test al, 8
+	asm jz wait_vsync_start
+
+	asm mov dx, 3D4h
+	asm mov ax, [address16]
+
+	asm mov bh, al // save al temporarily
+	asm mov al, 0Ch
+
+	asm out dx, ax // Write 3D4h:0Ch
+	asm inc al
+	asm mov ah, bh
+	asm out dx, ax // Write 3D4h:0Dh
+
+	asm mov dx, 3DAh
+wait_vsync_end2:
+	asm in al, dx
+	asm test al, 8
+	asm jnz wait_vsync_end2
+
+	asm mov al, 33h
+	asm mov dx, 3C0h
+	asm out dx, al
+	asm mov al, [hshift]
+	asm out dx, al
+
+	asm sti
+#endif
 }
 
 void scroll_hs_ds(unsigned long address)
@@ -144,11 +227,10 @@ void scroll_hs_ds(unsigned long address)
 	disable(); // Critical that we get this done synchronized
 
 	wait_for_vsync_start();
-	inp(0x3DA);
 	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
 	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
 
-	wait_for_vsync_end();
+	while((inp(0x3DA) & 8)) /*nop*/;
 	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
 	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
 
@@ -164,11 +246,90 @@ void scroll_ds_hblank_hs_vsync(unsigned long address)
 	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
 
 	wait_for_vsync_start();
-	inp(0x3DA);
 	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
 	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
 
 	enable();
+}
+
+void scroll_crtt(unsigned long address)
+{
+#ifdef NO_ASM
+	// If we are in vblank right now, we are too late to synchronize to this
+	// current frame. Wait until this vblank is over. Note that we do not need
+	// to disable interrupts for this.
+	while(inp(0x127) == 0);
+
+	// If we are still many scanlines away from vblank, we can wait
+	// for those scanlines to pass without needing to disable interrupts. The
+	// assumption here is that any interrupts will be very short running and
+	// cannot last this many scanlines long. If your program has long running
+	// interrupt handlers, increase the number of scanlines waited here.
+#define SAFE_WAIT_SCANLINES 4
+	while(inp(0x127) >= SAFE_WAIT_SCANLINES) /*nop*/;
+	// Now we are only few scanlines away from vblank. Disable interrupts so
+	// that we won't miss the start of vblank.
+	disable();
+	// Capture which frame number we are currently on
+	unsigned char frame_counter = inp(0x126);
+	// Wait until the frame counter register advances to the start of next
+	// frame.
+	while(inp(0x126) == frame_counter); // loop until we enter the next frame.
+	// Now we can safely write DS and HS registers
+	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
+	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
+	inp(0x3DA);
+	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
+	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
+	enable(); // All done!
+#else
+	unsigned int address16 = address >> 2;
+	unsigned char hshift = (address & 3) << 1;
+
+	asm mov dx, 127h // Port 127h: CRT Terminator "Scanlines until vblank"
+wait_vblank_end:
+	asm in al, dx
+	asm test al, al
+	asm jz wait_vblank_end
+
+leisurely_wait_scanlines:
+	asm in al, dx
+	asm test al, 0FCh // al >= 4?
+	asm jnz leisurely_wait_scanlines
+
+	asm cli // we are close to start of vblank, better disable interrupts
+	asm dec dl // Port 126h: CRT Terminator "Frame counter" port
+	asm in al, dx
+	asm mov ah, al // ah: the old frame counter, wait until we see a new frame
+
+wait_until_vblank_start: // tight wait the last few scanlines until vblank
+	asm in al, dx
+	asm xor al, ah
+	asm jnz wait_until_vblank_start
+
+	// Now we can safely write DS and HS registers and they'll be synchronized
+	asm mov dx, 3D4h
+	asm mov ax, [address16]
+
+	asm mov bh, al // save low part of address temporarily to bh
+	asm mov al, 0Ch
+
+	asm out dx, ax // Write 3D4h:0Ch Display Start Address high part
+	asm inc al
+	asm mov ah, bh
+	asm out dx, ax // Write 3D4h:0Dh Display Start Address low part
+
+	asm mov dx, 3DAh
+	asm in al, dx // Do a dummy I/O read to reset 3C0h flip flop to index mode
+
+	asm mov al, 33h
+	asm mov dx, 3C0h
+	asm out dx, al
+	asm mov al, [hshift]
+	asm out dx, al // Write Horizontal Pixel Shift Count
+
+	asm sti
+#endif
 }
 
 unsigned long vga_start_address = 0;
@@ -250,6 +411,12 @@ void scroll(int x0, int y0, int x1, int y1)
 	case 7: // update DS at start of hblank, HS at start of vsync
 		scroll_ds_hblank_hs_vsync(vga_start_address);
 		break;
+	case 8: // no synchronization
+		set_vga_scroll_viewport_address(vga_start_address);
+		break;
+	case 9:
+		scroll_crtt(vga_start_address);
+		break;
 	}
 }
 
@@ -271,7 +438,7 @@ void scroll_vga_until_esc()
 
 		if (is_sound) { nosound(); is_sound = 0; }
 		if (kbhit()) key = getch();
-		if (key >= '1' && key <= '7')
+		if (key >= '1' && key <= '9')
 		{
 			scroll_update_sync_method = key - '0';
 			sound(50);
@@ -301,7 +468,7 @@ int main(int argc, char **argv)
 	printf("directly from disk.\n");
 	printf("VGA hardware scrolling is implemented via two different registers:\n");
 	printf("Display Start Address (DS) and Horizontal Pixel Shift Count (HS).\n\n");
-	printf("Updating these registers may require careful synchronization. Seven sync modes\n");
+	printf("Updating these registers may require careful synchronization. Eight sync modes\n");
 	printf("are provided to enable testing how your adapter latches on to register updates:\n");
 	printf("1. Reprograms DS and HS right after start of vsync.\n");
 	printf("2. Reprograms DS and HS right after end of vsync (but before vblank ends).\n");
@@ -309,8 +476,9 @@ int main(int argc, char **argv)
 	printf("4. Reprograms HS at vsync start and DS after vsync end (before vblank end).\n");
 	printf("5. Reprograms DS and HS in hblank after 100th visible scanline.\n");
 	printf("6. Reprograms DS and HS in vblank before start of vsync.\n");
-	printf("7. Reprograms DS and hblank start and HS at vsync start.\n\n");
-	printf("Press one of keys 1-6 at runtime to change the sync mode, ESC to quit.\n\n");
+	printf("7. Reprograms DS and hblank start and HS at vsync start.\n");
+	printf("8. Disables all vertical refresh synchronization.\n\n");
+	printf("Press one of keys 1-8 at runtime to change the sync mode, ESC to quit.\n\n");
 	printf("Launch with option \"wrap\" to enable Tseng SVGA wraparound compatibility.\n\n");
 	if (opt(argc, argv, "hblank")) scroll_update_sync_method = 5;
 	scroll_cannot_wrap_256kb = opt(argc, argv, "wrap");

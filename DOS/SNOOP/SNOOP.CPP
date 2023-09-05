@@ -80,9 +80,12 @@ int enable_pci_vga_palette_snoop()
 	return 0;
 }
 
+void test_vretrace_flag_meaning();
+
 int main(int argc, char **argv)
 {
 	init_text();
+
 	ac = argc; av = argv;
 	if (opt("?") || opt("/?") || opt("-?") || opt("h") || opt("-h") || opt("/h") || opt("help") || opt("-help") || opt("/help"))
 	{
@@ -123,15 +126,15 @@ int main(int argc, char **argv)
 	if (opt("vga_addr2")) { test_tseng_256k_wraparound_bug(2, workaround_mode); return 0; }
 	if (opt("vga_addr4")) { test_tseng_256k_wraparound_bug(4, workaround_mode); return 0; }
 
-	int fires_vret_interrupt = !opt("noirqtest") ? test_fires_vertical_retrace_interrupt() : 0;
-	int supports_lightpen_rng = !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
-	int is_xga_compatible = !opt("noxgatest") ? detect_vesa_xga() : 0;
+	int fires_vret_interrupt = !opt("quiet") && !opt("noirqtest") ? test_fires_vertical_retrace_interrupt() : 0;
+	int supports_lightpen_rng = !opt("quiet") && !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
+	int is_xga_compatible = !opt("quiet") && !opt("noxgatest") ? detect_vesa_xga() : 0;
 
-	int hs_latch_position = crtt_test_hs_latch_position();
-	int ds_latch_position = crtt_test_ds_latch_position();
+	int ds_latch_position = !opt("quiet") ? crtt_test_ds_latch_position() : 2;
+	int hs_latch_position = !opt("quiet") ? crtt_test_hs_latch_position() : 3;
 
-	int fails_vga_scroll_test = crtt_fails_vga_scroll_compatibility();
-	int fails_dot_clock_halving = crtt_test_ati_incorrect_dot_clock_halving();
+	int fails_vga_scroll_test = !opt("quiet") ? crtt_fails_vga_scroll_compatibility() : 0;
+	int fails_dot_clock_halving = !opt("quiet") ? crtt_test_ati_incorrect_dot_clock_halving() : 0;
 
 	if (opt("quirks")) test_vga_quirks();
 
@@ -141,7 +144,7 @@ int main(int argc, char **argv)
 	if (found_pci_vga) enable_pci_vga_palette_snoop();
 
 	video_speed vs;
-	if (!opt("noperftest")) vs = measure_vga_mem_speed();
+	if (!opt("quiet") && !opt("noperftest")) vs = measure_vga_mem_speed();
 
 	if (quiet) return 0;
 
@@ -261,8 +264,9 @@ int main(int argc, char **argv)
 		}
 		Printf("$ECRT Terminator may have problems cropping VGA border properly.$7\n");
 	}
-	print_hs_test_result(hs_latch_position);
+
 	print_ds_test_result(ds_latch_position);
+	print_hs_test_result(hs_latch_position);
 
 	if (opt("scan"))
 	{

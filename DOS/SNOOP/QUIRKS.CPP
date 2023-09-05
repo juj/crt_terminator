@@ -869,6 +869,14 @@ CRTT_TEST(host_odd_even_doesnt_affect_scanout)
 	if (op_affects_pixel_scanout(set_host_odd_even_addressing, set_unchained_mode))
 		FAIL("Host Odd/Even register should not affect pixel data scanout, but it did");
 }
+/*
+int in_vsync() { return inp(0x3DA) & 8; }
+
+void wait_for_vsync()
+{
+	while(in_vsync()) ;
+	while(!in_vsync()) ;
+*/
 
 #define IN_VSYNC() (inp(0x3DA) & 8)
 #define IN_BLANK() (inp(0x3DA) & 9)

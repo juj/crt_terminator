@@ -25,10 +25,23 @@ void wait_for_hblank_start()
 	while(!(inp(0x3DA) & 9)) /*nop*/;
 }
 
+void wait_for_hblank_end()
+{
+	while(!(inp(0x3DA) & 9)) /*nop*/;
+	while((inp(0x3DA) & 9)) /*nop*/;
+}
+
+void wait_for_100_hblank_start()
+{
+	wait_for_vsync_start();
+	for(int i = 0; i < 100; ++i)
+		wait_for_hblank_end();
+}
+
 void wait_for_100_hblanks()
 {
 	for(int i = 0; i < 100; ++i)
-		wait_for_hblank_start();
+		wait_for_hblank_end();
 }
 
 void wait_for_vblank_end()
@@ -97,10 +110,9 @@ int crtt_test_reg_latched_at_position(
 
 	intr_disable();
 	for(int frame = 0; frame < 10; ++frame)
-//	while(!kbhit())
 	{
 		wait_before();
-		change_reg(rand());//1+frame);
+		change_reg(rand());
 		wait_after();
 		change_reg(0);
 		unsigned char new_x = crtt_read_u8(0x36);
@@ -127,7 +139,7 @@ int crtt_test_reg_latched_at_position(
 int crtt_test_hs_latch_position()
 {
 	if (!detect_crtt()) return 3;
-	int hb = crtt_test_reg_latched_at_position(wait_for_hblank_start,
+	int hb = crtt_test_reg_latched_at_position(wait_for_100_hblank_start,
 																						 set_hshift_reg,
 																						 wait_for_100_hblanks);
 	int vbs = crtt_test_reg_latched_at_position(wait_for_last_scanline_start,
@@ -163,7 +175,7 @@ int crtt_test_hs_latch_position()
 int crtt_test_ds_latch_position()
 {
 	if (!detect_crtt()) return 2;
-	int hb = crtt_test_reg_latched_at_position(wait_for_hblank_start,
+	int hb = crtt_test_reg_latched_at_position(wait_for_100_hblank_start,
 																						 set_display_start_reg,
 																						 wait_for_100_hblanks);
 	int vbs = crtt_test_reg_latched_at_position(wait_for_last_scanline_start,
