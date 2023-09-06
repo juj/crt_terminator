@@ -305,7 +305,7 @@ leisurely_wait_scanlines:
 wait_until_vblank_start: // tight wait the last few scanlines until vblank
 	asm in al, dx
 	asm xor al, ah
-	asm jnz wait_until_vblank_start
+	asm jz wait_until_vblank_start
 
 	// Now we can safely write DS and HS registers and they'll be synchronized
 	asm mov dx, 3D4h
