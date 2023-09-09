@@ -37,12 +37,29 @@ void draw_hline(IMG &img, int sx, int sy, int dx, int dy, int w)
 	fread(tmp, 1, w, img.handle);
 
 	unsigned char far *screen = A000h + dy*screen_width_div_4;
-	for(int plane = 0; plane < 4; ++plane)
+
+	if (scroll_cannot_wrap_256kb) // Tseng compatible plotting
 	{
-		int x = dx + plane;
-		outpw(0x3C4, (0x100 << (x&3)) | 0x02);
-		for(int srcx = plane; x < dx+w; x += 4, srcx += 4)
-			screen[x>>2] = tmp[srcx];
+		for(int plane = 0; plane < 4; ++plane)
+		{
+			int x = dx + plane;
+			outpw(0x3C4, (0x100 << (x&3)) | 0x02);
+			for(int srcx = plane; x < dx+w; x += 4, srcx += 4)
+			{
+				screen[x>>2] = tmp[srcx];
+				screen[(x>>2)+(SCR_SIZE>>2)] = tmp[srcx]; // Write a second copy
+			}
+		}
+	}
+	else // normal plotting
+	{
+		for(int plane = 0; plane < 4; ++plane)
+		{
+			int x = dx + plane;
+			outpw(0x3C4, (0x100 << (x&3)) | 0x02);
+			for(int srcx = plane; x < dx+w; x += 4, srcx += 4)
+				screen[x>>2] = tmp[srcx];
+		}
 	}
 }
 
@@ -53,9 +70,18 @@ void draw_vline(IMG &img, int sx, int sy, int dx, int dy, int h)
 
 	outpw(0x3C4, (0x100 << (dx&3)) | 0x02);
 	unsigned char far *screen = A000h + (dy*screen_width_div_4 + (dx>>2));
-	for(int y = 0; y < h; ++y)
+	if (scroll_cannot_wrap_256kb)
 	{
-		*screen = tmp[y];
-		screen += screen_width_div_4;
+		unsigned char far *screen2 = screen + (SCR_SIZE>>2);
+		for(int y = 0; y < h; ++y, screen += screen_width_div_4, screen2 += screen_width_div_4)
+		{
+			*screen = tmp[y];
+			*screen2 = tmp[y];
+		}
+	}
+	else
+	{
+		for(int y = 0; y < h; ++y, screen += screen_width_div_4)
+			*screen = tmp[y];
 	}
 }

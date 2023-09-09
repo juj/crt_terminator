@@ -7,22 +7,16 @@
 #include <stdlib.h>
 #include "img.h"
 
-// "Framebuffer" width and height, i.e. the VGA hardware memory area
-#define FB_WIDTH 512
-#define FB_HEIGHT 512
-// Visible screen width and height
-#define WIDTH 320
-#define HEIGHT 240
-// Max number of pixels that can be scrolled safely in one frame
-#define GUARD 1
-// Safe scrolled image size with guardband
-#define SCR_W (WIDTH+2*GUARD)
-#define SCR_H (HEIGHT+2*GUARD)
-#define SCR_SIZE ((unsigned long)SCR_H*FB_WIDTH)
-
 IMG img;
 int scroll_update_sync_method = 6;
+
+// On most VGA adapters, we can just let the Display Start address wrap
+// around freely, never needing to do a full repaint. On e.g. Tseng ET
+// adapters with more than 256KB of VRAM however, the display memory does
+// not wrap at 256KB mark, but rather extends beyond the 256KB limit.
+// To resolve this incompatibility, we do double painting when necessary.
 int scroll_cannot_wrap_256kb = 0;
+
 unsigned char far *A000h = (unsigned char far *)MK_FP(0xA000, 0);
 
 void set_video_mode(int mode)
@@ -54,6 +48,13 @@ void set_320x240_unchained()
 
 void set_vga_scroll_viewport_address(unsigned long address)
 {
+	if (scroll_cannot_wrap_256kb)
+	{
+		address &= 262143;
+		if (address > 262144ul - SCR_SIZE)
+			address = (address + SCR_SIZE) & 262143ul;
+	}
+
 	disable(); // Critical that we get this done while still in vsync.
 	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
 	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
@@ -167,13 +168,13 @@ void scroll_ds_hs(unsigned long address)
 #ifdef NO_ASM
 	disable(); // Critical that we get this done synchronized
 
-//	wait_for_vsync_start();
+//      wait_for_vsync_start();
 	while((inp(0x3DA) & 8)) /*nop*/;
 	while(!(inp(0x3DA) & 8)) /*nop*/;
 	outpw(0x3D4, ((address >> 2)&0xFF00) | 0x0C); // Set Display Start Address
 	outpw(0x3D4, ((address << 6)&0xFF00) | 0x0D); // at 4 pixels granularity.
 
-//	wait_for_vsync_end();
+//      wait_for_vsync_end();
 	while((inp(0x3DA) & 8)) /*nop*/;
 	outp(0x3C0, 0x33); // And the Horizontal Pixel Shift to get fine grained
 	outp(0x3C0, (address & 0x03) << 1); // 1-pixel granularity.
@@ -332,15 +333,13 @@ wait_until_vblank_start: // tight wait the last few scanlines until vblank
 #endif
 }
 
-unsigned long vga_start_address = 0;
+unsigned long vga_start_address = GUARD*FB_WIDTH + GUARD;
 
 // Repaints the image on screen, (sx,sy) position of the image scrolled to
 // be located at top-left of screen.
 void full_repaint(int sx, int sy)
 {
-	if (vga_start_address < (262144 - (SCR_SIZE>>1))) vga_start_address = GUARD*FB_WIDTH + GUARD;
-	else vga_start_address = 262144ul - SCR_SIZE - (GUARD*FB_WIDTH + GUARD);
-
+	vga_start_address = GUARD*FB_WIDTH + GUARD;
 	sx -= GUARD; sy -= GUARD;
 	unsigned int dx = (vga_start_address & (FB_WIDTH-1)) - GUARD;
 	unsigned int dy = (vga_start_address >> 9) - GUARD;
@@ -356,32 +355,19 @@ void scroll(int x0, int y0, int x1, int y1)
 	long addr_delta = (y1-y0)*FB_WIDTH+(x1-x0);
 	vga_start_address += addr_delta;
 
-	// On most VGA adapters, we can just let the Display Start address wrap
-	// around freely, never needing to do a full repaint. On e.g. Tseng ET
-	// adapters with more than 256KB of VRAM however, the display memory does
-	// not wrap at 256KB mark, but rather extends beyond the 256KB limit.
-	// To resolve this incompatibility, one can either add support for Tseng
-	// bank switching and implement wrapping only at the full VRAM mark; or we
-	// can repaint the whole display at another memory address when a
-	// wraparound is about to occur.
-	if (scroll_cannot_wrap_256kb && vga_start_address > 262144ul - SCR_SIZE)
-		full_repaint(x1, y1);
-	else
-	{
-		unsigned long dx = (vga_start_address & (FB_WIDTH-1)) - GUARD;
-		unsigned long dy = (vga_start_address >> 9) - GUARD;
-		x0 -= GUARD; y0 -= GUARD;
-		x1 -= GUARD; y1 -= GUARD;
-		// We will change display start address from (x0, y0) to (x1,y1). Repaint
-		// a new guardband area around the new coordinates for later scrolling.
-		int X0,X1,Xr,Y0,Y1,dW;
-		if (x1 < x0) { X0 = x1;       X1 = x0;       dW = x0-x1; Xr = x0; }
-		else         { X0 = x0+SCR_W; X1 = x1+SCR_W; dW = x1-x0; Xr = x1; }
-		if (y1 < y0) { Y0 = y1;       Y1 = y0;       }
-		else         { Y0 = y0+SCR_H; Y1 = y1+SCR_H; }
-		for(int X = X0; X < X1; ++X) draw_vline(img, X, y1, dx+X-x1, dy+y1-y1, SCR_H);
-		for(int Y = Y0; Y < Y1; ++Y) draw_hline(img, Xr, Y, dx+Xr-x1, dy+Y-y1, SCR_W - dW);
-	}
+	long dx = (vga_start_address & (FB_WIDTH-1)) - GUARD;
+	long dy = (vga_start_address >> 9) - GUARD;
+	x0 -= GUARD; y0 -= GUARD;
+	x1 -= GUARD; y1 -= GUARD;
+	// We will change display start address from (x0, y0) to (x1,y1). Repaint
+	// a new guardband area around the new coordinates for later scrolling.
+	int X0,X1,Xr,Y0,Y1,dW;
+	if (x1 < x0) { X0 = x1;       X1 = x0;       dW = x0-x1; Xr = x0; }
+	else         { X0 = x0+SCR_W; X1 = x1+SCR_W; dW = x1-x0; Xr = x1; }
+	if (y1 < y0) { Y0 = y1;       Y1 = y0;       }
+	else         { Y0 = y0+SCR_H; Y1 = y1+SCR_H; }
+	for(int X = X0; X < X1; ++X) draw_vline(img, X, y1, dx+X-x1, dy+y1-y1, SCR_H);
+	for(int Y = Y0; Y < Y1; ++Y) draw_hline(img, Xr, Y, dx+Xr-x1, dy+Y-y1, SCR_W - dW);
 
 	switch(scroll_update_sync_method)
 	{
@@ -491,6 +477,7 @@ int main(int argc, char **argv)
 	img = load_img("desk.img");
 	set_320x240_unchained();
 	set_palette(img);
+	set_vga_scroll_viewport_address(vga_start_address);
 	full_repaint(0, 0);
 	scroll_vga_until_esc();
 	set_video_mode(0x03);
