@@ -8,62 +8,62 @@
 
 void set_video_mode(int mode) { REGS r; r.x.ax = mode; int86(0x10, &r, &r); }
 
-unsigned char r[256], g[256], b[256];
+unsigned char r[256], g[256], b[256], sync = 0;
 void scroll_palette(int t)
 {
-	disable();
+	if (sync) disable(); // only disable interrupts if synchronized. (for max effect)
 	outp(0x3C8, 0);
 	outp(0x3C9, 0); // Color 0 is always black
 	outp(0x3C9, 0);
 	outp(0x3C9, 0);
-	for(int i = 0; i < 255; ++i) // Other colors show grayscale sine wave
+	for(unsigned char i = 0; i < 255; ++i) // Other colors show grayscale sine wave
 	{
-		int j = (i+t)&255;
+		unsigned char j = i+t;
 		outp(0x3C9, r[j]);
 		outp(0x3C9, g[j]);
 		outp(0x3C9, b[j]);
 	}
-	enable();
+	if (sync) enable();
 }
 
-int opt(int ac, char **av, char *name)
+int main()
 {
-	for(int i = 1; i < ac; ++i) if (!strcmpi(av[i], name)) { av[i] = 0; return 1; }
-	return 0;
-}
+	clrscr();
+	printf("This program tests how the VGA adapter behaves when the VGA palette\n");
+	printf("is programmed outside the vertical blank interval.\n\n");
+	printf("Typically applications should reprogram the palette only during\n");
+	printf("vertical blank. On some adapters, a CGA snow -like artifact can\n");
+	printf("occur if palette is programmed during visible picture area.\n\n");
+	printf("At runtime, press\n");
+	printf("  'S' to switch to programming palette Synchronized to vblank\n");
+	printf("  'U' to program the palette Unsynchronized. (default)\n");
+	printf("  Esc to quit.\n\n");
+	printf("Press any key to start.\n");
+	if (getch() == 0x1B) return 0;
+	set_video_mode(0x13);
 
-void check_unrecognized_args(int ac, char **av)
-{
-	for(int i = 1; i < ac; ++i) if (av[i]) { printf("Unrecognized option \"%s\"!\n", av[i]); exit(1); }
-}
-
-int main(int argc, char **argv)
-{
-	int sync = opt(argc, argv, "sync"); // Should we synchronize to vsync?
-	check_unrecognized_args(argc, argv);
-	set_video_mode(0x13); // Run in 320x200@256 colors
-
-	for(int i = 0; i < 64; ++i) // Initialize grayscale and gold palette
+	for(int i = 0; i < 64; ++i)
 	{
-		r[i] = g[i] = b[i] = r[127-i] = g[127-i] = b[127-i] = i;
-		r[i+128] = g[i+128] = r[255-i] = g[255-i] = i;
-		b[i+128] = b[255-i] = i > 20 ? i - 20 : 0;
+		r[i] = g[i] = b[i] = r[127-i] = g[127-i] = b[127-i] = i; // grayscale
+		r[i+128] = g[i+128] = r[255-i] = g[255-i] = i; // red&green of gold gradient
+		b[i+128] = b[255-i] = i > 20 ? i - 20 : 0; // tone down blue on gold gradient
 	}
-
-	scroll_palette(0);
+	scroll_palette(0); // program initial palette
 	unsigned char far *A000h = (unsigned char far*)MK_FP(0xA000, 0);
-	for(int y = 0; y < 200; ++y) // Draw gradients on screen
+	for(int y = 0; y < 200; ++y) // fill screen with gradient
 		for(int x = 0; x < 320; ++x)
-			A000h[y*320+x] = y < 90 || y > 110 ? 0 : 1 + (x%255);
+			A000h[y*320+x] = (x < 130 || x > 190) || ((x&3)!=0) ? 0 : 1 + (y%255);
 
-	unsigned char t = 0;
-	while(!kbhit())
+	unsigned char t = 0, key = 0;
+	while(key != 0x1B)
 	{
-		if (sync) { while(inp(0x3DA)&8); while(!(inp(0x3DA)&8)); ++t; } // wait for vsync
-		else t = tick() * 170 / 1000; // or advance time unsynchronized
-		scroll_palette(t); // write new palette
+		if (kbhit()) key = getch();
+		if (key == 's') sync = 1;
+		else if (key == 'u') sync = 0;
+		if (sync) { while(inp(0x3DA)&8); while(!(inp(0x3DA)&8)); ++t; }
+		else t = tick() * 70 / 1000;
+		scroll_palette(t);
 	}
-
 	set_video_mode(0x03);
 	return 0;
 }
