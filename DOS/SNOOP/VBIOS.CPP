@@ -1,6 +1,7 @@
 #include "vbios.h"
 #include "vec.h"
 #include "text.h"
+#include "log.h"
 #include <dos.h>
 #include <ctype.h>
 #include <conio.h>
@@ -119,6 +120,7 @@ void print_rom_strings()
 
 void print_video_bios_info()
 {
+	LOG("vbios");
 	long video_bios_size = get_video_bios_size();
 	Printf("      Video BIOS: ");
 	if (video_bios_size < 0) Printf("$BUnknown\n");

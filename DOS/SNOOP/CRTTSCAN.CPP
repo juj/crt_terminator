@@ -738,8 +738,11 @@ void crtt_scan_video_modes()
 	SCOPED_VIDEO_MODE();
 
 	// Scan VGA modes
-	for(int i = 0; i < 0x80; ++i)
+	while(kbhit()) getch(); // flush keys
+	for(int i = 0; i < 0x80 && !kbhit(); ++i)
 		crtt_scan_mode(i);
+
+	if (kbhit()) return;
 
 /*
 	// Scan VESA modes
@@ -947,9 +950,14 @@ void draw_crtt_scanned_modes_matrix()
 				if (modes[j].mi.vsync_millihz < min_vs) min_vs = modes[j].mi.vsync_millihz;
 				if (modes[j].mi.vsync_millihz > max_vs) max_vs = modes[j].mi.vsync_millihz;
 			}
-			Printf("$6%4d$8x$6%4d$8@",
-				modes[i].mi.pixel_width,
-				modes[i].mi.pixel_height);
+			int interlaced = (modes[i].mi.mode_attr&0x10);
+			Printf("$6%4d$8x$6", modes[i].mi.pixel_width);
+			if (interlaced && modes[i].mi.pixel_height >= 1000)
+				Printf("%4d$8i", modes[i].mi.pixel_height);
+			else if (interlaced)
+				Printf("%3d$8i@", modes[i].mi.pixel_height);
+			else
+				Printf("%4d$8@", modes[i].mi.pixel_height);
 			unsigned long vs_delta = max_vs - min_vs;
 //			Printf("min vs: %d, max vs: %d\n", min_vs, max_vs);
 			unsigned long avg_vs = (min_vs + max_vs) / 2;
@@ -960,7 +968,7 @@ void draw_crtt_scanned_modes_matrix()
 			else if (vs_delta < 1000)
 				Printf("$6~%2.1f$8Hz  ", avg_vs / 1000.0);
 			else
-				Printf("$6%2.0f$-%2.0f8Hz  ", min_vs / 1000.0, max_vs / 1000.0);
+				Printf("$6%2.0f-%2.0f$8Hz  ", min_vs / 1000.0, max_vs / 1000.0);
 			cur_column = 0;
 		}
 		if (bpp < bpp_columns[cur_column])

@@ -34,6 +34,7 @@
 #include "video7.h"
 #include "ahead.h"
 #include "genoa.h"
+#include "chips.h"
 
 static int ac;
 static char **av;
@@ -143,6 +144,9 @@ int main(int argc, char **argv)
 	int fails_vga_scroll_test = !opt("quiet") ? crtt_fails_vga_scroll_compatibility() : 0;
 	int fails_dot_clock_halving = !opt("quiet") ? crtt_test_ati_incorrect_dot_clock_halving() : 0;
 
+	int no_16bit_writes = !opt("quiet") ? test_vga_does_not_support_16bit_writes() : 0;
+	int no_16bit_data_writes = !opt("quiet") ? test_vga_does_not_decode_16bit_write_to_data_port() : 0;
+
 	if (opt("quirks")) test_vga_quirks();
 
 	/*int supports_pci_20 =*/ detect_pci_20_bios_supported();
@@ -187,6 +191,7 @@ int main(int argc, char **argv)
 	test_adapter(detect_video7);
 	test_adapter(detect_ahead);
 	test_adapter(detect_genoa);
+	test_adapter(detect_chips);
 	print_video_bios_info();
 	print_display_combination_code();
 	Printf("    Adapter Caps:");
@@ -295,6 +300,8 @@ int main(int argc, char **argv)
 		Printf("\n$EThis adapter exhibits \"palette snow\" on Feature Connector output. Palette\n");
 		Printf("fading in some games (Wolf3D, Wiering's Mario) may produce pixel artifacts.$7\n");
 	}
+
+	print_vga_does_not_decode_16bit_correctly(no_16bit_writes, no_16bit_data_writes);
 
 	if (opt("scan"))
 	{

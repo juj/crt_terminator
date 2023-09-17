@@ -10,6 +10,9 @@ struct vbeinfo
 	unsigned int far *modes;
 	// vram field is likely VBE 1.1+, as Acumos AVGA 2 implements VBE 1.1
 	// and it does report vram correctly. (vram is at least in VBE 1.2+)
+	// Chips&Technologies 82c452 is also VBE 1.1, and it does report VRAM
+	// as 256KB, although oddly, it advertises 1024x768@16c which is more
+	// than what would fit on 256KB.
 	unsigned int vram;
 	// VBE 2.0+:
 	int oem_rev;

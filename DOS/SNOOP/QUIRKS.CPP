@@ -1004,6 +1004,94 @@ void test_vretrace_flag_meaning()
 	Printf("Scanline lasts %lu I/Os.\n", scanline_len);
 }
 
+int test_vga_does_not_support_16bit_writes()
+{
+	NO_INTR_SCOPE();
+
+	// Test CRTC register 3D5h 16-bit decoding
+	outp(0x3D4, 0x18); // Line Compare register
+	unsigned char b = inp(0x3D5);
+	unsigned int b2 = b^1;
+	outp(0x3D4, 0x0); // For good measure, temporarily switch to another index first.
+	outpw(0x3D4, (b2<<8)|0x18);
+
+	outp(0x3D4, 0x18); // .. and then switch back.
+	unsigned char b3 = inp(0x3D5);
+	return b3 != b2;
+}
+
+int test_vga_does_not_decode_16bit_write_to_data_port()
+{
+	NO_INTR_SCOPE();
+
+	int result = 0; // success
+	unsigned char b, b2;
+/* disabled: most adapters have this limitation, so not worth printing it out.
+	// this is not a realistic scenario, since programmers didn't make a mistake
+	// with this.
+	// Test Attribute register 3C0h 16-bit decoding
+	inp(0x3DA); outp(0x3C0, 0x12); // Color Plane enable register
+	b = inp(0x3C0);
+	inp(0x3DA); outp(0x3C0, 0x12);
+	outpw(0x3C0, b^1); // Perform an incorrect 16-bit write to 3C0h (should be a 8-bit write)
+	inp(0x3DA); outp(0x3C0, 0x12);
+	b2 = inp(0x3C0);
+	inp(0x3DA); outp(0x3C0, 0x12);
+	outp(0x3C0, b);
+	inp(0x3DA); outp(0x3C0, 0x20); // Restore normal operation of the attribute controller
+	if (b2 != (b^1)) result |= 1; // 3C0h is incorrectly decoded
+*/
+	// Test Sequencer register 3C5h 16-bit decoding
+	outp(0x3C4, 0x2); // Memory Plane Write Enable register
+	b = inp(0x3C5);
+	outpw(0x3C5, b^1); // Perform an incorrect 16-bit write to 3C5h (should be a 8-bit write)
+	b2 = inp(0x3C5);
+	outp(0x3C5, b);
+	if (b2 != (b^1)) result |= 2; // 3C4h/3C5h is incorrectly decoded
+
+	// Test Graphics register 3CEh 16-bit decoding
+	outp(0x3CE, 0x0); // VGA Write Mode 0&3 Set/Reset register
+	b = inp(0x3CF);
+	outpw(0x3CF, b^1); // Perform an incorrect 16-bit write to 3CFh (should be a 8-bit write)
+	b2 = inp(0x3CF);
+	outp(0x3CF, b);
+	if (b2 != (b^1)) result |= 4; // 3CEh/3CFh is incorrectly decoded
+
+	// Test CRTC register 3D5h 16-bit decoding
+	outp(0x3D4, 0x18); // Line Compare register
+	b = inp(0x3D5);
+	outpw(0x3D5, b^1); // Perform an incorrect 16-bit write to 3D5h (should be a 8-bit write)
+	b2 = inp(0x3D5);
+	outp(0x3D5, b);
+	if (b2 != (b^1)) result |= 8; // 3D4h/3D5h is incorrectly decoded
+
+	return result;
+}
+
+void print_vga_does_not_decode_16bit_correctly(int no_16bit_writes, int no_16bit_data_port_writes)
+{
+	if (no_16bit_writes)
+	{
+		Printf("\n$EThis system/VGA adapter does not correctly support 16-bit ISA I/O writes.\n");
+		Printf("VGA compatibility is greatly impacted.$7\n");
+	}
+	else if (no_16bit_data_port_writes)
+	{
+		const char *plural = ((no_16bit_data_port_writes & (no_16bit_data_port_writes-1)) == 0) ? "address" : "addresses";
+		Printf("\n$EThis VGA adapter does not correctly decode 16-bit I/O writes to %s\n", plural);
+		const char *delim = "";
+		if (no_16bit_data_port_writes & 1) { Printf("%s3C0h", delim); delim = ","; }
+		if (no_16bit_data_port_writes & 2) { Printf("%s3C5h", delim); delim = ","; }
+		if (no_16bit_data_port_writes & 4) { Printf("%s3CFh", delim); delim = ","; }
+		if (no_16bit_data_port_writes & 8) { Printf("%s3D5h", delim); delim = ","; }
+		Printf(". While it is arguably a programming error to attempt to do so\n");
+		Printf("(16-bit writes should be directed to ports 3C4h,3D4h,3CEh instead), this can\n");
+		Printf("cause incompatibilities with games like Wiering's Mario, Crystal Caves and\n");
+		Printf("Secret Agent. Look for a community patch for Apogee games.$7\n");
+	}
+}
+
+
 int test_vga_quirks()
 {
 //	test_vga_mode_registers();
