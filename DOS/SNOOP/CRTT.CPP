@@ -113,3 +113,86 @@ void mirror_vga_palette_to_crtt()
 		outp(crtt_port + 0x05, ((c >> 4) & 3) | (c << 2)); // to CRT Terminator as 8:8:8
 	}
 }
+
+EXTERN_C unsigned char crtt_tick8()
+{
+	asm mov dx, 0128h
+	asm in al, dx
+	return _AL;
+}
+
+EXTERN_C unsigned int crtt_tick16()
+{
+#ifdef NO_16BIT_IO
+	asm mov dx, 0128h
+	asm in al, dx
+	asm mov bl, al
+	asm inc dl
+	asm in al, dx
+	asm mov bh, al
+	return _BX;
+#else
+	asm mov dx, 0128h
+	asm in ax, dx
+	return _AX;
+#endif
+}
+
+#ifdef NO_EXTERN_ASM
+EXTERN_C unsigned long crtt_tick24()
+{
+	unsigned int lo;
+	unsigned char hi;
+	asm mov dx, 0128h
+	asm in al, dx
+	asm mov bl, al
+	asm inc dl
+	asm in al, dx
+	asm mov ah, al
+	asm mov al, bl
+	asm mov [lo], ax
+
+	asm inc dl
+	asm in al, dx
+	asm mov [hi], al
+	return (((unsigned long)hi)<<16) | lo;
+}
+
+EXTERN_C unsigned long crtt_tick32()
+{
+#ifdef NO_16BIT_IO
+	unsigned int lo,hi;
+	asm mov dx, 0128h
+	asm in al, dx
+	asm mov bl, al
+	asm inc dl
+	asm in al, dx
+	asm mov bh, al
+	asm mov [lo], bx
+
+	asm inc dl
+	asm in al, dx
+	asm mov bl, al
+	asm inc dl
+	asm in al, dx
+	asm mov bh, al
+	asm mov [hi], bx
+	return (((unsigned long)hi)<<16) | lo;
+#else
+	unsigned int lo,hi;
+	asm mov dx, 0128h
+	asm in ax, dx
+	asm mov [lo], ax
+	asm add dl, 2
+	asm in ax, dx
+	asm mov [hi], ax
+	return (((unsigned long)hi)<<16) | lo;
+#endif
+}
+#endif
+
+EXTERN_C unsigned long crtt_ticks_per_sec()
+{
+	return 27000000;
+}
+

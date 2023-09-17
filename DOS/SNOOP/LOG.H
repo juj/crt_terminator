@@ -7,6 +7,7 @@ void set_log_stdout_enabled(int enabled);
 void set_log_file_enabled(int enabled);
 void LOG(const char *category); // Sets log category
 void log(const char *string, int new_line = 1); // Logs a string
+void log_to_file(const char *string, int new_line);
 void close_log(void);
 
 class hex

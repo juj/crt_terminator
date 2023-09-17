@@ -1,6 +1,7 @@
 #include "text.h"
 #include "vga.h"
 #include "intr.h"
+#include "log.h"
 #include <conio.h>
 #include <dos.h>
 #include <string.h>
@@ -10,7 +11,13 @@
 
 unsigned int far *B800h = (unsigned int far *)MK_FP(0xB800, 0);
 
-int screen_width = 80, screen_height = 25;
+int screen_width = 80, screen_px_height = 400;
+
+int screen_height_chars()
+{
+	int char_height = (inp_3d4(0x09) & 31) + 1;
+	return screen_px_height / char_height;
+}
 
 static char buffer[256];
 static int buffer2[256];
@@ -18,7 +25,7 @@ static unsigned int cur_color = 0x0700;
 
 void init_text()
 {
-	int px_height = 400;
+	screen_px_height = 400;
 
 	int cur_video_mode = get_cur_video_mode();
 	if (cur_video_mode == 0x02 || cur_video_mode == 0x03)
@@ -26,9 +33,9 @@ void init_text()
 	else if (cur_video_mode < 2)
 		screen_width = 40;
 	else if (cur_video_mode == 0x0F || cur_video_mode == 0x10)
-		px_height = 350;
-	int char_height = (inp_3d4(0x09) & 31) + 1;
-	screen_height = px_height / char_height;
+		screen_px_height = 350;
+//	int char_height = (inp_3d4(0x09) & 31) + 1;
+//	screen_height = px_height / char_height;
 }
 
 void set_cursor_pos(int x, int y)
@@ -49,7 +56,7 @@ int set_80x50_text_mode() // returns 1 on success
 	REGS r = {0};
 	r.x.ax = 0x1112; // Enable 8x8 font for 80x50 in VGA
 	int86(0x10, &r, &r);
-	screen_height = 50;
+//	screen_height = 50;
 	return 1;
 }
 
@@ -91,7 +98,7 @@ void ensure_output_log_fits()
 		else
 		{
 			unsigned int save[80];
-			unsigned int ofs = screen_width*(screen_height-1);
+			unsigned int ofs = screen_width*(screen_height_chars()-1);
 			_fmemcpy(save, &B800h[ofs], sizeof(save));
 			write_text_on_screen(ofs, " --- more ---");
 			getch();
@@ -110,6 +117,7 @@ void Printf(char *fmt, ...)
 	buffer[num_chars] = 0;
 	buffer2[num_chars] = 0;
 	buffer2[255] = 0;
+	log_to_file(buffer, 0);
 	int d = 0;
 	char *f = &buffer[0];
 	for(int l = 0; l < num_chars; ++l)
@@ -132,7 +140,7 @@ void Printf(char *fmt, ...)
 		if ((buffer2[i] & 0xFF) == '\n')
 		{
 			ensure_output_log_fits();
-			if (cursor_address >= screen_width*(screen_height-1))
+			if (cursor_address >= screen_width*(screen_height_chars()-1))
 			{
 				scroll_screen_up(1, /*scroll_text_cursor=*/0);
 				cursor_address = ((cursor_address / screen_width)) * screen_width;
@@ -145,7 +153,7 @@ void Printf(char *fmt, ...)
 			B800h[cursor_address] = buffer2[i];
 			// Printing this character should wrap the display.
 			++num_lines_printed;
-			if (cursor_address >= screen_width*(screen_height-1))
+			if (cursor_address >= screen_width*(screen_height_chars()-1))
 			{
 				scroll_screen_up(1, /*scroll_text_cursor=*/0);
 				cursor_address = ((cursor_address / screen_width)) * screen_width;
@@ -207,11 +215,17 @@ void print_cap(const char *name, int supported)
 
 void scroll_screen_up(int lines, int scroll_text_cursor)
 {
+	// double screen height instead of scrolling, if we have that option
+	if (!mode_80x50_disabled && screen_height_chars() == 25)
+	{
+		set_80x50_text_mode();
+		return;
+	}
 	REGS r = {0};
 	r.h.ah = 6;
 	r.h.al = lines;
 	r.h.bh = 0x07;
-	r.h.dh = screen_height;
+	r.h.dh = screen_height_chars();
 	r.h.dl = screen_width;
 	int86(0x10, &r, &r);
 

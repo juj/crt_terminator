@@ -126,7 +126,7 @@ struct crtc_geom_size
 	int vact, bottom_border, vfp, vsync, vbp, top_border;
 };
 
-void program_crtc_geometry(const crtc_geom_size &g, int start_mode)
+crtc_geometry convert_geom_size_to_geometry(const crtc_geom_size &g)
 {
 	crtc_geometry g2;
 	g2.horiz_active        = g.hact;
@@ -142,7 +142,12 @@ void program_crtc_geometry(const crtc_geom_size &g, int start_mode)
 	g2.vert_end_retrace   = g2.vert_start_retrace + g.vsync;
 	g2.vert_end_blank     = g2.vert_end_retrace   + g.vbp;
 	g2.vert_total         = g2.vert_end_blank     + g.top_border;
+	return g2;
+}
 
+void program_crtc_geometry(const crtc_geom_size &g, int start_mode)
+{
+	crtc_geometry g2 = convert_geom_size_to_geometry(g);
 	program_crtc_geometry(g2, start_mode);
 }
 
@@ -350,9 +355,154 @@ crtc_geom_size parse_geom_size(const crtc_geometry &g)
 	return g2;
 }
 
-void test()
+void test_ega_view_full_memory()
 {
-	set_video_mode(0x03);
+	int start = 1;
+	unsigned char regs1[32];
+	unsigned char regs2[32];
+	unsigned char seq[32];
+	crtc_geometry geom;
+	{
+	SCOPED_SET_VIDEO_MODE(0x0D);
+	for(int i = 0; i < 32; ++i)
+		regs1[i] = inp_3d4(i);
+	if (start)
+	{
+	geom = read_crtc_geometry();
+		start = 0;
+		geom.horiz_total = 592;
+		geom.horiz_active = 512;
+		geom.horiz_start_blank = 520;
+		geom.horiz_end_blank = 584;
+		geom.horiz_start_retrace = 548;
+		geom.horiz_end_retrace = 553;
+////		program_crtc_geometry(geom, 0x0D);
+}
+
+outp(0x3D4, 0x11);
+outp(0x3D5, inp(0x3D4) & 0x7F);
+//	vga_clear_bits(0x3D4, 0x11, 0x80); // Unlock CRTC register
+
+outpw(0x3D4, 0x4500);
+outpw(0x3D4, 0x3F01);
+outpw(0x3D4, 0x4002);
+outpw(0x3D4, 0x8803);
+outpw(0x3D4, 0x4704);
+outpw(0x3D4, 0x0805);
+outpw(0x3D4, 0x0F07);
+outpw(0x3D4, 0x2013);
+
+outport(0x3D4, 0x6009);
+
+
+	unsigned char far *A000h = (unsigned char far*)MK_FP(0xA000, 0);
+	for(unsigned long u = 0; u < 65536; ++u)
+		A000h[u] = 0;
+
+	for(u = 0; u < 1024; ++u)
+		A000h[u*(512/8)] = 0xAA;
+		/*
+	for(u = 0; u < 512; ++u)
+		A000h[u] = 255;
+
+	for(u = 0; u < 32768; ++u)
+		A000h[65535ul-u] = 0xAA;
+		*/
+
+//		for(u = 32768-1024; u < 32768-1024+512/8; ++u)
+	//		A000h[u] = 0xAA;
+
+	crtc_geom_size g;
+
+	geom = read_crtc_geometry();
+	g = parse_geom_size(geom);
+
+
+//	g.hact = 512/8;
+	/*
+	g.right_border = 8/8;
+	g.hfp = 8/8;
+	g.hsync = 48/8;
+	g.hbp = 16/8;
+	g.left_border = 8/8;
+	*/
+
+	g.vact = 850;// 512;
+	g.bottom_border = 2;
+	g.vfp = 6;
+	g.vsync = 2;
+	g.vbp = 6;
+	g.top_border = 2;
+	crtc_geometry geom2 = convert_geom_size_to_geometry(g);
+	geom.vert_total = geom2.vert_total;
+	geom.vert_active = geom2.vert_active;
+	geom.vert_start_blank = geom2.vert_start_blank;
+	geom.vert_end_blank = geom2.vert_end_blank;
+	geom.vert_start_retrace = geom2.vert_start_retrace;
+	geom.vert_end_retrace = geom2.vert_end_retrace;
+
+//	geom.horiz_total += 20;
+
+	for(;;)
+	{
+		program_crtc_geometry(geom, 0x0D);
+
+	for(i = 0; i < 32; ++i) {
+		regs2[i] = inp_3d4(i);
+		seq[i] = inp_3c4(i);
+	}
+
+		int key = getch();
+		switch(key)
+		{
+			case '1': --geom.horiz_total; break;
+			case '2': ++geom.horiz_total; break;
+
+			case 'q': --geom.horiz_active; break;
+			case 'w': ++geom.horiz_active; break;
+			case 'a': --geom.horiz_start_blank; break;
+			case 's': ++geom.horiz_start_blank; break;
+			case 'z': --geom.horiz_end_blank; break;
+			case 'x': ++geom.horiz_end_blank; break;
+			case '3': --geom.horiz_start_retrace; break;
+			case '4': ++geom.horiz_start_retrace; break;
+			case 'e': --geom.horiz_end_retrace; break;
+			case 'r': ++geom.horiz_end_retrace; break;
+/**
+			case 'v': if (geom.vact > 0) --geom.vact; break;
+			case 'f': ++geom.vact; break;
+			case 'b': if (geom.bottom_border > 0) --geom.bottom_border; break;
+			case 'g': ++geom.bottom_border; break;
+			case 'n': --geom.vfp; break;
+			case 'h': ++geom.vfp; break;
+			case 'm': if (geom.vsync > 0) --geom.vsync; break;
+			case 'j': ++geom.vsync; break;
+			case ',': --geom.vbp; break;
+			case 'k': ++geom.vbp; break;
+			case '.': if (geom.top_border > 0) --geom.top_border; break;
+			case 'l': ++geom.top_border; break;
+			*/
+		}
+
+		if (key == KEY_ESC) break;
+	}
+	}
+	print_geometry(geom);
+//  printf(
+//	vga_clear_bits(0x3D4, 0x11, 0x80); // Unlock CRTC register
+	for(int j = 0; j < 32; ++j)
+//		if (regs1[j] != regs2[j])
+			printf("outport(0x3D4, 0x%02X%02X);\n", regs2[j], j);
+	for(j = 0; j < 32; ++j)
+//		if (regs1[j] != regs2[j])
+			printf("outport(0x3C4, 0x%02X%02X);\n", seq[j], j);
+	getch();
+}
+
+void test_geom_size()
+{
+//	set_video_mode(0x03);
+	set_video_mode(0x0D);
 	crtc_geometry g = read_crtc_geometry();
 	crtc_geom_size geom = parse_geom_size(g);
 	int quit = 0;
@@ -419,16 +569,18 @@ crtt_mode_info detect_current_mode()
 {
 	// Give the video mode some time to stabilize in case this
 	// mode was just entered a moment ago.
-	wait_for_n_vblanks(100);
+	wait_for_n_vblanks(150);
 
 	crtt_mode_info m = {0};
-	int i = 0x06;
 	NO_INTR_SCOPE();
+	// The following code reads the CRT Terminator indexed register space in
+	// subregister order.
+	int i = 0x06;
 	m.pixel_clock   = crtt_read_u32(i); i += 4;
 	m.hsync_hz      = crtt_read_u32(i); i += 4;
 	m.vsync_millihz = crtt_read_u32(i); i += 4;
 	m.mode_attr     = crtt_read_u16(i); i += 2;
-	m.num_distinct_colors = (unsigned int)crtt_read_u8(i) + 1; i += 1; // N.b. the +1
+	m.num_distinct_colors = (unsigned int)crtt_read_u8(i) + 1; i += 1; // N.b. the +1, as CRT Terminator returns num_distinct_colors-1.
 	m.max_color_id  = crtt_read_u8(i);  i += 1;
 	m.hfp           = crtt_read_u16(i); i += 2;
 	m.hsync         = crtt_read_u16(i); i += 2;
@@ -450,6 +602,14 @@ crtt_mode_info detect_current_mode()
 	m.visible_rect[1] = crtt_read_u16(i); i += 2;
 	m.visible_rect[2] = crtt_read_u16(i); i += 2;
 	m.visible_rect[3] = crtt_read_u16(i); i += 2;
+	m.dip_switches  = crtt_read_u8(i); i += 1;
+	/* reserved */ i += 1;
+	m.options = crtt_read_u8(i); i += 4;
+	m.isa_bus_clock_rate_hz = crtt_read_u32(i); i += 4;
+	m.recent_pal_index = crtt_read_u8(i); i += 1;
+	m.recent_pal_r = crtt_read_u8(i); i += 1;
+	m.recent_pal_g = crtt_read_u8(i); i += 1;
+	m.recent_pal_b = crtt_read_u8(i); i += 1;
 	return m;
 }
 

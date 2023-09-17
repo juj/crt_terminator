@@ -11,8 +11,8 @@ static unsigned int dosTimer = 0;
 static void interrupt far timerHandler()
 {
 	++globalTimeMsecs;
-	dosTimer += 1103;
-	if (dosTimer < 1103) dosTimerProc(); // Call DOS timer interrupt in chain
+	dosTimer += 1193;
+	if (dosTimer < 1193) dosTimerProc(); // Call DOS timer interrupt in chain
 	else outp(0x20, 0x20); // Not time to call chained DOS intr.
 }
 
@@ -44,7 +44,7 @@ static void install_timer()
 	r.x.ax = 0x3508;
 	int86x(0x21, &r, &r, &s); // Save original DOS timer interrupt vector
 	dosTimerProc = (INTERRUPT_PROC)MK_FP(s.es, r.x.bx);
-	set_timer_int(timerHandler, 1103);
+	set_timer_int(timerHandler, 1193);
 	enable();
 }
 

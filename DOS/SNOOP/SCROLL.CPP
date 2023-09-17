@@ -105,8 +105,7 @@ int crtt_test_reg_latched_at_position(
 		A000h[y*320+160] = 48; // Draw a solid green vertical line
 
 	delay(100);
-	unsigned char x = crtt_read_u8(0x36);
-	unsigned char min_x = x;
+	unsigned char stable_x = crtt_read_u8(0x36);
 
 	intr_disable();
 	for(int frame = 0; frame < 10; ++frame)
@@ -116,8 +115,7 @@ int crtt_test_reg_latched_at_position(
 		wait_after();
 		change_reg(0);
 		unsigned char new_x = crtt_read_u8(0x36);
-		if (min_x > new_x) min_x = new_x;
-		if (min_x < x)
+		if (new_x != stable_x)
 		{
 			intr_enable();
 			return 1;
@@ -133,9 +131,7 @@ int crtt_test_reg_latched_at_position(
 // the Display Start Address register should be done. This allows game code
 // to not need to be so timing precise when implementing hardware scrolling.
 // However, some graphics cards, e.g. ATI Mach64 VT, latch this register at
-// every hblank. This can cause timing issues to games if they do not synch-
-// ronize their scrolling code to vblank. E.g. Commander Keen requires
-// the "Fix Jerky Motion" patch because of this issue.
+// every hblank.
 int crtt_test_hs_latch_position()
 {
 	if (!detect_crtt()) return 3;
@@ -217,22 +213,63 @@ const char * const latch_timings[6] = {
 	"unknown"
 };
 
-void print_hs_test_result(int hs)
+int benchmark_hblank_length()
 {
-	if (hs != 3)
-	{
-		Printf("\n$EHorizontal Pixel Shift Count register is latched in nonstandard manner, at\n");
-		Printf("%s. Expected it to be latched at end of vertical\n", latch_timings[hs]);
-		Printf("retrace. Commander Keen needs \"Fix Jerky Motion\" enabled.$7\n");
+	SCOPED_SET_VIDEO_MODE(0x0D); // EGA 320x200@16c, Commander Keen video mode
+	int i;
+	int maxHblankLength = 0;
+	// Benchmark: What is the maximum amount of port I/Os that can be
+  // performed within a single hblank period?
+  // Find what is the max length that a Hblank can take.
+  for(i = 0; i < 1000; ++i)
+  {
+    int length = 0;
+    unsigned char status, seen_status = 0;
+    disable();
+    while(inportb(0x3DA) & 9);
+    while(!(inportb(0x3DA) & 9));
+    do
+    {
+      status = inportb(0x3DA);
+      seen_status |= status;
+      ++length;
+    } while((status & 9) == 1);
+    enable();
+		if (!(seen_status & 8) && length > maxHblankLength)
+			maxHblankLength = length;
 	}
+	return maxHblankLength;
 }
 
-void print_ds_test_result(int ds)
+void print_ds_hs_test_result(int hs, int ds, int hblank_length)
 {
+	int first = 1;
+	if (hs != 3)
+	{
+		if (first) { Printf("\n"); first = 0; }
+		Printf("$EHorizontal Pixel Shift Count register is latched in nonstandard manner, at\n");
+		Printf("$6%s$E. Expected it to be latched at end of v.retrace.$7\n", latch_timings[hs]);
+	}
+
 	if (ds != 2)
 	{
-		Printf("\n$EDisplay Start Address register is latched in nonstandard manner, at\n");
-		Printf("%s. Expected it to be latched at start of vertical\n", latch_timings[ds]);
-		Printf("retrace. Hardware scrolling in games might stutter.$7\n");
+		if (first) { Printf("\n"); first = 0; }
+		Printf("$EDisplay Start Address register is latched in nonstandard manner, at\n");
+		Printf("$6%s$E. Expected it to be latched at start of v.retrace.$7\n", latch_timings[ds]);
 	}
+
+	if (ds != hs && hblank_length > 10)
+	{
+		Printf("\n$EVGA card is fast enough to do more than ten (%d) VGA Status port reads in one\n", hblank_length);
+		Printf("hblank, and scroll register latching is not synchronized. Keen 4-6 games may\n");
+		Printf("stutter even with the Fix Jerky Motion setting. Use a community patch.$7\n");
+	}
+	else if (ds != hs && hblank_length > 5)
+	{
+		Printf("\n$EVGA card is fast enough to do more than five (%d) VGA Status port reads in one\n", hblank_length);
+		Printf("hblank, and scroll register latching is not synchronized. Keen 4-6 games will\n");
+		Printf("likely need the Fix Jerky Motion setting, or use a community patch.$7\n");
+	}
+	else if (ds != 2 || hs != 3)
+		Printf("$EGames that use hardware scrolling may exhibit stuttering.$7\n");
 }

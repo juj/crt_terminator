@@ -28,6 +28,12 @@ struct crtt_mode_info
 	unsigned int pixel_width, pixel_height;
 	int crop[4]; // left, top, right, bottom
 	unsigned int visible_rect[4]; // minx, miny, maxx, maxy
+	unsigned char dip_switches;
+	unsigned char reserved;
+	unsigned char options;
+	unsigned char reserved2[3];
+	unsigned long isa_bus_clock_rate_hz;
+	unsigned char recent_pal_index, recent_pal_r, recent_pal_g, recent_pal_b;
 };
 
 struct mode_info;

@@ -168,8 +168,8 @@ int vesa_print_info()
 		print_cap("8bpp-dac", vbe.caps & 1);
 		if (vbe.version >= 0x0200)
 		{
-			print_cap("vga-compat", !(vbe.caps & 2));
-			print_cap("no-snow", !(vbe.caps & 4));
+			print_cap("vga-incompatible", (vbe.caps & 2));
+			print_cap("palette-snow", (vbe.caps & 4));
 		}
 		if (vbe.version >= 0x0300)
 		{
@@ -241,7 +241,7 @@ int vesa_print_info()
 	for(int i = 0; i < bpp.size(); ++i) Printf("%s ", bpp_to_str(bpp[i]));
 	Printf("\n");
 
-	int lines_left = get_cur_text_screen_height() - wherey();
+	int lines_left = get_cur_text_screen_height() - get_cursor_y();
 	if (gfxs.size() > lines_left)
 		scroll_screen_up(gfxs.size()-lines_left);
 

@@ -257,19 +257,23 @@ void test_tseng_256k_wraparound_bug(int test_addressing_width, int apply_workaro
 	scroll_vga_until_kbhit(SCANLINE_WIDTH);
 }
 
-int crtt_screen_displays_green()
+int crtt_screen_displays_green(const crtt_mode_info &mi)
 {
-	crtt_mode_info mi = detect_current_mode();
-	// Allow for tiny bit of leeway, since there might be a black border
-	// around the green color.
-	set_video_mode(0x03);
+//	set_video_mode(0x03);
 	/*
 	printf("distinct colors: %d, max color id: %d\n",
 		(int)mi.num_distinct_colors,
 		(int)mi.max_color_id);
 	getch();
 	*/
+	// Allow for tiny bit of leeway, since there might be a black border
+	// around the green color.
 	return (mi.num_distinct_colors <= 2 && mi.max_color_id == 10);
+}
+
+int crtt_screen_displays_green()
+{
+	return crtt_screen_displays_green(detect_current_mode());
 }
 
 // Plots a single pixel to screen in an unchained mode using
@@ -339,8 +343,26 @@ int crtt_fails_vga_scroll_compatibility()
 	// to display the green portion.
 	set_vga_scroll_viewport_address(262144 - 32000);
 	crtt_mode_info geom = detect_current_mode();
-	if (!visible_rects_equal(geom, expected_geom)) return 1;
-	return !crtt_screen_displays_green();
+	if (!visible_rects_equal(geom, expected_geom))
+	{
+		Log << "Rectangles not equal. expected geometry: "
+			<< expected_geom.visible_rect[0] << ","
+			<< expected_geom.visible_rect[1] << ":"
+			<< expected_geom.visible_rect[2] << ","
+			<< expected_geom.visible_rect[3] << "\n";
+		Log << "Obtained geometry: "
+			<< geom.visible_rect[0] << ","
+			<< geom.visible_rect[1] << ":"
+			<< geom.visible_rect[2] << ","
+			<< geom.visible_rect[3] << "\n";
+		return 1;
+	}
+	if (!crtt_screen_displays_green())
+	{
+		Log << "Display not green\n";
+		return 1;
+	}
+	return 0;
 }
 
 /* Different VGA adapters have implemented the meaning of BYTE, WORD and

@@ -22,6 +22,7 @@
 #include "vintr.h"
 #include "debug.h"
 #include "scroll.h"
+#include "crtt_pal.h"
 
 #include "cirrus.h"
 #include "s3.h"
@@ -82,8 +83,13 @@ int enable_pci_vga_palette_snoop()
 
 void test_vretrace_flag_meaning();
 
+void test_geom_size(void);
+void test_ega_view_full_memory(void);
 int main(int argc, char **argv)
 {
+//test_ega_view_full_memory();
+//test_geom_size();
+//return 0;
 	init_text();
 
 	ac = argc; av = argv;
@@ -132,16 +138,21 @@ int main(int argc, char **argv)
 
 	int ds_latch_position = !opt("quiet") ? crtt_test_ds_latch_position() : 2;
 	int hs_latch_position = !opt("quiet") ? crtt_test_hs_latch_position() : 3;
+	int hblank_length = ds_latch_position != hs_latch_position ? benchmark_hblank_length() : 0;
 
 	int fails_vga_scroll_test = !opt("quiet") ? crtt_fails_vga_scroll_compatibility() : 0;
 	int fails_dot_clock_halving = !opt("quiet") ? crtt_test_ati_incorrect_dot_clock_halving() : 0;
 
 	if (opt("quirks")) test_vga_quirks();
 
-//	int supports_pci_20 = detect_pci_20_bios_supported();
+	/*int supports_pci_20 =*/ detect_pci_20_bios_supported();
 	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
 	if (found_pci_vga) enable_pci_vga_palette_snoop();
+
+	int unable_to_snoop_palette = test_crtt_is_unable_to_snoop_palette();
+	int flawed_snoop = !unable_to_snoop_palette && test_crtt_is_flawed_palette_snoop();
+	int palette_snow = test_vga_card_has_palette_snow();
 
 	video_speed vs;
 	if (!opt("quiet") && !opt("noperftest")) vs = measure_vga_mem_speed();
@@ -178,7 +189,6 @@ int main(int argc, char **argv)
 	test_adapter(detect_genoa);
 	print_video_bios_info();
 	print_display_combination_code();
-
 	Printf("    Adapter Caps:");
 	if (!opt("noirqtest")) print_cap("IRQ2", fires_vret_interrupt);
 	if (!opt("nolightpentest")) print_cap("lp-rng", supports_lightpen_rng);
@@ -233,6 +243,20 @@ int main(int argc, char **argv)
 			Printf("change. Please use PALTSR.EXE to latch VGA palette snoop to stay enabled.$7\n");
 		}
 	}
+
+	if (!opt("disable"))
+	{
+		if (unable_to_snoop_palette)
+		{
+			Printf("\n$ECRT Terminator is currently not observing RAMDAC palette writes.$7\n");
+			Printf("$EColors may appear incorrect.$7\n");
+		}
+		else if (flawed_snoop)
+		{
+			Printf("\n$ECRT Terminator is seeing corrupted palette on the VGA bus (%d).$7\n", flawed_snoop);
+		}
+	}
+
 	if (opt("strings")) print_rom_strings();
 
 	if (fails_vga_scroll_test)
@@ -265,8 +289,12 @@ int main(int argc, char **argv)
 		Printf("$ECRT Terminator may have problems cropping VGA border properly.$7\n");
 	}
 
-	print_ds_test_result(ds_latch_position);
-	print_hs_test_result(hs_latch_position);
+	print_ds_hs_test_result(ds_latch_position, hs_latch_position, hblank_length);
+	if (palette_snow)
+	{
+		Printf("\n$EThis adapter exhibits \"palette snow\" on Feature Connector output. Palette\n");
+		Printf("fading in some games (Wolf3D, Wiering's Mario) may produce pixel artifacts.$7\n");
+	}
 
 	if (opt("scan"))
 	{

@@ -27,17 +27,7 @@ static int start_of_line = 1;
 
 void log(const char *string, int new_line)
 {
-	if (log_file_enabled)
-	{
-		if (!log_file)
-		{
-			log_file = fopen("snoop.log", "w");
-			if (!log_file) { log_file_enabled = 0; return; }
-		}
-		if (start_of_line) fprintf(log_file, "[%s] ", log_category);
-		fprintf(log_file, "%s", string);
-		if (new_line && string[strlen(string)-1] != '\n') fprintf(log_file, "\n");
-	}
+	log_to_file(string, new_line);
 	if (log_stdout_enabled)
 	{
 		if (start_of_line) printf("[%s] ", log_category);
@@ -45,6 +35,20 @@ void log(const char *string, int new_line)
 		if (new_line && string[strlen(string)-1] != '\n') printf("\n");
 	}
 	start_of_line = (new_line || string[strlen(string)-1] == '\n');
+}
+
+void log_to_file(const char *string, int new_line)
+{
+	if (!log_file_enabled) return;
+
+	if (!log_file)
+	{
+		log_file = fopen("snoop.log", "w");
+		if (!log_file) { log_file_enabled = 0; return; }
+	}
+	if (start_of_line) fprintf(log_file, "[%s] ", log_category);
+	fprintf(log_file, "%s", string);
+	if (new_line && string[strlen(string)-1] != '\n') fprintf(log_file, "\n");
 }
 
 void close_log()
