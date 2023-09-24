@@ -38,6 +38,7 @@ EXTERN_C unsigned long crtt_tick24(void);
 EXTERN_C unsigned long crtt_tick32(void);
 
 #define crtt_product_id() (crtt_read_u16(0))
+#define crtt_scanline_counter() (inp(CRTT_SCANLINE_COUNTER_PORT))
 #define crtt_frame_counter() (inp(CRTT_FRAME_COUNTER_PORT))
 
 // Reads palette from VGA adapter and copies it over to the CRT Terminator.

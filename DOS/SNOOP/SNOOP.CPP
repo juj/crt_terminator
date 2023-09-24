@@ -147,6 +147,9 @@ int main(int argc, char **argv)
 	int no_16bit_writes = !opt("quiet") ? test_vga_does_not_support_16bit_writes() : 0;
 	int no_16bit_data_writes = !opt("quiet") ? test_vga_does_not_decode_16bit_write_to_data_port() : 0;
 
+	int no_outsb_write = !opt("quiet") ? test_vga_does_not_support_outsb_palette_upload() : 0;
+	int no_insb_read = !opt("quiet") ? test_vga_does_not_support_insb_palette_read() : 0;
+
 	if (opt("quirks")) test_vga_quirks();
 
 	/*int supports_pci_20 =*/ detect_pci_20_bios_supported();
@@ -293,6 +296,8 @@ int main(int argc, char **argv)
 		}
 		Printf("$ECRT Terminator may have problems cropping VGA border properly.$7\n");
 	}
+
+	print_fastpalette_results(no_outsb_write, no_insb_read);
 
 	print_ds_hs_test_result(ds_latch_position, hs_latch_position, hblank_length);
 	if (palette_snow)

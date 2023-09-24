@@ -13,6 +13,7 @@
 #include <mem.h>
 #include <time.h>
 #include <conio.h>
+#include <alloc.h>
 
 #define COLOR_GREEN 10
 #define COLOR_RED 12
@@ -1091,6 +1092,158 @@ void print_vga_does_not_decode_16bit_correctly(int no_16bit_writes, int no_16bit
 	}
 }
 
+static void set_palette_rep_outsb(unsigned char far *palette)
+{
+	asm sti
+	asm mov bx, ds
+
+	asm mov dx, 3C8h
+	asm mov al, 0
+	asm out dx, al
+	asm inc dl
+	asm lds si, [palette]
+	asm mov cx, 768
+	asm rep outsb // 286 instruction
+
+	asm mov ds, bx
+	asm cli
+}
+
+static void get_palette_rep_insb(unsigned char far *palette)
+{
+	asm sti
+	asm mov bx, es
+	asm mov dx, 3C7h
+	asm mov al, 0
+	asm out dx, al
+	asm inc dl
+	asm inc dl
+	asm les di, [palette]
+	asm mov cx, 768
+	asm rep insb // 286 instruction
+
+	asm mov es, bx
+	asm cli
+}
+
+static void set_palette_slow(unsigned char far *palette)
+{
+/*
+	NO_INTR_SCOPE();
+	outp(0x3C8, 0);
+	for(int i = 0; i < 768; ++i)
+		outp(0x3C9, palette[i]);
+*/
+	asm sti
+	asm mov bx, ds
+
+	asm mov dx, 3C8h
+	asm mov al, 0
+	asm out dx, al
+	asm inc dl
+	asm lds si, [palette]
+	asm mov cx, 256
+
+pal_loop:
+	asm lodsb
+	asm out dx, al
+	asm lodsb
+	asm out dx, al
+	asm lodsb
+	asm out dx, al
+	asm loop pal_loop
+
+	asm mov ds, bx
+	asm cli
+}
+
+static void get_palette(unsigned char far *palette)
+{
+	NO_INTR_SCOPE();
+	outp(0x3C7, 0);
+	for(int i = 0; i < 768; ++i)
+		palette[i] = inp(0x3C9);
+}
+
+int test_vga_does_not_support_outsb_palette_upload()
+{
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
+	unsigned char far *palette = (unsigned char far*)farmalloc(768);
+
+	int palette_failure = 0;
+
+	for(int times = 0; times < 64; ++times) // repeat test several times
+	{
+		for(int i = 0; i < 768; ++i)
+			palette[i] = (i + times)&63;
+
+		set_palette_rep_outsb(palette);
+//		set_palette_slow(palette);  // uncomment for debugging a safe fallback
+
+		_fmemset(palette, 0, 768);
+		get_palette(palette);
+
+		for(i = 0; i < 768; ++i)
+			if (palette[i] != ((i + times)&63))
+			{
+				palette_failure = 1;
+				times = 64;
+				break;
+			}
+	}
+	farfree(palette);
+
+	return palette_failure;
+}
+
+int test_vga_does_not_support_insb_palette_read()
+{
+	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
+	unsigned char far *palette = (unsigned char far*)farmalloc(768);
+
+	for(int i = 0; i < 768; ++i)
+		palette[i] = i&63;
+	set_palette_slow(palette);
+
+	int palette_failure = 0;
+
+	for(int times = 0; times < 64; ++times) // repeat test several times
+	{
+		_fmemset(palette, 0, 768);
+		get_palette_rep_insb(palette);
+//		get_palette(palette); // uncomment for debugging a safe fallback
+
+		for(i = 0; i < 768; ++i)
+			if (palette[i] != (i&63))
+			{
+				palette_failure = 1;
+				times = 64;
+				break;
+			}
+	}
+	farfree(palette);
+
+	return palette_failure;
+}
+
+void print_fastpalette_results(int no_write, int no_read)
+{
+	if (no_write && no_read)
+	{
+		Printf("\n$EThis system does not support fast $6rep outsb/insb$E asm instruction\n");
+		Printf("sequences to program the VGA palette. Palette animation performance is slower.$7\n");
+	}
+	else if (no_write)
+	{
+		Printf("\n$EThis system does not support fast $6rep outsb$E asm instruction\n");
+		Printf("sequence to program the VGA palette. Palette animation performance is slower.$7\n");
+	}
+	else if (no_read)
+	{
+		Printf("\n$EThis system does not support fast $6rep insb$E asm instruction\n");
+		Printf("sequence to read the VGA palette.$7\n");
+	}
+}
 
 int test_vga_quirks()
 {
