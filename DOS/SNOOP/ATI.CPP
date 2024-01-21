@@ -63,8 +63,8 @@ int detect_ati(char *dst)
 // Returns 0: ok, 1: Video BIOS has incorrect values, 2: bad clock
 int crtt_test_ati_incorrect_dot_clock_halving()
 {
-	if (!detect_crtt()) return 0;
 	DEBUG("pixel-clock-halving", "Tests whether VGA adapter correctly halves the pixel clock for Mode 13h and other 320 pixels wide modes.");
+	if (!detect_crtt()) return 0;
 	SCOPED_SET_VIDEO_MODE(0x13);
 	/* Looks like this does not quite work? Did I misinterpret this
 	register, or do a mistake in implementation?

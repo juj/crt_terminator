@@ -135,6 +135,7 @@ int crtt_test_reg_latched_at_position(
 int crtt_test_hs_latch_position()
 {
 	if (!detect_crtt()) return 3;
+	DEBUG("hs-latch", "Detects adapter Horizontal Shift latch position.");
 	int hb = crtt_test_reg_latched_at_position(wait_for_100_hblank_start,
 																						 set_hshift_reg,
 																						 wait_for_100_hblanks);
@@ -170,6 +171,7 @@ int crtt_test_hs_latch_position()
 
 int crtt_test_ds_latch_position()
 {
+	DEBUG("ds-latch", "Detects adapter Display Start latch position.");
 	if (!detect_crtt()) return 2;
 	int hb = crtt_test_reg_latched_at_position(wait_for_100_hblank_start,
 																						 set_display_start_reg,
@@ -215,6 +217,7 @@ const char * const latch_timings[6] = {
 
 int benchmark_hblank_length()
 {
+	DEBUG("hblank-length", "Detects adapter Hblank length.");
 	SCOPED_SET_VIDEO_MODE(0x0D); // EGA 320x200@16c, Commander Keen video mode
 	int i;
 	int maxHblankLength = 0;

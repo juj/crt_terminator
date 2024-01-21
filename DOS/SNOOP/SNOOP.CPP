@@ -101,23 +101,26 @@ int main(int argc, char **argv)
 		Printf("                         Feature Connector for use with CRT Terminator\n\n");
 		Printf("Usage: Run SNOOP.EXE to activate, or add it to AUTOEXEC.BAT\n");
 		Printf("       to configure at boot.\n\n");
-		Printf("Pass option \"nos3test\" to skip detecting S3 video cards.\n");
-		Printf("Pass option \"nomodetest\" to skip testing for buggy video mode change behavior.\n");
-		Printf("Pass option \"novesatest\" to skip testing for VESA support.\n");
-		Printf("Pass option \"noperftest\" to skip measuring VGA performance.\n");
-		Printf("Pass option \"noirqtest\" to disable SNOOP from attempting to test IRQ2/IRQ9\n          presence.\n");
-		Printf("Pass option \"nolightpentest\" to disable SNOOP from attempting to test light pen\nentropy source presence.\n");
-		Printf("Pass option \"noxgatest\" to disable SNOOP from attempting to check for XGA compatible BIOS presence.\n");
+		Printf("The following options can be used:\n");
+		Printf("  nos3test: skip detecting S3 video cards.\n");
+		Printf("  nomodetest: skip testing for buggy video mode change behavior.\n");
+		Printf("  novesatest: to skip testing for VESA support.\n");
+		Printf("  perftest: Run a test measuring VGA performance.\n");
+		Printf("  noirqtest: disable SNOOP from attempting to test IRQ2/IRQ9\n          presence.\n");
+		Printf("  nolightpentest: disable SNOOP from attempting to test light pen\nentropy source presence.\n");
+		Printf("  noxgatest: disable SNOOP from attempting to check for XGA compatible BIOS presence.\n");
+		Printf("  nopcitest: disable attempting to detect PCI support.\n");
+		Printf("  novgatest: disable attempting to analyze compatibility with original IBM VGA.\n");
 
-		Printf("Pass option \"no80x50\" to disable SNOOP from changing video mode to 80x50 when\nthe output listing is too long.\n");
-		Printf("Pass option \"disable\" to instead disable snoop support.\n");
-		Printf("Pass option \"quiet\" to skip any printing.\n");
-		Printf("Pass option \"strings\" to detect any human-readable strings in Video BIOS and\nOption ROMs.\n");
-		Printf("Pass option \"menu\" to view an interactive menu.\n");
-		Printf("Pass option \"vga_addrX\" to interactively test VGA memory addressing support. Pass X=1,2 or 4.\n");
-		Printf("Add option \"tseng\" to apply Tseng workaround.\n");
-		Printf("Pass option \"quirks\" to test for different VGA hardware bugs.\n");
-		Printf("Pass option \"regs\" to open a deep VGA register debugger. (! Experimental: This has theoretical chance to harm the system hardware!)\n");
+		Printf(" no80x50: disable changing video mode to 80x50 when\nthe output listing is too long.\n");
+		Printf(" disable: disable PCI VGA palette snoop snoop support.\n");
+		Printf(" quiet: skip any printing.\n");
+		Printf(" strings: detect any human-readable strings in Video BIOS and\nOption ROMs.\n");
+		Printf(" menu: view an interactive menu.\n");
+		Printf(" vga_addrX: interactively test VGA memory addressing support. Pass X=1,2 or 4.\n");
+		Printf(" tseng: apply Tseng workaround.\n");
+		Printf(" quirks: test for different VGA hardware bugs.\n");
+		Printf(" regs: to open a deep VGA register debugger. (! Experimental: This has theoretical chance to harm the system hardware!)\n");
 		return 0;
 	}
 
@@ -137,22 +140,22 @@ int main(int argc, char **argv)
 	int supports_lightpen_rng = !opt("quiet") && !opt("nolightpentest") ? test_supports_lightpen_rng() : 0;
 	int is_xga_compatible = !opt("quiet") && !opt("noxgatest") ? detect_vesa_xga() : 0;
 
-	int ds_latch_position = !opt("quiet") ? crtt_test_ds_latch_position() : 2;
-	int hs_latch_position = !opt("quiet") ? crtt_test_hs_latch_position() : 3;
+	int ds_latch_position = !opt("quiet") && !opt("novgatest") ? crtt_test_ds_latch_position() : 2;
+	int hs_latch_position = !opt("quiet") && !opt("novgatest") ? crtt_test_hs_latch_position() : 3;
 	int hblank_length = ds_latch_position != hs_latch_position ? benchmark_hblank_length() : 0;
 
-	int fails_vga_scroll_test = !opt("quiet") ? crtt_fails_vga_scroll_compatibility() : 0;
-	int fails_dot_clock_halving = !opt("quiet") ? crtt_test_ati_incorrect_dot_clock_halving() : 0;
+	int fails_vga_scroll_test = !opt("quiet") && !opt("novgatest") ? crtt_fails_vga_scroll_compatibility() : 0;
+	int fails_dot_clock_halving = !opt("quiet") && !opt("novgatest") ? crtt_test_ati_incorrect_dot_clock_halving() : 0;
 
-	int no_16bit_writes = !opt("quiet") ? test_vga_does_not_support_16bit_writes() : 0;
-	int no_16bit_data_writes = !opt("quiet") ? test_vga_does_not_decode_16bit_write_to_data_port() : 0;
+	int no_16bit_writes = !opt("quiet") && !opt("novgatest") ? test_vga_does_not_support_16bit_writes() : 0;
+	int no_16bit_data_writes = !opt("quiet") && !opt("novgatest") ? test_vga_does_not_decode_16bit_write_to_data_port() : 0;
 
-	int no_outsb_write = !opt("quiet") ? test_vga_does_not_support_outsb_palette_upload() : 0;
-	int no_insb_read = !opt("quiet") ? test_vga_does_not_support_insb_palette_read() : 0;
+	int no_outsb_write = !opt("quiet") && !opt("novgatest") ? test_vga_does_not_support_outsb_palette_upload() : 0;
+	int no_insb_read = !opt("quiet") && !opt("novgatest") ? test_vga_does_not_support_insb_palette_read() : 0;
 
 	if (opt("quirks")) test_vga_quirks();
 
-	/*int supports_pci_20 =*/ detect_pci_20_bios_supported();
+	if (!opt("nopcitest")) detect_pci_20_bios_supported();
 	vga = find_pci_vga_adapter();
 	int found_pci_vga = (vga && vga != 0xFFFF);
 	if (found_pci_vga) enable_pci_vga_palette_snoop();
@@ -162,7 +165,7 @@ int main(int argc, char **argv)
 	int palette_snow = test_vga_card_has_palette_snow();
 
 	video_speed vs;
-	if (!opt("quiet") && !opt("noperftest")) vs = measure_vga_mem_speed();
+	if (opt("perftest") && !opt("quiet")) vs = measure_vga_mem_speed();
 
 	if (quiet) return 0;
 
@@ -209,7 +212,7 @@ int main(int argc, char **argv)
 
 	detect_hidden_ramdac_register();
 
-	if (!opt("noperftest")) print_video_speed(vs);
+	if (opt("perftest")) print_video_speed(vs);
 
 //	if (opt("viewscan"))
 	{

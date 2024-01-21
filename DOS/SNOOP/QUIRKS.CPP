@@ -314,8 +314,8 @@ int visible_rects_equal(crtt_mode_info &mi, crtt_mode_info &mi2)
 	Returns 1 on failure, 0 on pass (or no CRTT card detected). */
 int crtt_fails_vga_scroll_compatibility()
 {
-	if (!detect_crtt()) return 0;
 	DEBUG("vga-scroll", "Tests whether VGA adapter correctly implements VGA scrolling wraparound at 256KB memory limit (if not, needs Keen \"SVGA Compatibility\" option).");
+	if (!detect_crtt()) return 0;
 
 	crtt_mode_info expected_geom;
 	{
@@ -954,7 +954,6 @@ void test_vretrace_flag_meaning()
 		while(IN_BLANK()) ; // Go to first visible scanline
 
 		unsigned char status;
-		unsigned char done = 0;
 		do
 		{
 			status = inp(0x3DA);
@@ -969,7 +968,6 @@ void test_vretrace_flag_meaning()
 		while(IN_BLANK()) ; // Go to first visible scanline
 
 		unsigned char status;
-		unsigned char done = 0;
 		do
 		{
 			status = inp(0x3DA);
@@ -1007,6 +1005,7 @@ void test_vretrace_flag_meaning()
 
 int test_vga_does_not_support_16bit_writes()
 {
+	DEBUG("16bit-crtc-decode", "Test whether VGA adapter correctly implements decoding of 16-bit writes to CRTC register.");
 	NO_INTR_SCOPE();
 
 	// Test CRTC register 3D5h 16-bit decoding
@@ -1023,6 +1022,7 @@ int test_vga_does_not_support_16bit_writes()
 
 int test_vga_does_not_decode_16bit_write_to_data_port()
 {
+	DEBUG("16bit-data-decode", "Test whether VGA adapter correctly implements decoding of 16-bit writes to its data registers.");
 	NO_INTR_SCOPE();
 
 	int result = 0; // success
@@ -1167,6 +1167,7 @@ static void get_palette(unsigned char far *palette)
 
 int test_vga_does_not_support_outsb_palette_upload()
 {
+	DEBUG("outsb-palette-write", "Test whether VGA adapter supports using outsb instruction to perform palette upload.");
 	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	unsigned char far *palette = (unsigned char far*)farmalloc(768);
 
@@ -1198,6 +1199,7 @@ int test_vga_does_not_support_outsb_palette_upload()
 
 int test_vga_does_not_support_insb_palette_read()
 {
+	DEBUG("insb-palette-read", "Test whether VGA adapter supports using insb instruction for reading back the VGA palette.");
 	SCOPED_SET_VIDEO_MODE(0x13); // VGA 320x200@256c
 	unsigned char far *palette = (unsigned char far*)farmalloc(768);
 
