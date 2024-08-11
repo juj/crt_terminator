@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+<style>
+.center { text-align: center; }
+.indent { padding-left: 20px; }
+body { background-color: #f0f0f0; margin: 0px; background: url('chitz.bmp');}
+.page { margin-left: 200px; margin-right: 200px; margin-top: 0px; background-color: white; margin-bottom: 50px; padding-left: 50px; padding-right: 50px; padding-top: 0px; padding-bottom: 30px; border: solid 1px black;}
+h1 { padding-top: 50px; }
+h2 { padding-top: 50px; }
+
+thead,
+tfoot {
+    background-color: #3f87a6;
+    color: #fff;
+}
+
+tbody {
+    background-color: #e4f0f5;
+}
+
+caption {
+    padding: 10px;
+    caption-side: bottom;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.code {
+  border: solid 1px black;
+}
+
+table {
+    border-collapse: collapse;
+    border: 2px solid rgb(200, 200, 200);
+    letter-spacing: 1px;
+    font-family: sans-serif;
+    font-size: 0.8rem;
+}
+
+td,
+th {
+    border: 1px solid rgb(190, 190, 190);
+    padding: 5px 10px;
+}
+
+td {
+    text-align: center;
+}
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+ 
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
+
+</style>
+<link rel="stylesheet" href="highlight/styles/base16/equilibrium-light.min.css">
+</head>
+<body>
+<div class='page'>
+
+<h1 class='center'>CRT Terminator DV1000 ISA</h1>
+<h2 class='center' style='padding-top: 0px'>User Manual</h2>
+<h3 class='center'>2024-08-11</h3>
+
+<img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
+
+<h1 style='padding-top: 100px'>Table of Contents</h1>
+
+<a href='#introduction'>1. Introduction</a><br>
+<a href='#requirements'>2. Requirements</a><br>
+<a href='#technical_features'>3. Technical Features</a><br>
+<a href='#installation'>4. Installation</a><br>
+<span class='indent'><a href='#installing_the_crt_terminator_card'>4.1. Installing The CRT Terminator Card</a></span><br>
+<span class='indent'><a href='#installing_the_crt_video_cable_to_ibm_feature_connector'>4.2. Installing The Video Cable To IBM Feature Connector</a></span><br>
+<span class='indent'><a href='#installing_the_crt_video_cable_to_vesa_feature_connector'>4.3. Installing The Video Cable To VESA Standard VGA Pass-Through Connector</a></span><br>
+<span class='indent'><a href='#vga_terminator_dongle'>4.4. VGA Terminator Dongle</a></span><br>
+<a href='#configuration'>5. Configuration</a><br>
+<span class='indent'><a href='#jumper_settings'>5.1. Jumper Settings</a></span><br>
+<span class='indent'><a href='#dip_switches'>5.2. DIP Switches</a></span><br>
+<span class='indent'><a href='#vga_palette_snoop'>5.3. VGA Palette Snoop</a></span><br>
+<span class='indent'><a href='#software_configuration'>5.4. Software Configuration</a></span><br>
+<a href='#supported_input_video_modes'>6. Supported Input Video Modes</a><br>
+<a href='#recommended_display'>7. Recommended Displays</a><br>
+<a href='#video_upscaling'>8. Video Upscaling with CRT Terminator</a><br>
+<a href='#compatible_graphics_adapters'>9. Compatible Graphics Adapters</a><br>
+<a href='#hardware_programming_reference'>10. Hardware Programming Reference</a><br>
+<a href='#frequently_asked_questions'>11. Frequently Asked Questions</a><br>
+<a href='#troubleshooting'>12. Troubleshooting</a><br>
+<a href='#appendix_a_ibm_vga_feature_connector'>Appendix A. IBM VGA Feature Connector</a><br>
+<a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
+<a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
+<a href='#appendix_d_supported_fixed_resolutions'>Appendix D. CRT Terminator Supported Output Resolutions</a><br>
+
+<p></p>
+
+</div><div class='page'>
+
+<a name='introduction'><h1>Introduction</h1></a>
+<p><i>CRT Terminator Digital VGA Feature Card ISA 1000</i> is an 8-bit ISA expansion card that works on IBM PC compatibles all the way from the original IBM XT PC up to the hybrid ISA + PCI Pentium era motherboards.</p>
+
+<p>The CRT Terminator board is an <i><b>expansion card</b></i>, which means that it does <b>not</b> function as a standalone display adapter. Instead, like the early MPEG decoder cards from the 90s, CRT Terminator leverages an existing VGA-compatible adapter, and connects into the <b>VGA Feature Connector</b> bus of the VGA card via a 2x13-pin ribbon cable.</p>
+
+<img src="card_top.jpg"  style="float:left;width:33%; border: solid 1px black; margin-right: 10px; margin-top: 0px">
+
+<p>This VGA Feature Connector bus bypasses the signal degrading digital-to-analog video conversion step (RAMDAC), and enables CRT Terminator to output a fully digital video signal. CRT Terminator converts and upscales this 8-bit palettized digital video into a True Color 24-bit RGB DVI-D output stream that is compatible with HD video on modern flat panel displays.</p>
+
+<p>Two landmark features of CRT Terminator are <i><b>Multimode</b></i> and <i><b>StutterStop</b></i>. The <i>Multimode</i> feature enables CRT Terminator to be aware of many of the various nonstandard and quirky sized custom VGA video modes that DOS programs utilize, and whenever the VGA output video mode changes, CRT Terminator will readjust its video processing to produce a best matching upscaled resolution. That is, instead of outputting a single fixed output resolution, CRT Terminator will output <b>multi</b>ple different video <b>mode</b>s depending on the video input content.</p>
+
+<p>Then, in coordination with the target display's upscaling circuitry, CRT Terminator is able to provide an upsampling result that closely resembles <i>"surface area-based"</i> upsampling, which provides vastly superior image quality of scaled up pixel art, compared to point sampling or bilinear filtering alone. For more information, see the later section <a href='#video_upscaling'>8. Video Upscaling with CRT Terminator</a>.</p>
+
+<p>The <i>StutterStop</i> feature is a unique hardware feature that carefully matches the vertical refresh rate of the upscaled video with that of the input video, down to the millihertz level. This ensures that the video upscaling subsystem will exhibit frame stuttering only on the order of once per several minutes, or even more infrequently. This eliminates the presence of any periodic stuttering that is commonly observed in panning motion of video (assuming no stuttering was present in original produced video from the PC).
+
+<p>Enabling Multimode and StutterStop features require some level of nonstandard video mode support from the flat panel display. To allow for most degree of flexibility, CRT Terminator also provides the ability to normalize quirky video modes and output CVT and DMT compliant video signals as a fallback. These features are optionally activated via configuration switches, and we provide tables of our findings for compatibility.</p>
+
+<p>In all cases, the degraded analog video output from the VGA adapter RAMDACs is bypassed. We find that even some of the oldest ISA VGA cards with a reputation of having an unusably blurry or soft analog video quality, such as ATI 28800 and Oak 037, gain a new life and are able to produce a crispy clear digital video output.</p>
+
+<p>Thus the end result is a high quality digital video output with few compromises when viewed on a modern display.</p>
+
+</div><div class='page'>
+
+<a name='requirements'><h1>Requirements</h1></a>
+
+<p>CRT Terminator requires the following:</p>
+<ul>
+<li>an IBM compatible PC, with a <b>free 8-bit ISA slot</b> for the CRT Terminator card,</li>
+<li>a VGA graphics adapter on the <b>ISA or PCI bus</b> that is equipped with <u><b>either</b></u> an
+  <ul>
+    <li>8-bit IBM <b>VGA Feature Connector</b>: a 2x13-pin edge connector shaped Feature Connector bus, or</li>
+    <li>8-bit <b>VESA Standard VGA Pass-Through Connector</b> (VSVPC, also called just <i>VESA Feature Connector</i>): a 2x13-pin flat cable pin header Feature Connector bus, with video <u><b>output</b></u> functionality.</li>
+  </ul>
+</li>
+<li>a flat panel display or video capture card with DVI-D compatible HD video input</li>
+<li>a passion for retro computing</li>
+</ul>
+
+<p>Note: some VGA graphics adapters may require running a utility program from the adapter manufacturer to enable video output on the Feature Connector bus. (e.g. some variants of the S3 Trio 64)</p>
+
+<p>Also, on some VGA adapters, such as the Voodoo 3, the Feature Connector on the board seems to only work for video input (as far as we are aware of at the time of writing), and unfortunately cannot be used to output video to CRT Terminator.</p>
+
+<p>At the time of writing, we do not yet have good experience with the compatibility of different ISA VLB adapters, so we do not state these as supported yet. We recommend either using a ISA or a PCI graphics card.</p>
+
+<p>Also, even though many AGP graphics cards have a VESA Feature Connector, it is unclear if any of these connectors can be used as output - at least in our testing we have not been able to output video from any. AGP graphics cards are currently not supported.</p>
+
+</div><div class='page'>
+
+<a name='technical_features'><h1>Technical Features</h1></a>
+
+<p>CRT Terminator offers the following features:</p>
+
+<ul>
+<li>outputs a DVI-D video signal (no audio) via the HD video receptacle.</li>
+<li>supports input video mode pixel clocks up to 37.5 MHz.</li>
+<li>supports output video mode pixel clocks up to 118.8 MHz (max FPGA vendor rated speed) and up to 75 Hz vertical refresh rate.</li>
+<li>overclocking support for unlocking output pixel clocks above 118.8 MHz.</li>
+<li>supports upscaling up to 1600x1200@57.4hz in CVT-Reduced Blanking v2 mode for pixel perfect 4:3 upscaling of DOS 320x200 and 320x240 input resolutions, for output on 1600x1200 and 1920x1200 displays.</li>
+<li>supports upscaling to 1440x1080@70hz in CVT-RBv2 mode (118.8 MHz) for output on 1920x1080 displays.</li>
+<li>supports all standard CGA, EGA and VGA input video modes with 2, 4, 16 and 256 colors.</li>
+<li>supports Super VGA input modes up to 800x600 resolution with up to 256 colors.</li>
+<li>implements a precisely synchronized 8-bit palettized video to 24-bit RGB video conversion.</li>
+<li>provides a robust video synchronization subsystem for various nonstandard quirky and hacked VGA video modes.</li>
+<li>normalizes quirky input video in various ways to make it more compatible with limitations of modern displays, most notably:
+<ul>
+<li>ensure ≳ 28 kHz horizontal refresh,</li>
+<li>frame decimation to ensure ≤ 75 Hz vertical refresh,</li>
+<li>clock doubling to ensure ≥ 640 pixels horizontal width,</li>
+<li>smart upscaling to ensure pixel width > pixel height,</li>
+<li>removes malformed video shape, such as negative horizontal or vertical porch area</li>
+</ul>
+</li>
+<li>supports intelligent detection and cropping of CGA/EGA/VGA video borders.</li>
+<li>enables single- and triple-buffered video upscaling for controlling output latency.</li>
+<li>provides three different video upscaling modes: <i>Passthrough</i>, <i>Fixed Resolution</i> and <i>Multimode</i>:
+<ul>
+<li><b>Passthrough</b> mode outputs the input video signal unscaled with minimal processing, and less than a single scanline of processing latency.</li>
+<li><b>Fixed Resolution</b> mode upscales the input video for fast video mode switching and capture card compatibility.</li>
+<li><b>Multimode</b> output upscales the input video for best output quality from all input modes.</li>
+</ul>
+</li>
+<li>supports configuration via a DOS command line utility.</li>
+<li>supports standard VGA 262,144 colors 6:6:6 256-color palettized modes as well as a new expanded 16 million 8:8:8 256-color palettized mode of operation.</li>
+<li>operation implemented using Gowin GW1NR series of FPGA board.</li>
+</ul>
+
+all packed into a single 8-bit ISA expansion card!
+
+</div><div class='page'>
+
+<a name='installation'><h1>Installation</h1></a>
+
+<p>This section details the steps to install CRT Terminator.
+
+<a name='installing_the_crt_terminator_card'><h2>Installing The CRT Terminator Card</h2></a>
+
+<p>CRT Terminator is an 8-bit ISA card, but may be freely installed in either an 8-bit ISA slot or a 16-bit ISA slot.</p>
+
+<p>However, installation in "Slot 8" of the original IBM XT PC (the slot closest to the Intel CPU) is not supported due to <a href='https://www.minuszerodegrees.net/5160/misc/5160_slot_8.htm'>limitations</a> of that slot.</p>
+
+<img src='fully_seat.jpg' style='width:30%; border: solid 1px black;'>
+
+<p>Be sure to fully screw in the CRT Terminator backplane to the chassis. This may seem a bit silly to point out, but since a part of CRT Terminator configuration will be done by flipping DIP switches at the back of the card, it is all too easy to accidentally unseat the card if flipping the switches while the card is not screwed in. Unseating the card during power-on could cause damage to the Feature Connector subsystem or the PC.</p>
+
+<p>Bundled with the adapter are both styles of video cables for connecting CRT Terminator to the Feature Connector slot of your graphics card.</p>
+
+<a name='installing_the_crt_video_cable_to_ibm_feature_connector'><h2>Installing The Video Cable To IBM Feature Connector</h2></a>
+
+<p>If you have an earlier ISA VGA graphics card that predates VESA standardization, it should have the IBM edge connector style Feature Connector interface.
+
+<p>This interface should be keyed with a notch cut out between pins 2 and 3. <u>Pin 1 is always on the narrow side of this connector</u>, like this:</p>
+
+<img src='ibm_feature_connector.jpg' style='width:65%; border: solid 1px black;'>
+
+<p>To connect to this IBM style edge connector, the CRT Terminator video cable with a female edge connector socket is used:</p>
+
+<img src='crtt_ibm_fc_cable.jpg' style='width:70%; border: solid 1px black;'>
+
+<p>Connecting the cable to the CRT Terminator end is easy, because there is only one orientation that the cable fits. This orientation identifies which side of the cable will be Pin 1:</p>
+
+<img src='crtt_cable.jpg' style='width:40%; border: solid 1px black;'>
+
+<p>Due to manufacturing source, the side of the cable itself might not be colored to mark pin 1. So double check the pin 1 markers on the connectors to identify pin 1.</p>
+
+<p>On the edge connector end, there will be similar markings as follows:</p>
+
+<img src='ibm_fc_cable.jpg' style='width:45%; border: solid 1px black;'>
+
+<p>The connection on the VGA card is made as follows:</p>
+
+<img src='ibm_fc_connection.jpg' style='width:45%; border: solid 1px black;'>
+
+<p>Be sure to fully push in the connector. (in the above image, the connector is shown seated only half-way to illustrate the position of the notch)
+
+<p><b>Make sure you positively identify pin 1 on both the cable and the VGA card when installing. </b></p>
+
+<p><b style='color:red'>Installing the cable in incorrect orientation <u>may damage</u> the VGA card, CRT Terminator, PC and/or the PSU.</b> Any damage resulting from incorrect installation will not be covered. So please be very careful to identify the correct cable orientation.</p>
+
+<a name='installing_the_crt_video_cable_to_vesa_feature_connector'><h2>Installing The Video Cable To VESA Standard VGA Pass-Through Connector</h2></a>
+
+<p>If your VGA adapter is of a newer type (~1990-1991 and later), then it is likely to have the VESA Standard VGA Pass-Through Connector (VSVPC). This connector is colloquially also referred to as the <i>VESA Feature Connector</i>.</p>
+
+<p>For more information on this connector, see <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B</a>.
+
+<p>This connector is a 2x13 pin grid male pin ribbon header connector, as seen below:</p>
+
+<img src='vesa_fc.jpg' style='width:65%; border: solid 1px black;'>
+
+<p>Use the following video cable to connect CRT Terminator to your VGA adapter with a VSVPC connector:</p>
+<img src='vesa_fc_cable.jpg' style='width:35%; border: solid 1px black;'>
+
+<p>This cable is symmetric, you can plug either end to the CRT Terminator.</p>
+
+<p>Connecting the cable to the CRT Terminator end is easy, because there is only one orientation that the cable fits. This orientation identifies which side of the cable will be Pin 1:</p>
+
+<img src='crtt_cable.jpg' style='width:40%; border: solid 1px black;'>
+
+<p>Note that the 2x13 pin VSVPC connector on the VGA adapter is <b><u style='color: red;'>unkeyed</u></b>. That is, it is possible to connect the video cable to this connector incorrectly, rotated 180 degrees.</p>
+
+<p><b style='color:red'>To <u>avoid damaging</u> the VGA card, CRT Terminator, PC and/or the PSU</b>, take extra care to correctly locate and match pin 1 on both the cable and the VGA adapter board, like so:</p>
+
+<img src='vesa_fc_pin1.jpg' style='width:65%; border: solid 1px black;'>
+
+<p>If this cable is connected 180 degrees reversed <u><b>in incorrect orientation</b></u>, the high-speed video data pins will overlap with ground pins, <b style='color: red;'><u>potentially causing a short</u></b>.</p>
+
+<p>Any damage resulting from incorrect installation will not be covered. So please be very careful to identify the correct cable orientation.</p>
+
+<p>If there is any doubt to the correct pin 1 orientation on the board, <b>we strongly recommend using a multimeter to identify the ground pins on the VGA board</b> as a means to double-check the correct installation orientation for the cable.</p>
+
+<p><b>Warning!</b> Even though VESA did standardize a common orientation and placement for the VSVPC connector for VGA cards, some VGA adapter vendors chose for no apparent reason to lay out the connector in a 180 degrees rotated orientation on the board. So be sure to <b style='color: red;'>check the orientation</b> on each VGA adapter separately, instead of assuming a common orientation.</p>
+
+<a name='vga_terminator_dongle'><h2>The VGA Terminator Dongle</h2></a>
+
+<p>Many older graphics adapters have an autodetection feature that identifies whether the currently connected display is a monochrome or a color monitor. This is done by identifying resistance on certain pins of the video output cable.</p>
+
+<p>If no VGA video cable is connected, these adapters may boot up in monochrome mode, resulting in displaying grayscale colors also via the Feature Connector.</p>
+
+<p>If you are not using any VGA monitors alongside CRT Terminator (e.g. in dual display or video capture setup) and your video output comes out monochrome, we will need to fool the VGA adapter into thinking that a color monitor would actually be connected.</p>
+
+<p>To achieve this, the VGA terminator dongle was created. This dongle is a dummy block that attaches in the VGA output, and provides the needed identification to the graphics card to think it should output a color image.</p>
+
+<img src='terminator_dongle.jpg' style='width: 40%; border: solid 1px black;'>
+
+<p>This small terminator dongle is actually what gave CRT Terminator the idea for the name.</p>
+
+<p>Just attach it at the end of the VGA adapter, like so:</p>
+
+<img src='terminator_dongle_connected.jpg' style='width: 40%; border: solid 1px black;'>
+
+<p>If your VGA adapter provides color output even without the terminator dongle, or you want to use the VGA output for other purpose, then you can just leave the dongle in the box.</p>
+
+</div><div class='page'>
+
+<a name='configuration'><h1>Configuration</h1></a>
+
+<p>CRT Terminator is configured via three different mechanisms:</p>
+
+<ul>
+<li>6+1 jumper settings on the board (J1 through J7)</li>
+<li>2x4 DIP switches at the back (DIPs 1.1-1.4 and 2.1-2.4)</li>
+<li>Software configuration using a supplied DOS real-mode utility</li>
+</ul>
+
+<p>The jumper settings are used to configure CRT Terminator behavior with respect to the VGA adapter, i.e. they need to be reconfigured if changing to a different VGA adapter.</p>
+
+<p>The DIP switches are used to configure CRT Terminator behavior with respect to the LCD display or video capture device that it connects out to. When changing the output device, these DIP switches will need to be reconfigured.</p>
+
+<p>Finally, the software configuration is used to tune the behavior with respect to different software at runtime.</p>
+
+<a name='jumper_settings'><h2>Jumper Settings</h2></a>
+
+<img src='jumpers.jpg' style='width: 40%; border: solid 1px black; float: right; margin: 20px;'>
+
+<p>There are seven jumpers on the CRT Terminator DV1000 board. Jumpers J1-6 are located at the top edge of the card for easy access, whereas J7 is located on the board itself. The functionality of these jumpers are summarized in the following table.</p>
+
+<table id='jumpers'>
+  <thead>
+    <tr>
+      <th scope='col'>Jumper settings J1-J7</th>
+      <th scope='col'>Name</th>
+      <th scope='col'>Description</th>
+    </tr>
+  </thead>
+  <tbody id='jumpers_table_body'>
+    <tr><td>J1</td><td>Reserved</td><td>Currently unused. Please set to <b>1-2 (N/C)</b>.</td></tr>
+    <tr><td>J2</td><td>Automatic Video Sampling Phase Detection</td><td>Controls whether CRT Terminator will automatically analyze Feature Connector video sampling phase.
+                                                              <br><b>1-2 (N/C)</b>: Enabled. State of jumpers J3-J6 will be ignored.
+                                                              <br><b>2-3</b>: Disabled. Sampling Phase will be manually defined by jumpers J3-J6.</td></tr>
+    <tr><td>J3</td><td>Pixel Data Sampling Phase</td><td>Configures the sampling phase that video Data bits are sampled at.
+                                                   <br><b>1-2 (N/C)</b>: Sample at rising edge of pixel clock.
+                                                   <br><b>2-3</b>: Sample at falling edge of pixel clock.</td></tr>
+    <tr><td>J4</td><td>Display Enable Sampling Phase</td><td>Configures the sampling phase that video Display Enable line is sampled at.
+                                                   <br><b>1-2 (N/C)</b>: Rising edge. <b>2-3</b>: Falling edge.</td></tr>
+    <tr><td>J5</td><td>Vsync Sampling Phase</td><td>Configures the sampling phase that video Vsync line is sampled at.
+                                                   <br><b>1-2 (N/C)</b>: Rising edge. <b>2-3</b>: Falling edge.</td></tr>
+    <tr><td>J6</td><td>Hsync Sampling Phase</td><td>Configures the sampling phase that video Hsync line is sampled at.
+                                                   <br><b>1-2 (N/C)</b>: Rising edge. <b>2-3</b>: Falling edge.</td></tr>
+    <tr><td>J7</td><td>Overclocking</td><td>Enables generating output video clocks beyond the manufacturer rated specification.<br><b>1-2 (OFF)</b>: Overclocking Disabled.<br><b>2-3 (ON)</b>: Enable overclocking.</td></tr>
+  </tbody>
+</table>
+
+<p>Jumpers J1-J6 utilize a three pin scheme to define two different states. State 1-2 ("open", or jumper not connected, N/C above) is set when a jumper bridges the two pins closest to the board PCB. State 2-3 ("closed") is set when a jumper bridges the two pins farthest from the PCB.</p>
+
+<p>It turns out that different VGA adapters utilize different sampling phase conventions for the generated Feature Connector video signal. There was no VESA standard for this (although sampling at the rising phase seems to be most common), and it looks like the correct sampling phase may substantially drift even between different video modes on the same VGA adapter, especially on the older ISA video adapters.</p>
+
+<p>Jumper J2 is used to enable a simple automatic configuration of the sampling phase settings. In this mode, CRT Terminator will continuously analyze which sampling phase it should use for each signal line. It is recommended that this option is enabled (J2 set to 1-2) first to see if this simple automatic scheme will work. The other options are available in case this automatic configuration does not work as expected for a particular VGA adapter.</p>
+
+<p>An incorrect video sampling phase setting typically manifests as a video signal that geometrically drifts or jitters, or continously loses video sync.</p>
+
+<div class="overflow-hidden">
+
+<img src='overclock_jumper.jpg' style='width: 30%; border: solid 1px black; float: left; margin: 10px;'>
+
+<p>Jumper settings J3-6 enable manually configuring the appropriate video signal sampling phases to use. In order for these jumpers to take effect, jumper J2 must first be set to state 2-3.</p>
+
+<p>Jumper setting J7 unlocks the display output frequency pixel clock limit. The maximum rated output provided by the FPGA board that CRT Terminator uses is a 118.8 MHz pixel clock. If J7 is set to state 1-2: OFF, then CRT Terminator will adhere to this specification, and will always generate a display signal that does not exceed this limit.</p>
+
+<p>If J7 is set to 2-3: ON, then CRT Terminator will ignore this specification, and always attempt to generate the best ideal output clock speed for the display. There is no guarantee that this will produce a stable output video signal however.</p>
+
+<p>Note that enabling overclocking will <b>not</b> void the warranty of CRT Terminator. Feel free to play around. The maximum rated pixel clock speed for DVI-D cables is 165 MHz, which gives a theoretical ceiling as to how fast pixel frequencies might be able to work.</p>
+
+</div>
+
+<a name='dip_switches'><h2 style='margin-top:0px'>DIP Switches</h2></a>
+
+<p>The back of CRT Terminator looks like follows:</p>
+
+<img src='card_back.jpg' style='width:80%; border: solid 1px black;'>
+
+<p>A total of eight DIP switches, organized in two DIP boxes are present.</p>
+
+<p>The first DIP box next to the video output connector contains four switches named 1.1, 1.2, 1.3 and 1.4. The values of these four switches are interpreted as a 4-bit binary number, and this number selects the output video mode.</p>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col' colspan=2>DIP switches 1.1-1.4</th>
+      <th scope='col'>Resolution</th>
+    </tr>
+    <tr>
+      <th scope='col'>Decimal</th>
+      <th scope='col'>Binary</th>
+      <th scope='col'></th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+    <tr><td>0</td><td>0000b</td><td>Passthrough</td></tr>
+    <tr><td>1</td><td>1000b</td><td>640x480</td></tr>
+    <tr><td>2</td><td>0100b</td><td>800x600</td></tr>
+    <tr><td>3</td><td>1100b</td><td>960x720</td></tr>
+    <tr><td>4</td><td>0010b</td><td>1280x720</td></tr>
+    <tr><td>5</td><td>1010b</td><td>1024x768</td></tr>
+    <tr><td>6</td><td>0110b</td><td>1200x900</td></tr>
+    <tr><td>7</td><td>1110b</td><td>1280x960</td></tr>
+    <tr><td>8</td><td>0001b</td><td>1280x1024</td></tr>
+    <tr><td>9</td><td>1001b</td><td>1364x1024</td></tr>
+    <tr><td>10</td><td>0101b</td><td>1400x1050</td></tr>
+    <tr><td>11</td><td>1101b</td><td>1680x1050</td></tr>
+    <tr><td>12</td><td>0011b</td><td>1440x1080</td></tr>
+    <tr><td>13</td><td>1011b</td><td>1920x1080</td></tr>
+    <tr><td>14</td><td>0111b</td><td>1600x1200</td></tr>
+    <tr><td>15</td><td>1111b</td><td>1920x1200</td></tr>
+  </tbody>
+</table>
+
+<img src='dip1.jpg' style='width:20%; float: right; border: solid 1px black;'>
+
+<p>In the DIP switch box, a switch that is flipped down (as indicated by the text <b>ON↓</b> on the box) denotes a binary <b>1</b>, and a switch that is flipped away (<b>↑</b>) denotes a <b>0</b>.</p>
+
+<p>The bits are concatenated into the above table from DIP 1.1 to 1.4, left to right.
+
+<p>For example, the image on the right corresponds to a state 0111b, or decimal 14, or an output video mode of 1600x1200.
+
+<p>The value 0000b selects <b>Passthrough</b> mode. In this mode, CRT Terminator bypasses its video upscaling subsystem (except to normalize scandoubled VGA from e.g. 320x400 to 640x400 and to crop the VGA border) and outputs the input video signal unscaled to the display.</p>
+
+<p>Passthrough mode is useful for enabling the lowest possible latency output from CRT Terminator. Some flat panel displays support the oddball video timings generated by CGA/EGA/VGA video modes better than others, so there is a bit of YMMV at play when using it.</p>
+
+<p>If any other value than Passthrough is selected, then a given Resolution in the above table is chosen. The exact meaning of this selected resolution depends on the state of DIP2.1 switch, see the next table.</p>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th colspan=2 scope='col'>DIP switches 2.1-2.4</th>
+      <th scope='col'>Description</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+    <tr><td colspan=2>DIP 2.1</td><td>OFF: Output Fixed Resolution<br>ON: Output Multimode</td></tr>
+    <tr><td>DIP2.2=OFF</td><td>DIP2.3=OFF</td><td>StutterStop level 0: Disabled. Output fixed 60Hz</td></tr>
+    <tr><td>DIP2.2=ON</td><td>DIP2.3=OFF</td><td>StutterStop level 1: Sync pixel clocks</td></tr>
+    <tr><td>DIP2.2=OFF</td><td>DIP2.3=ON</td><td>StutterStop level 2: Level 1 + sync vertical porch</td></tr>
+    <tr><td>DIP2.2=ON</td><td>DIP2.3=ON</td><td>StutterStop level 3: Level 2 + sync horizontal porch</td></tr>
+    <tr><td colspan=2>DIP 2.4</td><td>OFF: Disable Developer UI<br>ON: Show Developer UI</td></tr>
+  </tbody>
+</table>
+
+<p>In Passthrough mode, the values of DIP switches 2.1, 2.2 and 2.3 have no effect. That is, Multimode and StutterStop do not apply in Passthrough mode.</p>
+
+<p><b>Fixed Resolution Output:</b><br>
+<div class='indent'><p><u>If DIP 2.1 is OFF</u>, then the resolution selected by DIP 1.1 - 1.4 denote a <b><u>fixed</u></b> output resolution. In this mode, CRT Terminator will always output this specific chosen resolution, using point sampled upscaling.</p>
+
+<p>Use this mode to maximize compatibility of CRT Terminator with picky monitors or video capture cards.</p>
+</div></p>
+
+<p><b>Multimode Output:</b><br>
+<div class='indent'><p><u>If DIP 2.1 is ON</u> (and not running in Passthrough mode), then the resolution selected by DIP 1.1 - 1.4 denote a <b><u>maximum</u></b> upscaled output resolution. In this mode, CRT Terminator will dynamically adjust the output resolution based on the current resolution of the input.</p>
+
+<p>This way, for example when playing a Pinball game that uses a custom video mode, the video output will look crisp and well upsampled both in-game and in menus, without needing to manually re-adjust any video output parameters when navigating the game menus.</p>
+</div>
+
+<h3>StutterStop Level</h3>
+
+<p>When not operating in Passthrough mode, DIP switches 2.2 and 2.3 select a two bit binary number that activates the StutterStop feature of CRT Terminator.</p>
+
+<p>The StutterStop feature tunes the output refresh rate of CRT Terminator so it best matches the input video rate, even when processed through the video upscaling circuitry.</p> 
+
+<p>If both DIPs are OFF (value of 00b), StutterStop is disabled, and CRT Terminator always outputs 60Hz video, even if the input video was e.g. 70 Hz like in DOS VGA video.</p>
+
+<p>If StutterStop is set to any other value, Level 1-3, then StutterStop is enabled. The StutterStop "level" indicates the fine-grainedness or aggressiveness of the video rate matching. Level 3 is most preferable, and we find that many modern displays are compatible with it. (such as ASUS ProArt PA248QV and Philips Brilliance 252B9/00 that we recommend)</p>
+
+<p>However, if the video display is unable to sync e.g. StutterStop Level 3 mode, you can try to run in Level 2 or Level 1 instead, to achieve at least some level of video frame rate matching.</p>
+
+<a name='vga_palette_snoop'><h2>VGA Palette Snoop</h2></a>
+
+<p>In order to enable support for CGA, EGA and VGA video modes (as they are <b><i>palettized</i></b>), CRT Terminator <b><i>snoops</i></b> the ISA I/O bus to observe the palette write commands as they arrive to the VGA adapter. The term snooping here means that CRT Terminator listens to the communication that takes place on the ISA bus between hardware peripherals, and it recognizes all palette color writes to the hardcoded VGA adapter palette I/O port addresses 3C8h and 3C9h from the PC CPU. With that information, CRT Terminator is then able to recreate the needed palette color entries to convert palettized video into 24-bit RGB.</p>
+
+<p>In particular, this means that the I/O bus configuration on the PC must support this kind of "palette snooping" from the ISA bus, or otherwise palette information will not be observed and colors will come out incorrect.</p>
+
+<p>If you are running a PC setup with a VGA adapter residing <u>on the 8-bit or 16-bit ISA bus</u>, then <u>palette snooping will always be enabled and no further configuration is needed</u>. This is because electronically, the ISA bus is an unswitched I/O hub: all peripherals physically observe all communication on this bus.</p>
+
+<p>If you have an <b>ISA VLB</b> or a <b>PCI</b> video adapter, then the situation is a little bit more complicated. Both of these peripheral buses are switched, and disconnected from the ISA bus, so an explicit solution is required for CRT Terminator to be able to snoop the palette writes. There are four options:</p>
+
+<p style='margin-bottom:5px'><b>PCI Standard VGA Palette Snoop:</b><br>
+
+<div style='padding-top:0px; padding-left:20px'>
+<p>If your VGA adapter is PCI-based, there exists a register bit in the PCI standard to enable PCI palette snoop on the VGA card. This register bit needs to be flipped once at system startup, e.g. in AUTOEXEC.BAT. The SNOOP.EXE configuration utility ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/SNOOP'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/SNOOP.zip'>Download ZIP</a>]) can do this.</p>
+
+<p>On one rare VGA card, the Diamond Speedstar 64 CL-GD5434, we observe a quirky VGA firmware bug that the card resets the PCI palette snoop setting on each video mode change. For this specific VGA adapter and others that possibly behave like this, we provide a TSR utility PCITSR.EXE ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/PCITSR'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/PCITSR.zip'>Download ZIP</a>]) that keeps the PCI palette snoop register latched to be force-enabled.</p>
+</div></p>
+
+<p style='margin-bottom:5px'><b>BIOS VGA Palette Snoop:</b><br>
+
+<div style='padding-top:0px; padding-left:20px'>If the motherboard supports a <b>"ISA VGA Palette Snoop"</b> option in the BIOS, then that feature can be used to solve the issue. With this option enabled, the motherboard will post all palette writes to the PCI bus also onto the ISA bus, which allows CRT Terminator to follow all modifications to the VGA palette.</div></p>
+
+<p style='margin-bottom:5px'><b>VGA Card Specific Palette Snoop:</b><br>
+
+<div style='padding-top:0px; padding-left:20px'>
+
+<p>Reading the datasheets of some PCI and ISA VLB graphics chips, they provide a built-in programmable option to enable <i>passing through</i> the palette writes from the adapter. The idea with this option is to program the PCI/ISA VLB VGA adapter to stop acknowledging VGA palette write commands back to the CPU. This will cause the CPU to continue propagating these palette write I/O operations onwards to, first in the PCI hub, and then finally reaching the ISA hub as a final destination, where CRT Terminator will then be able to snoop the writes. This requires a hardware configuration support in the VGA adapter, and a software driver that programs the VGA adapter to enable this passthrough.</p>
+</div></p>
+
+<p style='margin-bottom:5px'><b>Software TSR Palette Snoop:</b><br>
+
+<div style='padding-top:0px; padding-left:20px'>
+
+<p>Finally, if there is no configuration option available either in BIOS or with the VGA adapter itself, the last resort may be to revert to utilizing a software polling approach. CRT Terminator provides a DOS software TSR program, which periodically polls the VGA palette, and then mirrors the palette over to CRT Terminator I/O address space. This software TSR will not be able to provide perfectly synchronized VGA palette uploads, and will cause a small performance penalty, but on fast PCI based systems the performance impact may be unnoticeable.</p>
+
+</div>
+
+<p><b>Note:</b> On PCI and ISA VLB adapters, enabling palette snoop has a small but measurable performance impact on overall graphics performance on some games, e.g. -~4% score measured in Doom timedemo.
+
+</p>
+
+<a name='software_configuration'><h2>Software Configuration</h2></a>
+
+<p>In addition to the jumpers and DIP switches, some aspects of CRT Terminator are configured via software. These settings include:</p>
+
+<ul>
+<li>Enable/disable vsync: By default CRT Terminator runs triple-buffered. Disable vsync to lower input latency to perform video upscaling that does not synchronize to vertical refresh rate.</li>
+<li>Enable/disable VGA border crop: By default CRT Terminator removes the VGA border area to enable pixel-perfect video upscaling in modes like 320x200, 320x240 and 800x600. Disable the VGA border crop if you'd like to see the borders, at the expense of forfeiting pixel perfect upscaling.</li>
+</ul>
+
+<p>Our software repository to configure CRT Terminator, and other utilities, can be found on the GitHub repository <a href='https://github.com/juj/crt_terminator/tree/main/DOS'>juj/crt_terminator</a>.</p>
+
+</div><div class='page'>
+
+<a name='supported_input_video_modes'><h1>Supported Input Video Modes</h1></a>
+
+<p>The following input video modes are supported:</p>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Standard</th>
+      <th scope='col'>Mode Number</th>
+      <th scope='col'>Resolution</th>
+      <th scope='col'>Refresh Rate</th>
+      <th scope='col'>Colors</th>
+    </tr>
+  </thead>
+  <tbody id='modes_table_body'>
+<tr><td>CGA</td><td>0h</td><td>40x25</td><td>70hz*</td><td>B/W</td></tr>
+<tr><td>CGA</td><td>1h</td><td>40x25  </td><td>70hz*</td><td>16c</td></tr>
+<tr><td>CGA</td><td>2h</td><td>80x25  </td><td>70hz*</td><td>gray</td></tr>
+<tr><td>CGA</td><td>3h</td><td>80x25  </td><td>70hz*</td><td>16c</td></tr>
+<tr><td>CGA</td><td>4h</td><td>320x200</td><td>70hz*</td><td>4c</td></tr>
+<tr><td>CGA</td><td>5h</td><td>320x200</td><td>70hz*</td><td>4c</td></tr>
+<tr><td>CGA</td><td>6h</td><td>640x200</td><td>70hz*</td><td>B/W</td></tr>
+<tr><td>MDA</td><td>7h</td><td>80x25  </td><td>70hz*</td><td>B/W</td></tr>
+<tr><td>EGA</td><td>Dh</td><td>320x200</td><td>70hz*</td><td>16c</td></tr>
+<tr><td>EGA</td><td>Eh</td><td>640x200</td><td>70hz*</td><td>16c</td></tr>
+<tr><td>EGA</td><td>Fh</td><td>640x350</td><td>70hz*</td><td>B/W</td></tr>
+<tr><td>EGA</td><td>10h</td><td>640x350</td><td>70hz*</td><td>16c</td></tr>
+<tr><td>VGA</td><td>11h</td><td>640x480</td><td>60hz</td><td>B/W</td></tr>
+<tr><td>VGA</td><td>12h</td><td>640x480</td><td>60hz</td><td>16c</td></tr>
+<tr><td>VGA</td><td>13h</td><td>320x200</td><td>70hz</td><td>256c</td></tr>
+<tr><td>VGA</td><td>Mode X</td><td>320x240</td><td>60hz</td><td>256c</td></tr>
+<tr><td>SVGA</td><td>58h,5Ch</td><td>800x600</td><td>56hz</td><td>256c</td></tr>
+<tr><td>Nonstandard**</td><td>N/A</td><td>≤ 800x600</td><td>≤ 70hz</td><td>≤ 256c</td></tr>
+  </tbody>
+</table>
+
+<p><b>*</b>On the original CGA and EGA adapters these were 60hz, but on VGA adapters these run as 70hz.</p>
+
+<p><b>**</b>CRT Terminator is <b>very</b> widely compatible with many custom video modes that programs from the DOS era utilized. We have tested hundreds of different known programs, games and demoscene demos with CRT Terminator to ensure as broad support as possible.</p>
+
+<p>The maximum supported input video clock is 37.5 MHz. This is generally good for ~800x600@56 Hz, though some input video modes, like 800x600@60 Hz or 1024x768@60i Hz may also work, if you are lucky.</p>
+
+<p>1024x768@60Hz progressive will not work, that is unfortunately beyond the possible speed of the Feature Connector bus (1024x768@60Hz is ~65 MHz pixel clock).</p>
+
+<p>Additionally, CRT Terminator can be used to experiment with some 15bpp, 16bpp and 24bpp input video modes on some specific video adapters.</p>
+
+</div><div class='page'>
+
+<a name='recommended_display'><h1>Recommended Displays</h1></a>
+
+<p>For best results, a display that supports Coordinated Video Timings - Reduced Blanking V2 standard (CVT-RBv2) is recommended. Further, a display that supports even tighter nonstandard video timings as well as arbitrary video resolutions is recommended in order to enable the use of CRT Terminator Multimode and StutterStop features.</p>
+
+<p>Whichever monitor you are using, the output from DOS programs are almost always intended to be viewed in 4:3 aspect ratio. So using a display that supports a <b>Force 4:3 aspect ratio</b> scaling mode is highly recommended.</p>
+
+<p>In the absence of such scaling mode, some monitors support a <b>1:1 aspect ratio</b> mode. This aspect ratio mode, while not necessarily perfect in all cases, can be a decent fallback for many scenarios.</p>
+
+<p>For best viewing results of content that uses 320x200 or 320x240 resolutions, we recommend acquiring a display with a 1920x1200 resolution that supports up to 75 Hz video and 4:3 aspect ratio control. This will enable frame rate precise crisp pixel perfect and aspect ratio preserved upscaling of input video.</p>
+
+<p>Pixel peeping users who are seeking the best upscaling results for 640x480 resolution content specifically might want to entertain 1280x1024 sized displays with 4:3 or 1:1 aspect ratio control, for a 2x 640x480 → 1280x960 upscaling path, providing thin letterboxes at top and bottom.</p>
+
+</div><div class='page'>
+
+<a name='video_upscaling'><h1>Video Upscaling with CRT Terminator</h1></a>
+
+<p>This section describes the video upscaling strategy employed by CRT Terminator.</p>
+
+<p>First note that CRT Terminator supports a <b>Passthrough mode</b> for use cases where upscaling is not desired. In Passthrough mode, minimal on-the-fly video normalization is performed without the use of a framebuffer (i.e. no added latency), to generate a video signal that many modern displays will hopefully be able to synchronze to.</p>
+
+<p>However, Passthrough mode may have some drawbacks:
+<ul>
+<li>If the modern display does not have a Force 4:3 Aspect ratio option, the video aspect ratio will not be faithful to original CRT 4:3, since old DOS CRTs displayed non-square pixels.</li>
+<li>A low DOS video resolution (320x200, 640x350, 720x400, etc.) may be something that a modern display might not understand to sync to.</li>
+<li>The <i>bilinear</i>-ish video upscaling algorithm used by a modern display might result in a soft/blurry image.</li>
+</ul>
+</p>
+
+<p>To help resolve these problems, CRT Terminator provides a video upscaling circuitry that uses a video framebuffer to upscale the input video.</p>
+
+<p>The video upscaling circuitry in CRT Terminator can be utilized in two different modes: <b>Fixed Resolution</b> or <b>MultiMode</b>.</p>
+
+<p>In Fixed Resolution mode, CRT Terminator upsamples the given input video signal to the given fixed output resolution using <i>Point Sampling</i>. The output resolution does not change depending on the input video resolution. This mode is useful for crispest video output, and for e.g. buggy USB video capture cards that get confused on video mode changes.</p>
+
+<p>In MultiMode operation mode, CRT Terminator will upscale the input video by a multiple of an integer factor in both width and height. When viewed with a modern flat panel display's Force 4:3 Aspect ratio option, this produces an end result that is sometimes called <i>"Surface-Area Sampling"</i>. This upsampling mode is generally superior to Point Sampling and Bilinear Filtering on low-resolution pixelated source content.</p>
+
+<p>The effect of these different upsampling modes can be observed in practice below on a 320x200 input video signal, which is upsampled to 1440x1080 resolution to be viewed in 4:3 aspect ratio on a 1920x1080 display.</p>
+
+<table><tr><td>
+<a href='320x200.png'><img src='320x200.png' style='width: 100%'></a><br>Original 320x200 video (zoomed up 5x in web browser for easier viewing, note the incorrect 16:10 aspect ratio)
+</td><td>
+<a href='1440x1080_bilinear.png'><img src='1440x1080_bilinear.png' style='width: 100%'></a><br>Bilinear upsampling to 4:3 (Passthrough mode)
+</td></tr><tr><td>
+<a href='1440x1080_pointsampled.png'><img src='1440x1080_pointsampled.png' style='width: 100%'></a><br>Point-sampled upsampling to 4:3 (Fixed Resolution mode)
+</td><td>
+<a href='1440_1080_pointsample_bilinear.png'><img src='1440_1080_pointsample_bilinear.png' style='width: 100%'></a><br>Surface Area upsampling to correct 4:3 (MultiMode)
+</td></tr></table>
+
+<p>Click on the above thumbnails to pixel peep into the full images in 100% size.</p>
+
+<p>When the effects of CRT Terminator video upsampling and flat panel display upsampling are combined, the different CRT Terminator operation modes produce different final results:</p>
+<ul>
+<li><b>Passthrough</b>: Bilinear filtering</li>
+<li><b>Fixed Resolution</b>: Point sampling</li>
+<li><b>MultiMode</b>: Surface Area upsampling</li>
+</ul>
+
+<p>In general we recommend using MultiMode for best picture quality, and falling back to other modes for compatibility, subject to taste.</p>
+
+<p>Sidenote: If you are using a 1600x1200 or a 1920x1200 display, then in particular for the above DOS 320x200 scenario, CRT Terminator can upscale the 320x200 video up to 1600x1200 to produce the pixel perfect video output without any bilinear filtering applied.
+
+</div><div class='page'>
+
+<a name='compatible_graphics_adapters'><h1>Compatible Graphics Adapters</h1></a>
+
+<p>A major challenge in developing CRT Terminator is that there are hundreds of different (S)VGA adapters that are clones of the original IBM VGA adapter, and the original IBM VGA was not based on a published specification or a hardware design standard.</p>
+
+<p>This means that we do not have a single target to develop CRT Terminator against, but rather, need to test every display adapter one by one for compatibility.</p>
+
+<p>The following table presents the results of many display adapters we have tested CRT Terminator with. It should hopefully guide some expectations, but note that the information provided in the following table is still not an affirmation or a guarantee of support.</p>
+
+<p>That is, even if you have the same graphics adapter with the same graphics chip, there could be qualitative variances that can affect your results.</p>
+
+<p><b>Legend:</b>
+<p>✅: CRT Terminator works.<br>
+  ⚠️: Works, with some caveat.<br>
+  ❌: Does not work with CRT Terminator.<br></p>
+
+<a name='ibm'><h3>IBM</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+      <a href='img_adapters/IBM_VGA_75X9017XM/IBM_VGA_75X9017XM.jpg'>IBM VGA 75X9017XM</a></td>
+      <td>ISA</td>
+      <td>1988</td>
+      <td>IBM</td>
+      <td>✅</td>
+    </tr>
+  </tbody>
+</table>
+
+<a name='acumos'><h3>Acumos ⇒ Cirrus Logic</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+      <tr>
+      <td>
+      <a href='img_adapters/ViewpointEV628/EverexViewpointAVGA1.jpg'>Everex Viewpoint EV-628 (Acumos AVGA1, "CL-GD5401")</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/AcumosAVGA2/AcumosAVGA2.jpg'>Acumos AVGA 2 ("CL-GD5402")</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/CL-GD5422/CL-GD5422.jpg'>Hightech Information System Ltd VGA Card (CL-GD5422)</a></td>
+      <td>ISA</td>
+      <td>1993</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/CL-GD5428/CL-GD5428.jpg'>Cirrus Logic GD-542x Eval Board (CL-GD5428)</a></td>
+      <td>ISA</td>
+      <td>1994</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/CL-GD5430/CL-GD5430.jpg'>Cirrus Logic GD-5430</a></td>
+      <td>PCI</td>
+      <td>1994</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+    <tr><td><a href='img_adapters/SpeedStar64_CL-GD5434/Diamond_SpeedStar64-CL-GD5434.jpg'>Diamond SpeedStar 64 (CL-GD5434)</a></td>
+      <td>PCI</td>
+      <td>1994</td>
+      <td>VESA</td>
+      <td>⚠️ VGA BIOS bug requires PCITSR.EXE</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/CL-GD5440/CL-GD5440.jpg'>Cirrus Logic GD-5440</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>❌ Unstable FC video signal</td>
+      </tr>
+
+      <tr>
+      <td><a href='img_adapters/CT6330/Graphics_Blaster_MA200.jpg'>Creative CT6330 Graphics Blaster MA200 CL-GD5446</a></td>
+      <td>PCI</td>
+      <td>1996</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+      <tr>
+      <td><a href='img_adapters/CL-GD5446/CL-GD5446.jpg'>Jaton Corporation Cirrus Logic CL-GD5446</a></td>
+      <td>PCI</td>
+      <td>1998</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+
+  </tbody>
+</table>
+
+<a name='trident'><h3>Trident</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><a href='img_adapters/TVGA8816CSC2/TridentTVGA8816CSC2.jpg'>Trident TVGA8816CSC2 (TVGA 8800CS)</a></td>
+      <td>ISA</td>
+      <td>1989</td>
+      <td>IBM</td>
+      <td>✅</td>
+    </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/ZyMOSPoach51/ZyMOSPoach.jpg'>ASKA ZyMOS POACH 51 (TVGA 8800CS)</a></td>
+      <td>ISA</td>
+      <td>1990</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+    <tr><td><a href='img_adapters/Trident-8900c/Trident-TVGA8900C.jpg'>Trident TVGA8900C MQTD023/9218</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>IBM</td>
+      <td>✅</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/Trident-8900c_2/Trident8900C.jpg'>Trident TVGA8900C EQB144001/9220</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>IBM</td>
+      <td>✅</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/Trident8900D/Trident8900D.jpg'>Trident TVGA8900D</a></td>
+      <td>ISA</td>
+      <td>1994</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/TridentTGUI9440/TridentTGUI9440.jpg'>Trident TGUI9440</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/TridentTVGA9000i-3/TridentTVGA9000i-3.jpg'>Trident TVGA 9000i-3</a></td>
+      <td>PCI</td>
+      <td>1996</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+
+  </tbody>
+</table>
+
+<a name='tseng'><h3>Tseng Labs</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><a href='img_adapters/Tseng_ET3000/TsengET3000AX.jpg'>Tseng Labs ET3000AX</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>
+      <td>⚠️Card hangs after BIOS POST on test 486 PC, boots OK on another PC, where superficially tested OK with CRT Terminator.</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/SpeedStar24_ET4000/Diamond_SpeedStar24_Tseng_ET4000AX.jpg'>Diamond SpeedSTAR 24 (Tseng Labs ET4000AX)</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/TsengET4000W32P/TsengET4000W32P.jpg'>Tseng Labs ET4000/W32p</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>✅</td>
+    </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/JazzET6000/JazzET6000.jpg'>Jazz Multimedia G-Force 128 (Tseng ET6000)</a></td>
+      <td>PCI</td>
+      <td>1996</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+  </tbody>
+</table>
+
+<a name='paradise'><h3>Paradise ⇒ Western Digital</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+      <tr>
+      <td>
+      <a href='img_adapters/ParadisePVGA1A-JK/ParadisePVGA1A-JK.jpg'>Paradise PVGA1A-JK</a></td>
+      <td>ISA</td>
+      <td>1990</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/WD90C30-LR/WD90C30-LR.jpg'>WDC WD90C30-LR</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/WD90C31A-LR/WD90C31A-LR.jpg'>WDC WD90C31A-LR</a></td>
+      <td>ISA</td>
+      <td>1993</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+  </tbody>
+</table>
+
+<a name='avance'><h3>Avance Logic ⇒ Realtek</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+      <tr>
+      <td>
+      <a href='img_adapters/RealtekRTG3106/RealtekRTG3106.jpg'>Realtek RTG3106</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/ALG2302/ALG2302.jpg'>Avance Logic ALG2302</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+  </tbody>
+</table>
+
+<a name='s3'><h3>S3</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+    <tr><td><a href='img_adapters/S3PowergraphX24_86C801/S3PowergraphX24_86C801.jpg'>S3 Powergraph X-24 (S3 86C801)</a></td>
+      <td>ISA</td>
+      <td>1993</td>
+      <td>VESA</td>
+      <td>⚠️Works with CRT Terminator, but hangs in SNOOP.EXE scan.</td>
+    </tr>
+
+    <tr>
+    <td>
+    <a href='img_adapters/S3Vision864/S3Vision864.jpg'>S3 Vision864</a></td>
+    <td>PCI</td>
+    <td>1994</td>
+    <td>VESA</td>
+    <td>✅</td>
+    </tr>
+
+    <tr>
+    <td>
+    <a href='img_adapters/DiamondStealth64Video3200/DiamondStealth64Video3200.jpg'>Diamond Stealth 64 Video 3200 (S3 Vision 968)</a></td>
+    <td>PCI</td>
+    <td>1995</td>
+    <td>VESA</td>
+    <td>❌Faulty card? Does not POST.</td>
+    </tr>
+
+    <tr>
+    <td>
+    <a href='img_adapters/S3ViRGEST325A/S3_ViRGE_ST-325A.jpg'>S3 ViRGE ST-325A</a></td>
+    <td>PCI</td>
+    <td>1996</td>
+    <td>16-bit S3 Local Peripheral Bus (LPB), 26 + 6(8) + 16 = 50 pins</td>
+    <td>⚠️S3 BIOS quirk: Feature Connector is not enabled at boot, but requires S3 utility (or SNOOP.EXE) to enable.</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/S3-Trio64V+/S3_Trio64V+.jpg'>S3 Trio64V+</a></td>
+      <td>PCI</td>
+      <td>Mfg. 1997</td>
+      <td>VESA</td>
+      <td>⚠️Works with CRT Terminator, but hangs in SNOOP.EXE scan.</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/S3Trio64V2DX/S3Trio64V2DX.jpg'>S3 Trio64V2/DX</a></td>
+      <td>PCI</td>
+      <td>1996</td>
+      <td>8-bit S3 Local Peripheral Bus (LPB), 26 + 6(8) = 34 pins</td>
+      <td>✅</td>
+    </tr>
+
+
+  </tbody>
+</table>
+
+<a name='ati'><h3>ATI</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+    <tr><td><a href='img_adapters/ATI28800-5/ATI28800-5.jpg'>ATI 28800-5</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>
+      <td>⚠️Works with CRT Terminator, but card does not implement 1:2 Dot Clock option.</td>
+    </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/ATI28800-6/ATI28800-6.jpg'>ATI 28800-6</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>IBM</td>
+      <td>⚠️Works with CRT Terminator, but card does not implement 1:2 Dot Clock option.</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/ATIMach64VT2/ATIMach64VT2.jpg'>ATI Mach64 VT2</a></td>
+      <td>PCI</td>
+      <td>1996</td>
+      <td>ATI Multimedia Channel (AMC)</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/ATI3DRageII/ATI3DRageII.jpg'>ATI 3D Rage II</a></td>
+      <td>PCI</td>
+      <td>1997</td>
+      <td>ATI Multimedia Channel (AMC)</td>
+      <td>✅</td>
+      </tr>
+
+  </tbody>
+</table>
+
+<a name='others'><h3>Others</h3></a>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col'>Name</th>
+      <th scope='col'>Bus</th>
+      <th scope='col'>Year</th>
+      <th scope='col'>FC</th>
+      <th scope='col'>CRT Terminator Support Notes</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+
+    <tr><td><a href='img_adapters/Oak037C/Oak037C.jpg'>Oak 037C</a></td>
+      <td>ISA</td>
+      <td>1990</td>
+      <td>IBM</td>
+      <td>⚠️Works with CRT Terminator, but card does not implement 1:2 Dot Clock option.</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/Genoa6200/Genoa6200.jpg'>Genoa SuperVGA 6200</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>       
+      <td>✅</td>
+    </tr>
+
+    <tr><td><a href='img_adapters/HT208/Headland_HT208.jpg'>Video Seven VGA 1024i (Headland HT208)</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>
+      <td>✅</td>
+    </tr>
+
+    <tr>
+      <td>
+      <a href='img_adapters/WangLabsChipsF82C452/WangLabsChipsF82C452.jpg'>Wang Labs Chips & Technologies F82C452</a></td>
+      <td>ISA</td>
+      <td>1991</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+    <tr>
+      <td>
+      <a href='img_adapters/AheadV5000B/AheadV5000B.jpg'>Ahead V5000B</a></td>
+      <td>ISA</td>
+      <td>1992</td>
+      <td>IBM</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/HerculesStingrayProARK1000PV/HerculesStingrayProARK1000PV.jpg'>Hercules Stingray Pro (ARK1000PV)</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/MiroVideo12PD_AllianceSemiProMotion3210/MiroVideo12PD_AllianceSemiProMotion3210.jpg'>MiroVideo 12PD v1.02 (Alliance Semiconductor ProMotion 3210)</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>❌Bad color signal on Feature Connector.</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/MiroVideo12PD_AllianceSemiProMotion6410/MiroVideo12PD_AllianceSemiProMotion6410.jpg'>MiroVideo 12PD v2.00 (Alliance Semiconductor ProMotion 6410)</a></td>
+      <td>PCI</td>
+      <td>1995</td>
+      <td>VESA</td>
+      <td>❌Bad color signal on Feature Connector.</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/Matrox2064W/Matrox2064W.jpg'>Matrox Millennium 2064W</a></td>
+      <td>PCI</td>
+      <td>1997</td>
+      <td>VESA</td>
+      <td>✅</td>
+      </tr>
+
+      <tr>
+      <td>
+      <a href='img_adapters/SiS6326/SiS6326.jpg'>SiS 6326</a></td>
+      <td>PCI</td>
+      <td>1998</td>
+      <td>VESA</td>
+      <td><a href='img_adapters/SiS6326/no-output-from-feature-connector.png'>❌ No output from Feature Connector</a></td>
+      </tr>
+
+  </tbody>
+</table>
+
+</div>
+
+</div><div class='page'>
+
+<a name='hardware_programming_reference'><h1>Hardware Programming Reference</h1></a>
+
+<p>This section provides example code to interact with CRT Terminator from your real mode DOS programs.</p>
+
+<h2>I/O Address Space</h2>
+
+<p>CRT Terminator uses the ISA I/O bus port range <b>120h-12Fh</b> for communicating with the ISA card.</p>
+
+<p>The following I/O address ports are provided.</p>
+
+<table id='io_ports'>
+  <thead>
+    <tr>
+      <th scope='col'>Port Number</th>
+      <th scope='col'>Name</th>
+      <th scope='col'>Direction</th>
+      <th scope='col'>Description</th>
+    </tr>
+  </thead>
+  <tbody id='io_ports_body'>
+    <tr><td>120h</td><td>CRT Terminator ID Port</td><td>Read Only</td><td>Reading this port cycles to return ASCII values 'C', 'R', 'T' and 'T'. Use this port to identify CRT Terminator with minimal intrusion to the I/O device space.</td></tr>
+    <tr><td>121h</td><td>Index Port</td><td>Read/Write</td><td>Selects the current indexed sub-register to access, or returns the current sub-register index.</td></tr>
+    <tr><td>122h</td><td>Data Port</td><td>Read/Write</td><td>Reads or writes the given 8-bit sub-register selected by the index port.</td></tr>
+    <tr><td>123h</td><td>8bpp Palette Index Port</td><td>Write Only</td><td>Selects the active palette index to write, 0-255.</td></tr>
+    <tr><td>124h</td><td>8bpp Palette Data Port</td><td>Write Only</td><td>Consecutively write 3 bytes to program a 24-bit color for active palette index. The index is then autoincremented to receive the color for the next palette index (wrapping around to zero after 255).</td></tr>
+    <tr><td>125h</td><td>RNG Port</td><td>Read Only</td><td>Every read from this port returns a new 8-bit random number from a fast high quality hardware random number generator source that passes the <a href='https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-22r1a.pdf'>NIST 800-22 Rev 1a</a> specification.</td></tr>
+    <tr><td>126h</td><td>Frame Counter Port</td><td>Read Only</td><td>Reading this port returns the lowest 8 bits value of the currently displayed frame number counter.</td></tr>
+    <tr><td>127h</td><td>Scanline Counter Port</td><td>Read Only</td><td>Reading this port returns the number of scanlines remaining until the start of next vertical blank.<br>If the adapter is currently in vblank, this port returns 0.<br>If more than 254 scanlines remain until vblank, this port returns 255.</td></tr>
+    <tr><td>128h</td><td>High Precision Wallclock Port 0 (LSB bits 7-0)</td><td>Read Only with Side Effect</td><td>Reading this port latches the 32-bit high precision wallclock time counter and returns the lowest 8 bits of its value.<br>This wallclock timer has the frequency of 27,000,000 Hz ± 1350 Hz. (Accuracy of 50ppm)</td></tr>
+    <tr><td>129h</td><td>High Precision Wallclock Port 1 (bits 15-8)</td><td>Read Only</td><td>Reading this port returns bits 15-8 of the latched 32-bit high precision wallclock time counter value.</td></tr>
+    <tr><td>12Ah</td><td>High Precision Wallclock Port 2 (bits 23-16)</td><td>Read Only</td><td>Reading this port returns bits 23-16 of the latched 32-bit high precision wallclock time counter value.</td></tr>
+    <tr><td>12Bh</td><td>High Precision Wallclock Port 3 (MSB bits 31-24)</td><td>Read Only</td><td>Reading this port returns bits 31-24 of the latched 32-bit high precision wallclock time counter value.</td></tr>
+  </tbody>
+</table>
+
+<p>Note that the I/O address space used by CRT Terminator is currently fixed and not configurable. This is because CRT Terminator provides several highly performance sensitive I/O ports, so to enable sequences of minimal assembly instructions to interact with CRT Terminator, fixed port assignment is used.</p>
+
+<p>Consulting known I/O address mapping lists, such as</p>
+<ul><li><a href='https://stanislavs.org/helppc/ports.html'>Stanislavs PORTS Common I/O Port Addresses</a></li>
+<li><a href='https://wiki.osdev.org/I/O_Ports'>OSDev Wiki I/O Ports</a></li>
+<li><a href='https://bochs.sourceforge.io/techspec/PORTS.LST'>Wim Osterholt XT, AT and PS/2 I/O port addresses</a></li>
+</ul>
+
+<p>this range of ports is expected to be free from conflicts.</p>
+
+<p>If however such conflicts should arise, a dynamic I/O port mapping assignment may be employed in the future.</p>
+
+<h3>Detecting CRT Terminator</h3>
+
+<p>The following code may be used to detect the presence of CRT Terminator in a real-mode DOS system.</p>
+
+<pre class='code' style='margin-bottom: 0px'><code class="language-cpp">#include <dos.h>
+#include <stdio.h>
+
+// CRT Terminator ID port: this is a read-only port that cycles to return
+// values 'C', 'R', 'T', 'T' on subsequent reads.
+#define CRTT_ID_PORT 0x120
+
+int crtt_detect()
+{
+  static int crtt_found = 0;
+  if (!crtt_found)
+  {
+    disable();
+    crtt_found = -1;
+    for(int i = 4; i--;) // one of 4 consecutive reads must be a 'C'
+    {
+      char id = inportb(CRTT_ID_PORT);
+      if (id != 'R' && id != 'T') break; // On anything else than C, R or T, not CRT Terminator.
+      if (id == 'C')
+      {
+        if (inportb(CRTT_ID_PORT) != 'R') break; // and 'RTT' must follow
+        if (inportb(CRTT_ID_PORT) != 'T') break;
+        if (inportb(CRTT_ID_PORT) != 'T') break;
+        crtt_found = 1; // Found CRT Terminator
+        break;
+      }
+    }
+    enable();
+  }
+  return crtt_found == 1;
+}
+
+int main()
+{
+  printf("CRT Terminator detected: %s\n", crtt_detect() ? "true" : "false");
+  return crtt_detect();
+}
+</code></pre>
+<pre style='margin-top: 0px; padding-left: 20px'>Listing 1. Recommended C code to detect CRT Terminator in Borland C++, Turbo C or Turbo C++.</pre>
+
+<h2>Indexed Registers</h2>
+
+<p>In addition to the direct registers presented in the previous table, there are several indexed registers that are provided.</p>
+
+<p>These registers are accessed through the CRT Terminator Index+Data Port pair. First write the index of the desired register to access into the CRT Terminator Index Port (121h), and then the selected register can be accessed via the CRT Terminator Data Port (122h).</p>
+
+<table id='indexed_io_ports'>
+  <thead>
+    <tr>
+      <th scope='col'>Indexed Port Number</th>
+      <th scope='col'>Name</th>
+      <th scope='col'>Direction</th>
+      <th scope='col'>Description</th>
+    </tr>
+  </thead>
+  <tbody id='indexed_io_ports_body'>
+    <tr><td>00h-01h</td><td>CRT Terminator Product ID</td><td>Read Only</td><td>CRT Terminator Product ID. (16 bits, Little Endian)</td></tr>
+    <tr><td>02h</td><td>CRT Terminator Product Revision ID</td><td>Read Only</td><td>CRT Terminator Product Revision ID.</td></tr>
+    <tr><td>03h</td><td>Firmware Revision Year</td><td>Read Only</td><td>Version identifier for the firmware.</td></tr>
+    <tr><td>04h</td><td>Firmware Revision Month</td><td>Read Only</td><td>Version identifier for the firmware.</td></tr>
+    <tr><td>05h</td><td>Firmware Revision Day</td><td>Read Only</td><td>Version identifier for the firmware.</td></tr>
+    <tr><td>06h-09h</td><td>Feature Connector Pixel Clock</td><td>Read Only</td><td>Pixel clock of the currently received video signal through Feature Connector, in Hz. (32 bits, Little Endian)</td></tr>
+    <tr><td>0Ah-0Dh</td><td>Feature Connector Hsync Rate</td><td>Read Only</td><td>Horizontal Refresh Rate of the currently received video signal through Feature Connector. (32 bits, Little Endian)</td></tr>
+    <tr><td>0Eh-11h</td><td>Feature Connector Vsync Rate</td><td>Read Only</td><td>Vertical Refresh Rate of the currently received video signal through Feature Connector. (32 bits, Little Endian)</td></tr>
+    <tr><td>12h</td><td>Feature Connector Video Properties</td><td>Read Only</td><td>Returns parameters of the Feature Connector video signal:
+     <br>Bit 0 - Hsync Polarity
+     <br>Bit 1 - Vsync Polarity
+     <br>Bit 2 - Video Signal Present
+     <br>Bit 3 - Video is Scandoubled
+     <br>Bit 4 - Video is interlaced?
+     </td></tr>
+    <tr><td>13h</td><td>Feature Connector Video Bit Depth</td><td>Read Only</td><td>Bits 0-1:
+      <br>00h: ≤ 8bpp
+      <br>01h: 15bpp
+      <br>10h: 16bpp
+      <br>11h: 24bpp</td></tr>
+    <tr><td>14h</td><td></td><td>Read Only</td><td>If Video Bit Depth is 00h (≤ 8bpp), this field denotes the number of distinct colors in Feature Connector video signal.</td></tr>
+    <tr><td>15h</td><td></td><td>Read Only</td><td>If Video Bit Depth is 00h (≤ 8bpp), this field denotes the highest palette ID present in the Feature Connector video signal.</td></tr>
+    <tr><td>16h-17h</td><td></td><td>Read Only</td><td>FC Horizontal Front Porch length.</td></tr>
+    <tr><td>18h-19h</td><td></td><td>Read Only</td><td>FC Horizontal Sync length.</td></tr>
+    <tr><td>1Ah-1Bh</td><td></td><td>Read Only</td><td>FC Horizontal Back Porch length.</td></tr>
+    <tr><td>1Ch-1Eh</td><td></td><td>Read Only</td><td>FC Horizontal Visible Screen Width in clocks (not necessarily equal to screen pixel width).</td></tr>
+    <tr><td>1Eh-1Fh</td><td></td><td>Read Only</td><td>FC Horizontal Total Line length in clocks.</td></tr>
+    <tr><td>20h-21h</td><td></td><td>Read Only</td><td>FC Vertical Front Porch length, in lines.</td></tr>
+    <tr><td>22h-23h</td><td></td><td>Read Only</td><td>FC Vertical Sync length, in lines.</td></tr>
+    <tr><td>24h-25h</td><td></td><td>Read Only</td><td>FC Vertical Back Porch length, in lines.</td></tr>
+    <tr><td>26h-27h</td><td></td><td>Read Only</td><td>FC Vertical Visible Screen Height in lines.</td></tr>
+    <tr><td>28h-29h</td><td></td><td>Read Only</td><td>FC Vertical Total Lines.</td></tr>
+    <tr><td>2Ah-2Bh</td><td></td><td>Read Only</td><td>FC Screen Width in pixels.</td></tr>
+    <tr><td>2Ch-2Eh</td><td></td><td>Read Only</td><td>FC Screen Height in pixels.</td></tr>
+    <tr><td>2Eh-2Fh</td><td></td><td>Read Only</td><td>FC Left Edge VGA Border Crop.</td></tr>
+    <tr><td>30h-31h</td><td></td><td>Read Only</td><td>FC Top Edge VGA Border Crop.</td></tr>
+    <tr><td>32h-33h</td><td></td><td>Read Only</td><td>FC Right Edge VGA Border Crop.</td></tr>
+    <tr><td>34h-35h</td><td></td><td>Read Only</td><td>FC Bottom Edge VGA Border Crop.</td></tr>
+    <tr><td>36h-37h</td><td></td><td>Read Only</td><td>FC Leftmost visible pixel x coordinate.</td></tr>
+    <tr><td>38h-39h</td><td></td><td>Read Only</td><td>FC Topmost visible pixel y coordinate.</td></tr>
+    <tr><td>3Ah-3Bh</td><td></td><td>Read Only</td><td>FC Rightmost visible pixel x coordinate.</td></tr>
+    <tr><td>3Ch-3Eh</td><td></td><td>Read Only</td><td>FC Bottommost visible pixel y coordinate.</td></tr>
+    <tr><td>3Eh-3Fh</td><td></td><td>Read Only</td><td>Currently selected values of the DIP switches at the back of the card.</td></tr>
+    <tr><td>40h</td><td></td><td>Read-Write</td><td>Configures currently active features:
+      <br>Bit 0 - Enable 8bpp colors (disable 6bpp palette)
+      <br>Bit 1 - Enable Vsync. If set to 1, video is upscaled triple-buffered. If set to 0, video is upscaled without vertical synchronization, and can tear.
+      <br>Bit 2 - Enable border crop. If set to 1, the video border is cropped away from output image. If set to 0, video border is preserved.
+      <br>Bits 3-7 - Reserved. Please preserve these bits when writing to this register.</td></tr>
+    <tr><td>44h-47h</td><td>ISA Bus Speed</td><td>Read Only</td><td>Measured ISA bus clock speed, in Hz.</td></tr>
+    <tr><td>48h</td><td></td><td>Read Only</td><td>Most Recently Written Palette Index.</td></tr>
+    <tr><td>49h-4Bh</td><td></td><td>Read Only</td><td>Most Recently Written Palette RGB color.</td></tr>
+    <tr><td>Other Indices</td><td>Reserved</td><td>Read Only</td><td>(Reads will return FFh, but do not assume this)</td></tr>
+</tbody></table>
+
+</div><div class='page'>
+
+<a name='frequently_asked_questions'><h1>Frequently Asked Questions</h1></a>
+
+<p><b>Does CRT Terminator support sending audio through the digital video cable?</b></p>
+
+<p>No. Audio output over the video cable is not supported. Please use e.g. the 3.5mm Line-In connector of your PC when capturing video+audio for recording and streaming purposes, and an external 3.5mm audio in jack on your display, or a pair of external speakers when playing audio out locally.</p>
+
+</div><div class='page'>
+
+<a name='troubleshooting'><h1>Troubleshooting</h1></a>
+
+<p>Hardware and software bugs are collected at the public GitHub issue tracker at <a href='https://github.com/juj/crt_terminator/issues'>https://github.com/juj/crt_terminator/issues</a>.</p>
+
+<p>Contact us directly at <img src='contact_us.png' style='vertical-align: middle'>.
+
+<h3>Improving Feature Connector Video Signal</h3>
+
+<p>The Feature Connector bus contains multiple ground pins. The reason for this is that it allows the connector to provide a cleaner ground signal to each individual high speed video pin.</p>
+
+<p>However, to help mitigate accidental short circuits from an incorrect 180 degrees reversed installation of the Feature Connector cable, CRT Terminator by default does not wire some of these ground pins on the connector.
+
+<p><img src='feature_connector_pins.png'>
+
+<p>If your VGA adapter has a really glitchy video signal or you are attempting to make higher input video resolutions work, there are six unsoldered ground traces on the CRT Terminator board, on ground pins a2, a3, a8 through a11. You can attempt to solder these traces together in order to improve the individual ground lines, like so:
+
+<p><img src='soldered_ground_traces.jpg'>
+
+<p>There is a small chance that this could improve a glitchy video signal quality. In our testing however, in DOS 320x200, 640x480, 720x400 and 800x600 video modes, these ground lines did not prove to have noticeable effect, so for abundance of caution, these have been left unconnected by default.</p>
+
+<p>If you do decide to try this mod out, be aware that incorrectly connecting the Feature Connector cable rotated 180 degrees in wrong orientation will then result in a catastrophic short to ground. Warranty does not cover this modification.
+
+</div><div class='page'>
+
+<a name='appendix_a_ibm_vga_feature_connector'><h1>Appendix A: IBM VGA Feature Connector </h1></a>
+
+<p>Apparently the IBM Feature Connector first appeared in the following manuals:</p>
+
+<ul><li>
+<a href='Personal_System_2_Hardware_Interface_Technical_Reference_May88.pdf'>Personal_System_2_Hardware_Interface_Technical_Reference_May88.pdf</a></li>
+<li><a href='ibm_vgaxga_trm2.pdf'>IBM VGA Technical Reference Manual.pdf</a></li>
+</ul>
+
+<p>However there are some discrepancies, since the above documents both describe a 20-pin connector, whereas the Feature Connector present on the first IBM PS/2 ISA VGA adapter is a 2x13-pin edge connector.</p>
+
+<p style='margin-left:0%; margin-right: 50%'><b>📁 Lost Documents:</b> If IBM ever released any technical documentation related to IBM ISA PS/2 Display Adapter (VGA) 75X9017XM and you might have it, please <b>please</b> share it with us or scan it to archive.org!</p>
+
+</div><div class='page'>
+
+<a name='appendix_b_vesa_standrad_vga_passthrough_connector'><h1>Appendix B: VESA Standard VGA Pass-Through Connector</h1></a>
+
+<p>In August 1989, VESA took IBM's existing Feature Connector functionality and standardized it as <a href='http://www1.ecs.uni-ruse.bg/kp/less/dispalys/VD-site/vesa/ve00013.html'>VESA Standard VS890803: VESA Standard VGA Pass-Through Connector</a>.</p>
+
+<p style='margin-left:0%; margin-right: 50%'><b>📁 Lost Documents:</b> Unfortunately this standard may to have lost in time, and not even VESA themselves seem to have this specification. If you would happen to have a copy, please <b>please</b> share it with us or scan it to archive.org!</p>
+
+<p>VESA has released to the public the following documents related to their later VESA Advanced Feature Connector (VAFC):</p>
+<ul><li><a href='VAFC_HW.pdf'>VAFC_HW.pdf</a></li>
+<li><a href='VAFC_SW.pdf'>VAFC_SW.pdf</a></li></ul>
+
+</div><div class='page'>
+
+<a name='appendix_c_dvi_d_standard'><h1>Appendix C: DVI-D Standard</h1></a>
+
+<p>CRT Terminator outputs a TMDS+LVDS encoded video signal over a single-link DVI-D standard.
+
+<ul><li><a href='DVI-1.0.pdf'>DVI-1.0.pdf</a></li></ul>
+
+</div><div class='page'>
+
+<a name='appendix_d_supported_fixed_resolutions'><h1>Appendix D: CRT Terminator Supported Output Resolutions</h1></a>
+
+<p>CRT Terminator is able to output video modes that are shown in the following table. When CRT Terminator is operated in fixed output resolution mode (i.e. MultiMode and StutterStop features are disabled), standard resolutions shown in DIP switch values 0-15 can be configured. These video modes provide support for compatible operation for displays that are not able to sync to historical low resolution DOS or upscaled video modes.</p>
+
+<table id='devices'>
+  <thead>
+    <tr>
+      <th scope='col' colspan=3>DIP switches 1.1-1.4 and JP7</th>
+      <th scope='col'>Resolution</th>
+      <th scope='col'>Standard</th>
+      <th scope='col' colspan=3>Mode Rates</th>
+      <th scope='col' colspan=3>Horizontal Timings (clocks)</th>
+      <th scope='col' colspan=3>Vertical Timings (lines)</th>
+    </tr>
+    <tr>
+      <th scope='col'>Decimal</th>
+      <th scope='col'>Binary</th>
+      <th scope='col'>JP7 (OC)</th>
+      <th scope='col'></th>
+      <th scope='col'></th>
+      <th scope='col'>Vertical Rate</th>
+      <th scope='col'>Horizontal Rate</th>
+      <th scope='col'>Pixel Clock</th>
+      <th scope='col'>Front Porch</th>
+      <th scope='col'>Sync</th>
+      <th scope='col'>Back Porch</th>
+      <th scope='col'>Front Porch</th>
+      <th scope='col'>Sync</th>
+      <th scope='col'>Back Porch</th>
+    </tr>
+  </thead>
+  <tbody id='devices_table_body'>
+    <tr><td>0</td><td>0000b</td><td>*</td><td>Passthrough</td><td>Nonstandard</td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td><td>&centerdot;<sup>1</sup></td></tr>
+    <tr><td>1</td><td>1000b</td><td>*</td><td>640x480</td><td>DMT</td><td>60.000 Hz</td><td>31.5 kHz</td><td>25.200 MHz</td><td>8</td><td>96</td><td>40</td><td>2</td><td>2</td><td>25</td></tr>
+    <tr><td>2</td><td>0100b</td><td>*</td><td>800x600</td><td>DMT</td><td>60.256 Hz</td><td>37.841 kHz</td><td>39.960 MHz</td><td>40</td><td>128</td><td>88</td><td>1</td><td>4</td><td>23</td></tr>
+    <tr><td>3</td><td>1100b</td><td>*</td><td>960x720</td><td>CVT</td><td>59.775 Hz</td><td>44.711 kHz</td><td>55.800 MHz</td><td>48</td><td>96</td><td>144</td><td>3</td><td>4</td><td>21</td></tr>
+    <tr><td>4</td><td>0010b</td><td>*</td><td>1280x720</td><td>DMT</td><td>60.001 Hz</td><td>45.000 kHz</td><td>74.250 MHz</td><td>110</td><td>40</td><td>220</td><td>5</td><td>5</td><td>20</td></tr>
+    <tr><td>5</td><td>1010b</td><td>*</td><td>1024x768</td><td>DMT</td><td>60.004 Hz</td><td>48.363 kHz</td><td>65.000 MHz</td><td>24</td><td>136</td><td>160</td><td>3</td><td>6</td><td>29</td></tr>
+    <tr><td>6</td><td>0110b</td><td>*</td><td>1200x900</td><td>CVT</td><td>59.617 Hz</td><td>55.682 kHz</td><td>88.200 MHz</td><td>72</td><td>120</td><td>192</td><td>3</td><td>4</td><td>27</td></tr>
+    <tr><td>7</td><td>1110b</td><td>*</td><td>1280x960</td><td>CVT</td><td>59.673 Hz</td><td>59.434 kHz</td><td>100.800 MHz</td><td>80</td><td>128</td><td>208</td><td>3</td><td>4</td><td>29</td></tr>
+    <tr><td>8</td><td>0001b</td><td>*</td><td>1280x1024</td><td>CVT-RBv2</td><td>60.275 Hz</td><td>63.529 kHz</td><td>86.400 MHz</td><td>8</td><td>32</td><td>40</td><td>16</td><td>8</td><td>6</td></tr>
+    <tr><td>9</td><td>1001b</td><td>*</td><td>1364x1024</td><td>CVT</td><td>60.000 Hz</td><td>63.240 kHz</td><td>91.065 MHz</td><td>8</td><td>32</td><td>40</td><td>16</td><td>18</td><td>6</td></tr>
+    <tr><td>10</td><td>0101b</td><td>*</td><td>1400x1050</td><td>CVT-RBv2</td><td>59.685 Hz</td><td>64.459 kHz</td><td>95.400 MHz</td><td>8</td><td>32</td><td>40</td><td>16</td><td>8</td><td>6</td></tr>
+    <tr><td>11</td><td>1101b</td><td>*</td><td>1680x1050</td><td>CVT-RBv2</td><td>59.659 Hz</td><td>64.432 kHz</td><td>113.400 MHz</td><td>8</td><td>32</td><td>40</td><td>16</td><td>8</td><td>6</td></tr>
+    <tr><td>12</td><td>0011b</td><td>*</td><td>1440x1080</td><td>CVT-RBv2</td><td>59.690 Hz</td><td>66.316 kHz</td><td>100.800 MHz</td><td>8</td><td>32</td><td>40</td><td>17</td><td>8</td><td>6</td></tr>
+    <tr><td>13</td><td>1011b</td><td>OFF</td><td>1920x1080</td><td>CVT-RBv2</td><td>53.610 Hz</td><td>59.400 kHz</td><td>118.800 MHz</td><td>8</td><td>32</td><td>40</td><td>14</td><td>8</td><td>6</td></tr>
+    <tr><td>13</td><td>1011b</td><td style='color: red;'>ON</td><td>1920x1080</td><td>CVT-RBv2</td><td>59.541 Hz</td><td>66.150 kHz</td><td style='color: red;'>132.300 MHz<sup>3</sup></td><td>8</td><td>32</td><td>40</td><td>17</td><td>8</td><td>6</td></tr>
+    <tr><td>14</td><td>0111b</td><td>OFF</td><td>1600x1200</td><td>CVT-RBv2</td><td>57.351 Hz</td><td>70.714 kHz</td><td>118.800 MHz</td><td>8</td><td>32</td><td>40</td><td>19</td><td> 8</td><td>6</td></tr>
+    <tr><td>14</td><td>0111b</td><td style='color: red;'>ON</td><td>1600x1200</td><td>CVT-RBv2</td><td>59.861 Hz</td><td>73.929 kHz</td><td style='color: red;'>124.200 MHz<sup>3</sup></td><td>8</td><td>32</td><td>40</td><td>21</td><td>8</td><td>6</td></tr>
+    <tr><td>15</td><td>1111b</td><td>OFF</td><td>1920x1200</td><td>CVT-RBv2</td><td>48.371 Hz</td><td>59.400 kHz</td><td>118.800 MHz</td><td>8</td><td>32</td><td>40</td><td>14</td><td>8</td><td>6</td></tr>
+    <tr><td>15</td><td>1111b</td><td style='color: red;'>ON</td><td>1920x1200</td><td>CVT-RBv2</td><td>60.121 Hz</td><td>74.250 kHz</td><td style='color: red;'>148.500 MHz<sup>3</sup></td><td>8</td><td>32</td><td>40</td><td>21</td><td>8</td><td>6</td></tr>
+    <tr><td>-</td><td>-</td><td>OFF</td><td>MultiMode or <br>StutterStop</td><td>Nonstandard<sup>2</sup></td><td> &leq; 75.000 Hz</td><td>&centerdot;<sup>2</sup></td><td>&leq; 118.800 MHz</td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td></tr>
+    <tr><td>-</td><td>-</td><td style='color: red;'>ON</td><td>MultiMode or <br>StutterStop</td><td>Nonstandard<sup>2</sup></td><td>&leq; 75.000 Hz</td><td>&centerdot;<sup>2</sup></td><td style='color: red;'>&leq; 199.800 MHz<sup>3</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td><td>&centerdot;<sup>2</sup></td></tr>
+  </tbody>
+</table>
+
+<p><b>1:</b> Varies. Passes through input video signal, with small corrections.<br>
+  <b>2:</b> Relaxed from CVT-RBv2 timings.<br>
+  <b>3:</b> Overclocked, support not guaranteed. Single link DVI-D cable can reach a pixel clock up to 165 MHz.</p>
+
+
+</div>
+
+  <script>
+    for(let c of document.querySelectorAll('code')) {
+      let code = c.innerHTML;
+      let idx = code.indexOf('</');
+      if (idx < 0) idx = code.length;
+      code = code.substr(0, idx);
+      code = code.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+      c.innerHTML = code;
+    }
+  </script>
+
+  <script src="highlight/highlight.min.js"></script>
+  <script>
+    hljs.highlightAll();
+  </script>
+
+</body></html>

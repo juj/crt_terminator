@@ -1,0 +1,568 @@
+
+  +--------------------------------------------------------------------+
+  | This document taken from http://www-01.ibm.com then                 |
+  | reformatted (insert empty lines, etc.) to make it more readable.   |
+  +--------------------------------------------------------------------+
+
+
+THE IBM PERSONAL SYSTEM/2 (TM) DISPLAY ADAPTER, THE IBM PERSONAL
+SYSTEM/2 DISPLAY ADAPTER 8514/A AND THE IBM PERSONAL SYSTEM/2 8514
+MEMORY EXPANSION KIT
+
+
+Announcement Letter Number 187-054 dated April 2, 1987
+US - Last Revised on April 2, 1987
+
+
+Brief Description of Announcement, Charges, and Availability
+
+       The IBM Personal System/2 Display Adapter (IBM Display
+Adapter) provides new high content display modes together with
+compatibility modes and improved performance.  It brings to the IBM
+Personal Computer, IBM Personal Computer XT (TM), IBM Personal
+Computer XT (TM) Model 286, IBM Personal Computer AT (R), and IBM
+Personal System/2 Model 30 the same level of function as the
+integrated display adapter provides for the IBM Personal System/2
+Models 50, 60 and 80.
+
+       The IBM Personal System/2 Display Adapter 8514/A (IBM Display
+Adapter 8514/A) offers advanced display functions and improved
+performance.  When used with the IBM Personal System/2 Color Display
+8514, it offers increases in display content.  The IBM Display
+Adapter 8514/A is supported by the IBM Personal System/2 Models 50,
+60 and 80.  All the modes of operation of the integrated display
+adapter continue to be available.  An IBM Personal System/2 8514
+Memory Expansion  Kit (IBM 8514 Memory Expansion Kit) is available
+for the IBM Display Adapter 8514/A, giving increased color and gray
+scale support.
+
+       These adapters support a new family of analog displays: IBM
+Personal System/2 Monochrome Display 8503, IBM Personal System/2
+Color Display 8512, IBM Personal System/2 Color Display 8513, and IBM
+Personal System/2 Color Display 8514.
+
+       Refer also to the following Product Announcements, dated April
+2, 1987, for additional information:  187-053, 187-055, 187-056,
+187-057, and 187-058.
+
+       Purchase Price:
+
+IBM Display Adapter                 $  595
+IBM Display Adapter
+ 8514/A                              1,290
+IBM 8514 Memory
+ Expansion Kit                         270
+
+       Planned Availability:
+
+IBM Display Adapter                 July 1987
+IBM Display Adapter 8514/A          June 1987
+IBM 8514 Memory
+ Expansion Kit                      June 1987
+
+ (TM) Trademark of the International Business Machines Corporation.
+ (R) Registered trademark of the International Business Machines
+   Corporation.
+
+
+Customer Letter Section
+
+
+HIGHLIGHTS
+----------
+
+*   IBM Personal System/2 Display Adapter (feature #4050) (1887744):
+    -   New display modes
+    -   Increased color and monochrome capability
+    -   Support for new IBM analog displays
+    -   Compatible with existing Monochrome Display/Printer Adapter
+        (MPA), Color/Graphics Monitor Adapter (CGA), and Enhanced
+        Graphics Adapter (EGA) modes
+    -   Functional equivalence with the Video Graphics Array (VGA) in
+        IBM Personal System/2 Models 50, 60 and 80.
+
+*   IBM Personal System/2 Display Adapter 8514/A (feature #4054)
+    (1887972):
+    -   Hardware assist for advanced text, image and graphics
+        functions
+    -   New high content display modes
+    -   Increased color and monochrome capability
+    -   Support for new IBM analog displays
+    -   MPA, CGA, EGA and VGA modes continue to be available
+    -   256/256KB colors and 64/64 gray scales with IBM 8514 Memory
+        Expansion Kit (feature #4081) (1887989).
+
+
+DESCRIPTION
+-----------
+
+       The IBM Display Adapter is available as a feature on the IBM
+Personal Computer, IBM Personal Computer XT (TM), IBM Personal
+Computer XT (TM) Model 286, IBM Personal Computer AT (R) and IBM
+Personal System/2 Model 30.  It supports attachment to the new IBM
+Personal System/2 displays:  IBM 8503, 8513, 8512 and 8514.
+
+       In addition to emulating and, in some cases, enhancing the
+existing modes of the IBM Monochrome Display and Printer Adapter, the
+IBM Color Graphics Display Adapter, and the IBM Enhanced Color
+Graphics Adapter, the following new display modes are supported:
+*   640 X 480 PELS (Picture Elements) in 16 colors or gray scales for
+    graphics, text and image
+*   720 X 400 PELS in 16 colors or gray scales for high quality text
+*   320 X 200 PELS in 256 colors or 64 gray scales for image.
+
+       The actual colors displayed are determined by a dynamically
+reloadable color palette that offers a choice of up to 256 colors
+selected from a palette of 256KB colors.  In a similar way, the gray
+scales are chosen from a palette of 64 gray scales.
+
+       Chart A describes the screen modes for the IBM Personal
+System/2 Display Adapter.
+
+       The IBM Display Adapter 8514/A is available as a feature on
+the IBM Personal System/2 Models 50, 60 and 80.  It supports
+attachment to the IBM 8503, 8513, 8512 and 8514 displays.
+
+       The display modes available with the integrated display
+adapter of the IBM Personal System/2 Models 50, 60 and 80 remain
+available when the IBM Display Adapter 8514/A is installed in the
+system unit.
+
+       The IBM Display Adapter 8514/A offers:
+*   1024 x 768 PELS in 16 colors or gray scales for graphics, text
+    and image
+*   Significantly improved performance
+*   APA drawing and performance aids including BITBLT and hardware
+    assist for line and area drawing
+*   Enhanced text capability.
+
+       The IBM 8514 Memory Expansion Kit is available as an optional
+feature on the IBM Personal System/2 Models 50, 60 and 80.  The kit
+plugs in to the IBM Display Adapter 8514/A card and increases the
+number of display colors to 256 from 256KB and the number of display
+gray scales to 64/64.
+
+       Chart B shows the new display modes supported.
+
+ (TM) Trademark of the International Business Machines Corporation.
+ (R) Registered trademark of the International Business Machines
+   Corporation.
+
+
+ADAPTER INTERFACE
+-----------------
+
+The adapter interface provided with the IBM Display Adapter 8514/A is
+a programming interface that makes programming the adapter
+significantly easier than programming directly to the hardware.  It
+handles much of the complexity of the hardware register interface on
+behalf of the programmer and provides a call interface that supports
+commonly required display adapter functions in a convenient form.
+
+       A Display Adapter 8514/A Adapter Interface Application
+Developer's Tutorial is available and must be ordered separately.
+The tutorial is intended to help application developers become
+familiar with writing applications for the adapter interface.  It
+consists of a user's guide publication and a diskette containing
+utilities, demonstration material and anti-aliasing image fonts.
+
+
+PUBLICATIONS
+------------
+
+       The following publications are shipped with the adapters:
+
+                                    PART
+TITLE                               NUMBER
+IBM Personal System/2
+ Installation Instruction
+ Supplement for the
+ IBM Personal System/2
+ Display Adapter                    6280106
+Installation Instructions
+ for the IBM Personal
+ System/2 Display
+ Adapter 8514/A                     6280128
+Installation Instructions
+ for the IBM Personal
+ System/2 8514 Memory
+ Expansion Kit                      6280136
+
+       The following publications will be available from
+Mechanicsburg by planned availability:
+
+IBM DISPLAY ADAPTER:
+                              ORDER               PART
+TITLE                         NUMBER              NUMBER
+IBM Personal System/2
+ Display Adapter
+ Supplement for
+ Hardware Maintenance --
+ Service                      S68X-2216           68X2216
+IBM Personal System/2
+ Display Adapter
+ Supplement for
+ Hardware Maintenance --
+ Reference                    S68X-2238           68X2238
+IBM Personal System/2
+ Display Adapter
+ Technical Reference
+ Manual                       S68X-2251           68X2251
+IBM DISPLAY ADAPTER 8514/A:
+                              ORDER               PART
+TITLE                         NUMBER              NUMBER
+IBM Personal System/2
+ Display Adapter 8514/A
+ Supplement for
+ Hardware Maintenance --
+ Reference                    S68X-2249           68X2249
+IBM Personal System/2
+ Display Adapter 8514/A
+ Supplement for
+ Hardware Maintenance --
+ Service                      S68X-2250           68X2250
+IBM Personal System/2
+ Display Adapter 8514/A
+ Technical Reference
+ Manual                       S68X-2248           68X2248
+IBM Personal System/2
+ Display Adapter 8514/A
+ Virtual Device
+ Drivers Interface
+ 1.20                         S68X-2280           68X2280
+IBM Personal System/2
+ Display Adapter 8514/A
+ Adapter Interface
+ Application
+ Developer's Tutorial         S68X-2279           68X2279
+
+
+SCHEDULE
+--------
+
+       Planned availability of the IBM Display Adapter is July 1987.
+Planned availability of the IBM Display Adapter 8514/A and IBM 8514
+Memory Expansion Kit is June 1987.
+
+
+TECHNICAL INFORMATION
+---------------------
+
+SPECIFIED OPERATING ENVIRONMENT
+MACHINE REQUIREMENTS
+
+IBM PERSONAL SYSTEM/2 DISPLAY ADAPTER:  An IBM Personal Computer, IBM
+Personal Computer XT, IBM Personal Computer XT Model 286, IBM
+Personal Computer AT or IBM Personal System/2 Model 30 with an
+available expansion slot.
+
+IBM PERSONAL SYSTEM/2 DISPLAY ADAPTER 8514/A:  An IBM Personal
+System/2 Models 50, 60 and 80 system unit with an available expansion
+slot.
+
+PROGRAMMING REQUIREMENTS:  The IBM Display Adapter and IBM Display
+Adapter 8514/A, together with an appropriate display, are supported
+in a number of software environments, ranging from a low-level
+hardware interface to the multiprogramming and multitasking
+environment of IBM Operating System/2 (TM) Standard Edition, Version
+1.1.  The range of software available enables the adapter and
+displays to meet the varied requirements of the user.
+ (TM) Trademark of the International Business Machines Corporation.
+
+IBM OPERATING SYSTEM/2 STANDARD EDITION 1.1:  The IBM Display Adapter
+and IBM Display Adapter 8514/A are supported by IBM Operating
+System/2 Standard Edition, Version 1.1.
+IBM DISK OPERATING SYSTEM (DOS) VERSION 3.30:  The IBM Display
+Adapter is supported by IBM Disk Operating System (DOS) Version 3.30.
+Applications written to run with earlier versions of DOS will run
+
+using those modes of the IBM Display Adapter that emulate the IBM
+Monochrome Display and Printer Adapter, the IBM Color Graphics
+Display Adapter and the IBM Enhanced Color Graphics Adapter.
+
+       The IBM Display Adapter 8514/A requires IBM Disk Operating
+System (DOS) Version 3.30, or higher.
+
+GDDM-PCLK:  GDDM-PCLK supports the IBM Display Adapter and IBM
+Display Adapter 8514/A, providing the user with access to the
+extensive range of applications that run with the IBM Graphical Data
+Display Manager (GDDM).  GDDM-PCLK runs under IBM Personal Computer
+DOS 2.1 and later versions.  Refer to Programming Announcement
+287-107, dated April 2, 1987, for additional information on
+GDDM-PCLK.
+
+COMMUNICATIONS SUPPORT:  The IBM Display Adapter is supported by IBM
+PC 3270 Emulation Program-Entry Level, Version 1.2, IBM Personal
+Computer 3270 Emulation, Version 3.00, IBM Personal Computer Local
+Area Network Program, Version 1.20, APPC/PC 1.11 and IBM 3270
+Workstation, Version 1.0.  These applications run in CGA/EGA
+emulation mode to support 1920 character alphanumeric screens on the
+IBM Display Adapter.  These applications run with IBM Disk Operating
+System (DOS) Version 3.30.
+
+       The IBM Display Adapter 8514/A is supported by IBM 3270
+Workstation, Versions 1.0 and 1.1, with alphanumeric screen sizes
+equivalent to 3270 Models 3, 4 and 5.
+
+VDI DRIVERS:  Virtual Device Interface (VDI) drivers will be
+available to allow applications written to the IBM Personal Computer
+Graphics Development Toolkit to run with the IBM Display Adapter and
+IBM Display Adapter 8514/A.
+
+       The IBM Display Adapter has VDI drivers to support the IBM
+Personal Computer Graphics Development Toolkit, Version 1.20 (IBM
+Personal Computer DOS) and IBM Operating System/2 Graphics
+Development Toolkit.  The VDI drivers are included with the Graphics
+Development Toolkits.  Refer to Programming Announcement 287-106,
+dated April 2, 1987, for details.
+
+       For the IBM Display Adapter 8514/A, the drivers are written to
+the adapter interface and will support the following modes:
+*   640 x 480 -- 256 colors
+*   640 x 480 -- 16 colors
+*   1024 x 768 -- 256 colors
+*   1024 x 768 -- 16 colors
+
+       The drivers will allow VDI applications to take advantage of
+the new functions available in the adapter, such as improved
+performance, 256 colors and high content.  The IBM Display Adapter
+8514/A VDI drivers for the IBM Personal Computer Graphics Development
+Toolkit Version 1.20 are available and need to be ordered separately.
+They are packaged in a correspondence folder that contains the
+drivers on a diskette and a booklet with description.  The IBM
+Display Adapter 8514/A VDI drivers for the IBM Operating System/2
+Graphics Development Toolkit are included in the IBM Operating
+System/2 Graphics Development Toolkit.  Refer to Programming
+Announcement 287-106, dated April 2, 1987, for additional
+information.
+
+COMPATIBILITY:  The IBM Display Adapter emulates the IBM Monochrome
+Display and Printer Adapter, the IBM Color/Graphics Monitor Adapter
+and the IBM Enhanced Graphics Adapter modes and enables applications
+written at the BIOS level to be run.  Most applications written to
+the hardware of these adapters will also run, but will require
+testing due to different hardware register implementation.  The IBM
+Display Adapter does not emulate the Professional Graphics
+Controller.
+
+       The IBM Display Adapter is functionally equivalent to the
+integrated display adapter in the IBM Personal System/2 Models 50, 60
+and 80.  Most applications written to the new display modes of the
+integral display adapter of these products will also run, but must be
+tested to ensure compatibility.  Selected applications that use both
+color and monochrome modes, or that use the vertical re-trace
+interrupt feature, may require change.
+
+       The IBM Display Adapter 8514/A co-exists with the integrated
+display adapter in the IBM Personal System/2 Models 50, 60 and 80.
+Applications that run using the integrated display adapter will
+continue to run when IBM Display Adapter 8514/A is installed.  In
+order to use the advanced function modes of the IBM Display Adapter
+8514/A, applications must be written to either the adapter interface
+or an application programming interface such as the VDI, that uses
+the adapter interface.  Most VDI applications will run on IBM Display
+Adapter 8514/A using the IBM Display Adapter 8514/A VDI driver
+without change.  Software applications written for the Professional
+Graphics Controller that use the IBM Personal Computer Graphics
+Development Toolkit will be compatible with the IBM Display Adapter
+8514/A.
+
+LIMITATIONS:  The IBM Display Adapter installed in an IBM Personal
+Computer, IBM Personal Computer XT, IBM Personal Computer XT Model
+286, IBM Personal Computer AT can coexist with a Monochrome
+Display/Printer Adapter (MPA) or a Color/Graphics Monitor Adapter
+(CGA), but not an Enhanced Graphics Adapter (EGA).  Concurrent modes
+of operation are restricted to:
+*   IBM Display Adapter running color modes while MPA is in
+    monochrome mode
+*   IBM Display Adapter running monochrome modes while CGA is in
+    color mode.
+       With the IBM Display Adapter installed in an IBM Personal
+System/2 Model 30, two displays can be used alternately if supported
+by the application program.
+
+       With the IBM Display Adapter 8514/A dual screen
+configurations, a second screen may be attached to the integrated
+display adapter on the system unit.  The second screen displays the
+output of the integrated display adapter.  The primary screen
+(attached to the IBM Display Adapter 8514/A) displays either the
+output from the integrated display adapter or the advanced function
+output of the IBM Display Adapter 8514/A, depending on whether
+advanced function mode has been set on the IBM Display Adapter
+8514/A.
+
+       The IBM 5151 Monochrome Display, the IBM 5153 Color Display,
+the IBM 5154 Enhanced Color Display, and the IBM 5175 Professional
+Graphics Display cannot be attached to the IBM Display Adapter or IBM
+Display Adapter 8514/A.
+
+
+PLANNING INFORMATION
+--------------------
+
+CUSTOMER RESPONSIBILITIES:  The customer is responsible for:
+*   Unpacking and the placement of the adapters.
+*   Connection of the signal cable.
+*   Performing Customer Level Diagnostics.
+*   Establishing the software compatibility of his software with the
+    adapter unless specifically stated as compatible by IBM.
+*   If the warranty of the feature extends beyond the warranty of the
+    host system unit, the customer may be required to provide proof
+    of purchase to obtain warranty service.
+
+INSTALLABILITY:  The IBM Display Adapter, the IBM Display Adapter
+8514/A, and the IBM 8514 Memory Expansion Kit are customer setup.
+Setup instructions are shipped with the adapter.
+
+PROBLEM DETERMINATION:  It is the customer's responsibility to
+isolate any problem to the failing element using Customer Problem
+Determination Procedures and Customer Diagnostic Diskettes.  The
+failing adapter in a system unit can be replaced or repaired under
+existing warranty provisions.
+
+PACKAGING:  The IBM Display Adapter is packaged in a carton which
+contains, in addition to the hardware, the IBM Personal System/2
+Installation Instruction Supplement for the IBM Personal System/2
+Display Adapter (6280106) (includes also a Customer Diagnostic
+Diskette).
+
+       The IBM Personal System/2 Display Adapter 8514/A is packaged
+in a carton that contains, in addition to the hardware, Installation
+Instructions for the IBM Personal System/2 Display Adapter 8514/A
+(6280128) (includes also Customer Diagnostic Diskette and Adapter
+Interface Diskette).
+
+
+SECURITY, AUDITABILITY, AND CONTROL
+-----------------------------------
+
+       The IBM Display Adapter and the IBM Display Adapter 8514/A
+utilize the security and auditability features of the system to which
+they are installed.
+
+       User management is responsible for evaluation, selection, and
+implementation of security features, administrative procedures, and
+appropriate controls in application systems and communications
+facilities.
+
+
+TERMS AND CONDITIONS
+--------------------
+
+WARRANTY PERIOD:  One year
+
+CUSTOMER SETUP:  Yes.
+
+       All other terms and conditions are the same as those
+applicable to the IBM machine in which the feature is installed.
+
+CHARGES
+                                 FEATURE     PART       PURCHASE
+DESCRIPTION                      NUMBER      NUMBER     PRICE
+IBM Personal
+ System/2
+ Display Adapter                 4050        1887744    $  595
+IBM Personal
+ System/2
+ Display Adapter
+ 8514/A                          4054        1887972     1,290
+IBM Personal
+ System/2
+ 8514 Memory
+ Expansion Kit                   4081        1887989       270
+                                                        SINGLE
+                                 ORDER       PART       COPY
+PUBLICATION                      NUMBER      NUMBER     PRICE
+IBM Personal
+ System/2
+ Display Adapter
+ Supplement for
+ Hardware
+ Maintenance --
+ Service                         S68X-2216   68X2216       $30
+IBM Personal
+ System/2
+ Display Adapter
+ Supplement for
+ Hardware
+ Maintenance --
+ Reference                       S68X-2238   68X2238         6
+IBM Personal
+ System/2
+ Display Adapter
+ 8514A Technical
+ Reference Manual                S68X-2251   68X2251        10
+IBM Personal
+ System/2
+ Display Adapter
+ 8514/A Supplement
+ for Hardware
+ Maintenance --
+ Reference                       S68X-2249   68X2249         6
+IBM Personal
+ System/2
+ Display Adapter
+ 8514/A Supplement
+ for Hardware
+ Maintenance --
+ Service                         S68X-2250   68X2250         6
+IBM Personal
+ System/2
+ Display Adapter
+ 8514/A Technical
+ Reference
+ Manual                          S68X-2248   68X2248        10
+Display Adapter
+ 8514/A 1.20 VDI
+ Drivers                         S68X-2280   68X2280        30
+Display Adapter
+ 8514/A Adapter
+ Interface
+ Application
+ Developer's
+ Tutorial                        S68X-2279   68X2279        25
+
+
+CHART A
+-------
+
+DISPLAY SCREEN MODES FOR THE IBM PERSONAL SYSTEM/2 DISPLAY ADAPTER
+                     CHAR         CHAR                 PICTURE
+TYPE     COLORS      X LINES      BOX        PAGES     ELEMENTS
+A/N      16/256KB    40x25        8x8          8       320x200
+A/N      16/256KB    80x25        8x8          8       640x200
+A/N      16/256KB    40x25        8x14         8       320x350
+A/N      16/256KB    80x25        8x14         8       640x350
+A/N      16/256KB    40x25        9x16         8       360x400
+A/N      16/256KB    80x25        9x16         8       720x400
+APA      4/256KB     40x25        8x8          1       320x200
+APA      2/256KB     80x25        8x8          1       640x200
+A/N      MONO        80x25        9x14         8       720x350
+A/N      MONO        80x25        9x16         8       720x400
+APA      16/256KB    40x25        8x8          8       320x200
+APA      16/256KB    80x25        8x8          4       640x200
+APA      4/256KB     80x25        8x14         2       640x350
+APA      16/256KB    80x25        8x14         2       640x350
+APA      2/256KB     80x30        8x16         2       640x480
+APA      16/256KB    80x30        8x16         1       640x480
+APA      256/256KB   40x25        8x8          1       320x200
+       A/N = Alphanumerics; APA = All Points Addressable
+
+CHART B
+-------
+
+DISPLAY MODES SUPPORTED BY THE IBM PERSONAL SYSTEM/2 DISPLAY ADAPTER
+8514/A
+                             CHAR     CHAR          PICTURE
+TYPE   COLORS      SCALES    X LINES  BOX    PAGES  ELEMENTS DISPLAYS
+APA    *16/256KB   *16/64    80x34    8x14     2    640x480  All
+APA    *16/256KB   *16/64    85x38    12x20    1    1024x768 8514
+APA    *16/256KB   *16/64    146x51   7x15     1    1024x768 8514
+
+*  256/256KB and 64/64 gray scales when IBM Personal System/2 8514
+   Memory Expansion Kit is installed.
+
+
+
+
+
