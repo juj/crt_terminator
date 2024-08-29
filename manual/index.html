@@ -84,7 +84,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-08-11</h3>
+<h3 class='center'>2024-08-29</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -107,9 +107,10 @@ td {
 <a href='#recommended_display'>7. Recommended Displays</a><br>
 <a href='#video_upscaling'>8. Video Upscaling with CRT Terminator</a><br>
 <a href='#compatible_graphics_adapters'>9. Compatible Graphics Adapters</a><br>
-<a href='#hardware_programming_reference'>10. Hardware Programming Reference</a><br>
-<a href='#frequently_asked_questions'>11. Frequently Asked Questions</a><br>
-<a href='#troubleshooting'>12. Troubleshooting</a><br>
+<a href='#hardware_rng'>10. Hardware Random Number Generation</a><br>
+<a href='#hardware_programming_reference'>11. Hardware Programming Reference</a><br>
+<a href='#frequently_asked_questions'>12. Frequently Asked Questions</a><br>
+<a href='#troubleshooting'>13. Troubleshooting</a><br>
 <a href='#appendix_a_ibm_vga_feature_connector'>Appendix A. IBM VGA Feature Connector</a><br>
 <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
 <a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
@@ -203,6 +204,7 @@ td {
 <li>supports configuration via a DOS command line utility.</li>
 <li>supports standard VGA 262,144 colors 6:6:6 256-color palettized modes as well as a new expanded 16 million 8:8:8 256-color palettized mode of operation.</li>
 <li>operation implemented using Gowin GW1NR series of FPGA board.</li>
+<li>... and many more features ...
 </ul>
 
 all packed into a single 8-bit ISA expansion card!
@@ -1189,6 +1191,26 @@ all packed into a single 8-bit ISA expansion card!
 
 </div><div class='page'>
 
+<a name='hardware_rng'><h1>Hardware Random Number Generation</h1></a>
+
+<p>When IBM released the VGA adapter, they dropped support for the CGA and EGA light pen feature. However, the hardware registers relating to light pen support still remained in a crippled form, and one of those registers would contain a free-running counter.
+
+<p>In a <a href='700-0242_V7_VGA_Technical_Reference_Manual_Jun88.pdf'>Headland V7 VGA adapter technical manual</a> from June 1988, the authors noted this quirk, and offered that maybe the feature could be used to generate random numbers:
+
+<br><img src='hardware_rng.png'>
+
+<p>See page 3-47 in the PDF. In the <a href='https://www.vogons.org/viewtopic.php?t=95843'>Vogons thread: "Can your VGA card provide a hardware source for random numbers?"</a> the community got a bit excited to try out various clone VGA adapters, to see whether this behavior was still present in each, and if it could indeed be used to produce random numbers. And for some of them, it totally did!
+
+<p>As a homage to this fun behavior, and observing that vintage PCs really do not have a good fast source to hardware RNGs, we decided to add a proper hardware random number generator to CRT Terminator, in a way that is accessible as fast as possible on a vintage PC.
+
+<p>The hardware I/O port <b>0125h</b> is dedicated to provide a new random number each time it is read. This random number generator was tested to pass the <a href='nistspecialpublication800-22r1a.pdf'>NIST 800-22 Rev 1a</a> specification for random number generators.
+
+<p>See the Hardware Programming Reference section for details on how to use the RNG.
+
+</div>
+
+</div><div class='page'>
+
 <a name='hardware_programming_reference'><h1>Hardware Programming Reference</h1></a>
 
 <p>This section provides example code to interact with CRT Terminator from your real mode DOS programs.</p>
@@ -1214,7 +1236,7 @@ all packed into a single 8-bit ISA expansion card!
     <tr><td>122h</td><td>Data Port</td><td>Read/Write</td><td>Reads or writes the given 8-bit sub-register selected by the index port.</td></tr>
     <tr><td>123h</td><td>8bpp Palette Index Port</td><td>Write Only</td><td>Selects the active palette index to write, 0-255.</td></tr>
     <tr><td>124h</td><td>8bpp Palette Data Port</td><td>Write Only</td><td>Consecutively write 3 bytes to program a 24-bit color for active palette index. The index is then autoincremented to receive the color for the next palette index (wrapping around to zero after 255).</td></tr>
-    <tr><td>125h</td><td>RNG Port</td><td>Read Only</td><td>Every read from this port returns a new 8-bit random number from a fast high quality hardware random number generator source that passes the <a href='https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-22r1a.pdf'>NIST 800-22 Rev 1a</a> specification.</td></tr>
+    <tr><td>125h</td><td>RNG Port</td><td>Read Only</td><td>Every read from this port returns a new 8-bit random number from a fast high quality hardware random number generator source that passes the <a href='nistspecialpublication800-22r1a.pdf'>NIST 800-22 Rev 1a</a> specification.</td></tr>
     <tr><td>126h</td><td>Frame Counter Port</td><td>Read Only</td><td>Reading this port returns the lowest 8 bits value of the currently displayed frame number counter.</td></tr>
     <tr><td>127h</td><td>Scanline Counter Port</td><td>Read Only</td><td>Reading this port returns the number of scanlines remaining until the start of next vertical blank.<br>If the adapter is currently in vblank, this port returns 0.<br>If more than 254 scanlines remain until vblank, this port returns 255.</td></tr>
     <tr><td>128h</td><td>High Precision Wallclock Port 0 (LSB bits 7-0)</td><td>Read Only with Side Effect</td><td>Reading this port latches the 32-bit high precision wallclock time counter and returns the lowest 8 bits of its value.<br>This wallclock timer has the frequency of 27,000,000 Hz ± 1350 Hz. (Accuracy of 50ppm)</td></tr>
@@ -1349,6 +1371,56 @@ int main()
     <tr><td>49h-4Bh</td><td></td><td>Read Only</td><td>Most Recently Written Palette RGB color.</td></tr>
     <tr><td>Other Indices</td><td>Reserved</td><td>Read Only</td><td>(Reads will return FFh, but do not assume this)</td></tr>
 </tbody></table>
+
+<h2>Hardware RNG</h2>
+
+<p>To generate a random byte, issue a 8-bit read from the port <b>0125h</b>. This can be quickly tested in DOS via the <b>debug</b> command:
+
+<p><img style='width:50%' src='crt_terminator_hardware_rng.png'>
+
+<p>16-bit reads to this port will not generate a 16-bit random number, because CRT Terminator is only an 8-bit card. So stick to 8-bit reads only.
+
+<p>The following C++ program prints out ten random numbers.
+
+<pre class='code' style='margin-bottom: 0px'><code class="language-cpp">#include <dos.h>
+#include <stdio.h>
+
+int main()
+{
+  for(int i = 0; i < 10; ++i)
+  {
+    unsigned char rng = inp(0x125);
+    printf("%d\n", (int)rng);
+  }
+  return 0;
+}
+</code></pre>
+<pre style='margin-top: 0px; padding-left: 20px'>Listing 2. Borland Turbo C++ 3.0 example to generate random numbers from CRT Terminator hardware RNG source.</pre>
+
+<p>If the above code is run on a system that does not have CRT Terminator installed, the program will likely output the same byte value ten times. Refer to listing 1 to detect the presence of CRT Terminator before using the above code.
+
+<p>Likewise, random numbers may be generated from within x86 assembly code.
+
+<pre class='code' style='margin-bottom: 0px'><code class="language-cpp">#include <stdio.h>
+
+int main()
+{
+  for(int i = 0; i < 10; ++i)
+  {
+    unsigned char rng;
+    asm mov dx, 0x125
+    asm in  al, dx
+    asm mov rng, al
+    printf("%d\n", (int)rng);
+  }
+  return 0;
+}
+</code></pre>
+<pre style='margin-top: 0px; padding-left: 20px'>Listing 3. Borland Turbo C++ 3.0 inline x86 assembly example to generate random numbers from CRT Terminator hardware RNG source.</pre>
+
+<p>for the relevant bits to be adapted into an existing x86 assembly program.
+
+
 
 </div><div class='page'>
 
@@ -1498,4 +1570,15 @@ int main()
     hljs.highlightAll();
   </script>
 
-</body></html>
+</body>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-8V8XMTQ1JP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-8V8XMTQ1JP');
+  </script>
+
+</html>
