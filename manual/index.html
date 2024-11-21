@@ -109,6 +109,7 @@ td {
 <a href='#supported_input_video_modes'>6. Supported Input Video Modes</a><br>
 <a href='#recommended_display'>7. Recommended Displays</a><br>
 <a href='#video_upscaling'>8. Video Upscaling with CRT Terminator</a><br>
+<span class='indent'><a href='#pixel_perfect_upscaling'>8.1. Pixel Perfect Upscaling DOS 320x200 games</a><br></span>
 <a href='#compatible_graphics_adapters'>9. Compatible Graphics Adapters</a><br>
 <a href='#hardware_rng'>10. Hardware Random Number Generation</a><br>
 <a href='#hardware_programming_reference'>11. Hardware Programming Reference</a><br>
@@ -648,7 +649,43 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>In general we recommend using MultiMode for best picture quality, and falling back to other modes for compatibility, subject to taste.</p>
 
-<p>Sidenote: If you are using a 1600x1200 or a 1920x1200 display, then in particular for the above DOS 320x200 scenario, CRT Terminator can upscale the 320x200 video up to 1600x1200 to produce the pixel perfect video output without any bilinear filtering applied.
+<a name='pixel_perfect_upscaling'><h2>Pixel Perfect Upscaling DOS 320x200 games</h2></a>
+
+<p>Many vintage PC DOS games used the 320x200 pixels resolution. To illustrate the different upscaling modes from previous section, here is a closer comparison.
+
+<table><tr><td>
+<a href='320x200_upscaled_to_1440x1080_fixed_resolution.png'><img src='320x200_upscaled_to_1440x1080_fixed_resolution.png' style='width: 100%'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>Fixed Resolution</b> mode.
+</td><td>
+<a href='320x200_upscaled_to_1440x1080_multimode.png'><img src='320x200_upscaled_to_1440x1080_multimode.png' style='width: 100%'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>MultiMode</b> scaling. (CRT Terminator will upscale to 1280x1000 for the LCD display to upscale to 1440x1080 in 4:3 mode)
+</td><td>
+<a href='320x220_upscaled_to_1600x1200.png'><img src='320x220_upscaled_to_1600x1200.png' style='width: 100%'></a><br>On a 1600x1200 or a 1920x1200 display, upscale to 1600x1200 (using either Fixed Resolution or MultiMode operation)
+</td></tr></table>
+
+<br>Click on the individual images to load them up in full view.
+
+<p>Below is the same image, cropped and zoomed in for comparing closer details.
+
+<table><tr><td>
+<a href='320x200_upscaled_to_1440x1080_fixed_resolution_closeup.png'><img src='320x200_upscaled_to_1440x1080_fixed_resolution_closeup.png' style='width: 414px'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>Fixed Resolution</b> mode.
+</td><td>
+<a href='320x200_upscaled_to_1440x1080_multimode_closeup.png'><img src='320x200_upscaled_to_1440x1080_multimode_closeup.png' style='width: 414px'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>MultiMode</b> scaling.
+</td><td>
+<a href='320x220_upscaled_to_1600x1200_closeup.png'><img src='320x220_upscaled_to_1600x1200_closeup.png' style='width: 460px'></a><br>On a 1600x1200 or a 1920x1200 display, upscale to 1600x1200 (using either Fixed Resolution or MultiMode operation will yield the same result in this case)
+</td></tr></table>
+
+<p>Note that due to use of a <a href='https://en.wikipedia.org/wiki/Chroma_subsampling'>lossy 4:2:0 Chroma</a> StarTech video capture device, there is unfortunately a bit of chroma bleed on adjacent pixels, that is not present when viewed on a real LCD display.
+
+<p>The first example (left), uses Fixed Resolution upscaling to upsample the video when viewed on a 1920x1080 display. This produces the sharpest output when the output video size (1440x1080) is not an exact integer multiple of the input resolution (320x200). There will however be some amount of aliasing visible in games that display two-color dither/raster patterns.
+
+<p>The second example (middle), uses MultiMode upscaling to output the video to 1280x1000, for the LCD display to view in 4:3 1440x1080 mode. This is a great way to balance upscaling 320x200 video on Full HD displays. Note how individual pixels in two-color raster patterns appear evenly sized. (The zoomed up image shows up a bit more blurry than in reality due to 4:2:0 lossy Chroma video capture)
+
+<p>Which one to use depends on taste: Fixed Resolution provides sharpness, whereas MultiMode provides image quality.
+
+<p>For ideal no-compromises upscaling of 320x200 content, the third example (right) shows how CRT Terminator upscales 320x200 input video to 1600x1200 when viewed on a 1200p capable output display. This upscaling is pixel perfect with zero smoothing/blurring. (any smoothing in the above screenshot is due to 4:2:0 lossy Chroma video capture)
+
+<p>Using a 1600x1200 (or 1920x1200) display is ideal because that resolution is an integer multiple of popular 320x200, 320x240 and 800x600 resolutions.
+
+<p>Note that we do not recommend using the popular vintage Dell 2007FPB 1600x1200 display. While it has the preferable 1600x1200 resolution, that display disappointingly does not support StutterStop.
 
 </div><div class='page'>
 
@@ -1562,7 +1599,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
-<li><b>2024-11-21</b>: Added link to PALTSR.EXE utility.</li>
+<li><b>2024-11-21</b>: Added link to PALTSR.EXE utility. Added a new section for pixel perfect 320x200 upscaling.</li>
 <li><b>2024-10-29</b>: Improved printability of the manual by using CSS media queries.</li>
 <li><b>2024-08-29</b>: Added section on hardware RNG support.</li>
 <li><b>2024-08-11</b>: First upload.</li>
