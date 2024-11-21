@@ -4,7 +4,10 @@
 .center { text-align: center; }
 .indent { padding-left: 20px; }
 body { background-color: #f0f0f0; margin: 0px; background: url('chitz.bmp');}
-.page { margin-left: 200px; margin-right: 200px; margin-top: 0px; background-color: white; margin-bottom: 50px; padding-left: 50px; padding-right: 50px; padding-top: 0px; padding-bottom: 30px; border: solid 1px black;}
+@media screen {
+  .page { margin-left: 200px; margin-right: 200px; margin-bottom: 50px; padding-left: 50px; padding-right: 50px; padding-bottom: 30px; border: solid 1px black;}
+}
+.page { margin-top: 0px; background-color: white; padding-top: 0px; }
 h1 { padding-top: 50px; }
 h2 { padding-top: 50px; }
 
@@ -84,7 +87,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-08-29</h3>
+<h3 class='center'>2024-11-21</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -115,6 +118,7 @@ td {
 <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
 <a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
 <a href='#appendix_d_supported_fixed_resolutions'>Appendix D. CRT Terminator Supported Output Resolutions</a><br>
+<a href='#appendix_e_changelog'>Appendix E. Changelog</a><br>
 
 <p></p>
 
@@ -368,7 +372,7 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>Jumper J2 is used to enable a simple automatic configuration of the sampling phase settings. In this mode, CRT Terminator will continuously analyze which sampling phase it should use for each signal line. It is recommended that this option is enabled (J2 set to 1-2) first to see if this simple automatic scheme will work. The other options are available in case this automatic configuration does not work as expected for a particular VGA adapter.</p>
 
-<p>An incorrect video sampling phase setting typically manifests as a video signal that geometrically drifts or jitters, or continously loses video sync.</p>
+<p>An incorrect video sampling phase setting typically manifests as a video signal that geometrically drifts or jitters, or continuously loses video sync.</p>
 
 <div class="overflow-hidden">
 
@@ -516,7 +520,7 @@ all packed into a single 8-bit ISA expansion card!
 
 <div style='padding-top:0px; padding-left:20px'>
 
-<p>Finally, if there is no configuration option available either in BIOS or with the VGA adapter itself, the last resort may be to revert to utilizing a software polling approach. CRT Terminator provides a DOS software TSR program, which periodically polls the VGA palette, and then mirrors the palette over to CRT Terminator I/O address space. This software TSR will not be able to provide perfectly synchronized VGA palette uploads, and will cause a small performance penalty, but on fast PCI based systems the performance impact may be unnoticeable.</p>
+<p>Finally, if there is no configuration option available either in BIOS or with the VGA adapter itself, the last resort may be to revert to utilizing a software polling approach. CRT Terminator provides a DOS software TSR program PALTSR.EXE ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/PALTSR'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/PALTSR.zip'>Download ZIP</a>]), which periodically polls the VGA palette, and then mirrors the palette over to CRT Terminator I/O address space. This software TSR may not be compatible with all DOS VGA programs, and will cause a small performance penalty, but on fast systems the performance impact may be unnoticeable.</p>
 
 </div>
 
@@ -1551,6 +1555,18 @@ int main()
   <b>2:</b> Relaxed from CVT-RBv2 timings.<br>
   <b>3:</b> Overclocked, support not guaranteed. Single link DVI-D cable can reach a pixel clock up to 165 MHz.</p>
 
+</div><div class='page'>
+
+<a name='appendix_e_changelog'><h1>Appendix E: Changelog</h1></a>
+
+<p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
+
+<ul>
+<li><b>2024-11-21</b>: Added link to PALTSR.EXE utility.</li>
+<li><b>2024-10-29</b>: Improved printability of the manual by using CSS media queries.</li>
+<li><b>2024-08-29</b>: Added section on hardware RNG support.</li>
+<li><b>2024-08-11</b>: First upload.</li>
+</ul>
 
 </div>
 
