@@ -110,11 +110,12 @@ td {
 <a href='#recommended_display'>7. Recommended Displays</a><br>
 <a href='#video_upscaling'>8. Video Upscaling with CRT Terminator</a><br>
 <span class='indent'><a href='#pixel_perfect_upscaling'>8.1. Pixel Perfect Upscaling DOS 320x200 games</a><br></span>
-<a href='#compatible_graphics_adapters'>9. Compatible Graphics Adapters</a><br>
-<a href='#hardware_rng'>10. Hardware Random Number Generation</a><br>
-<a href='#hardware_programming_reference'>11. Hardware Programming Reference</a><br>
-<a href='#frequently_asked_questions'>12. Frequently Asked Questions</a><br>
-<a href='#troubleshooting'>13. Troubleshooting</a><br>
+<a href='#obs_video_capture'>9. Capturing CRT Terminator output for YouTube or Twitch streaming via OBS</a><br>
+<a href='#compatible_graphics_adapters'>10. Compatible Graphics Adapters</a><br>
+<a href='#hardware_rng'>11. Hardware Random Number Generation</a><br>
+<a href='#hardware_programming_reference'>12. Hardware Programming Reference</a><br>
+<a href='#frequently_asked_questions'>13. Frequently Asked Questions</a><br>
+<a href='#troubleshooting'>14. Troubleshooting</a><br>
 <a href='#appendix_a_ibm_vga_feature_connector'>Appendix A. IBM VGA Feature Connector</a><br>
 <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
 <a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
@@ -686,6 +687,95 @@ all packed into a single 8-bit ISA expansion card!
 <p>Using a 1600x1200 (or 1920x1200) display is ideal because that resolution is an integer multiple of popular 320x200, 320x240 and 800x600 resolutions.
 
 <p>Note that we do not recommend using the popular vintage Dell 2007FPB 1600x1200 display. While it has the preferable 1600x1200 resolution, that display disappointingly does not support StutterStop.
+
+</div><div class='page'>
+
+<a name='obs_video_capture'><h1>Capturing CRT Terminator output for YouTube or Twitch streaming via OBS</h1></a>
+
+<p>Common use cases for CRT Terminator might be to record video footage from an old DOS PC for archival, video upload or live streaming purposes.
+
+<p>Since CRT Terminator uses a separate video output path from the VGA, it is possible to simultaneously use a VGA display to view the video output while recording the digital video using a DVI-D video signal compatible USB/PCIe video capture device. E.g. one can play on a CRT at the same time while recording to a PC, without the need to use a separate video splitter.
+
+<p>Note however that some rare PCI VGA adapters have problems with handling the analog VGA palette output simultaneously while PCI palette snoop mode is enabled, so adapter specific oddities may occur.
+
+<p>We have tested a range of USB HDMI video capture devices for compatibility. Coarsely categorizing the results:
+<ul><li>The main observation is that Elgato HDMI video capture devices do not work at all. Avoid these devices.</li>
+<li>Cheap Amazon HDMI capture devices tend to work, but typically use Motion JPEG compression (MJPEG) in the recorded video, so video capture quality is not that great. Maximum recordable pixel clock speed (i.e. resolution * refresh rate) may be limited.</li>
+<li>The best video capture device we have found so far is this <a href='https://www.startech.com/en-fi/audio-video-products/usb3hdcap'>StarTech USB3HDCAP device</a>, although it records lossy 4:2:0 Chroma, its drivers are somewhere from Windows 7 era and StarTech is no longer developing it, it seems. Sometimes disconnecting the device from USB causes a blue screen on Windows. The available recording bandwidth is great, but not quite enough to record 1600x1200 @ 70 Hz. (1280x1000 @ 70 Hz seems to work, and so does 1440x1080 @ 60 Hz)</li>
+<li>One brand of video capture devices we have not been able to test, but are curious about, are the Magewell branded USB capture boxes. They are said to offer 4:4:4 Chroma recording support.</li>
+</ul>
+
+<p>An example video capture of Mode 13h content, i.e. 320x200 @ 70 Hz, from an open source game mod <i>Commander Keen in... "Goodbye, Galaxy!" Episode π: Foray in the Forest</i> recorded as 1280x1000 @ 70 Hz source from OBS, upscaled to 1600x1200 is available here:
+<ol><li><a href='https://www.youtube.com/watch?v=8o7cu9mYL10'>Uploaded to YouTube</a></li>
+<li><a href='https://oummg.com/dump/commander_keen_foray_in_the_forest_crt_terminator.mkv'>Direct .mkv download link</a> (file size: 306MB)</li>
+</ol>
+
+<p>This recording should losslessly contain all the original pixels from the original footage, modulo occassional lost video frame in the recording due to limitations of OBS.
+
+<p>The configuration that was used in OBS to acquire the above video recording is as follows:
+
+<h3>General Video Recording Settings</h3>
+
+<p>In OBS, in File->Settings menu, there are two tabs, <i>Output</i> and <i>Video</i> that affect video recording. First, the Output settings were configured as follows:
+
+<p><a href='obs_settings.png'><img src='obs_settings.png'></a>
+
+<a href='obs_video_record_settings.png'><img src='obs_video_record_settings.png' width=40%></a>
+<p> These settings are not particularly specific to CRT Terminator, or vintage DOS PC recording. Video Encoding format was changed to modern NVENC (H.265) from the older H.264. Recording Quality was set to <i>Indistinguishable Quality, Large File Size</i>.
+
+<p>The settings in the <i>Video</i> tab were configured as follows:
+
+<p> <a href='obs_settings_video.png'><img src='obs_settings_video.png' width=40%></a>
+
+<p>In particular, the video canvas size was set to 1600x1200. This is a good resolution for recordings that aim for lossless 4:3 aspect ratio video output. Another good video canvas size for viewing on 1080p displays would be to set 1440x1080. That size would correspond to 4:3 aspect ratioed 1080 lines content.
+
+<p>The FPS value was set to precisely match the video output refresh rate that CRT Terminator states to be outputting. In this instance, it was 70362/1000 or 70.362 Hz. To see the CRT Terminator video refresh rate, either toggle the Developer HUD with the DIP Switch 2.4 at the back of CRT Terminator, or see if the HDMI Video Capture device you are using has a statistics window that could record this.
+
+<p>Note that even if video refresh rate is set to precisely match the source content, this will not be a locked synchronization, and occassional frames can and will drop. It is a bit odd that OBS does not seem to support locking the recording refresh rate to the rate of an input video, so this is the closest approximation we found.
+
+<p>It should be noted that recording with "odd" refresh rates like this make sense only if viewed on a high refresh rate display. For example, viewing 70Hz video on a 60Hz display is not much different from viewing 60Hz recorded video in the first place. However, when viewing 70Hz video on a high refresh rate gaming display, e.g. a 144 Hz, 240 Hz, 360 Hz or higher, video playback frame stuttering mismatches are minimized.
+
+<p>If recording video for playback at YouTube or streaming to Twitch, it is probably better to record the standard 60 Hz rate in the OBS settings instead, and let OBS frameskip the recorded 70 Hz content.
+
+<h3>Video Capture Device Settings</h3>
+
+<p>The general video capture settings can be accessed via a Properties window:
+
+<p> <a href='obs_startech_settings1.png'><img src='obs_startech_settings1.png' width=25%></a>
+
+<p>Because the StarTech capture device does not have enough bandwidth for capturing 1600x1200 @ 70Hz, then as a compromise, MultiMode and StutterStop Level 3 were enabled and video output DIP switches 1.1-1.4 were set to 1440x1080. This resulted in CRT Terminator outputting a video of size 1280x1000 @ 70.362 Hz.
+
+<p> <a href='obs_startech_settings2.png'><img src='obs_startech_settings2.png' width=40%></a>
+<a href='obs_startech_settings3.png'><img src='obs_startech_settings3.png' width=40%></a>
+
+<p>None of the settings for the video capture device were changed, but were left to the defaults.
+
+<h3>Source Transform Settings</h3>
+
+<p>Finally, there are two important settings to adjust for recording pixel art content from DOS.
+
+<p>The first is the Source Transform setting:
+
+<p> <a href='obs_edit_transform.png'><img src='obs_edit_transform.png' width=40%></a>
+<a href='obs_transform_settings.png'><img src='obs_transform_settings.png' width=40%></a>
+
+<p>Here the Size parameter was set to match the 1280x1000 video input size, but the Bounding Box Size was set to match the 1600x1200 video output size.
+
+<p>These configurations ensure that OBS will stretch the source video over the 1600x1200 canvas.
+
+<h3>Scale Filtering Settings</h3>
+
+<p>Finally, to ensure that the video upscaling to 1600x1200 will take place with the best possible image quality, the Video Scale Filtering options were changed to <i>Area</i> mode. This implements surface-area upsampling, which provides great quality output that does not blur like bilinear filtering does.
+
+<p><a href='obs_scale_filtering.png'><img src='obs_scale_filtering.png' width=40%></a>
+
+<p>It is worth testing how the other settings here look like, subject to taste.
+
+<h3>Alternative Capture Strategies</h3>
+
+<p>If you have a capture device that supports lossless Chroma 4:4:4 recording, then another way to record great quality video should be to set CRT Terminator DIP 1.1-1.4 Output Settings to <b><i>Passthrough</i></b> mode. In this mode the source pixels are sent to the video card almost unprocessed (except for border removal and clock doubling passes). Passthrough mode can help if the video capture device has maximum bandwidth limitations, although if the capture device employs a lossy compression mode, like Chroma 4:2:0 or MJPEG, then it is expected that first upscaling the video in CRT Terminator will yield better results. Feel free to experiment.
+
+<p>If the capture device exhibits no bandwidth limitations, then upscaling 320x200 directly to 1600x1200 in CRT Terminator is recommended, as it can simplify the configuration in OBS or another video capture software. So far however, we have unfortunately not met a capture device that could record 1600x1200 @ 70 Hz.
 
 </div><div class='page'>
 
@@ -1599,6 +1689,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-11-24</b>: Added a section on HDMI video capture.</li>
 <li><b>2024-11-21</b>: Added link to PALTSR.EXE utility. Added a new section for pixel perfect 320x200 upscaling.</li>
 <li><b>2024-10-29</b>: Improved printability of the manual by using CSS media queries.</li>
 <li><b>2024-08-29</b>: Added section on hardware RNG support.</li>
