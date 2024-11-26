@@ -87,7 +87,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-11-24</h3>
+<h3 class='center'>2024-11-26</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -109,8 +109,9 @@ td {
 <a href='#supported_input_video_modes'>6. Supported Input Video Modes</a><br>
 <a href='#recommended_display'>7. Recommended Displays</a><br>
 <a href='#video_upscaling'>8. Video Upscaling with CRT Terminator</a><br>
-<span class='indent'><a href='#pixel_perfect_upscaling'>8.1. Pixel Perfect Upscaling DOS 320x200 games</a><br></span>
-<a href='#obs_video_capture'>9. Capturing CRT Terminator output for YouTube or Twitch streaming via OBS</a><br>
+<span class='indent'><a href='#pixel_perfect_upscaling'>8.1. Pixel Perfect Upscaling DOS 320x200 games</a></span><br>
+<a href='#obs_video_capture'>9. Capturing CRT Terminator output for YouTube or Twitch streaming</a><br>
+<span class='indent'><a href='#virtualdub_video_capture'>9.1. Lossless and pixel perfect 70 Hz video capture using VirtualDub</a></span><br>
 <a href='#compatible_graphics_adapters'>10. Compatible Graphics Adapters</a><br>
 <a href='#hardware_rng'>11. Hardware Random Number Generation</a><br>
 <a href='#hardware_programming_reference'>12. Hardware Programming Reference</a><br>
@@ -694,12 +695,12 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>Common use cases for CRT Terminator might be to record video footage from an old DOS PC for archival, video upload or live streaming purposes.
 
-<p>Since CRT Terminator uses a separate video output path from the VGA, it is possible to simultaneously use a VGA display to view the video output while recording the digital video using a DVI-D video signal compatible USB/PCIe video capture device. E.g. one can play on a CRT at the same time while recording to a PC, without the need to use a separate video splitter.
+<p>Since CRT Terminator uses a separate video output path from VGA, it is possible to simultaneously use a VGA display to view the analog video output while recording the digital video using a DVI-D video signal compatible USB/PCIe video capture device. E.g. one can play on a CRT at the same time while recording to a PC, without the need to use a separate video splitter.
 
 <p>Note however that some rare PCI VGA adapters have problems with handling the analog VGA palette output simultaneously while PCI palette snoop mode is enabled, so adapter specific oddities may occur.
 
 <p>We have tested a range of USB HDMI video capture devices for compatibility. Coarsely categorizing the results:
-<ul><li>The main observation is that Elgato HDMI video capture devices do not work at all. Avoid these devices.</li>
+<ul><li>The main observation is that Elgato HDMI video capture devices do not work at all. Avoid these devices. (The suspicion is that Elgato skimped on adding DVI-D video signal recording support)</li>
 <li>Cheap Amazon HDMI capture devices tend to work, but typically use Motion JPEG compression (MJPEG) in the recorded video, so video capture quality is not that great. Maximum recordable pixel clock speed (i.e. resolution * refresh rate) may be limited.</li>
 <li>The best video capture device we have found so far is this <a href='https://www.startech.com/en-fi/audio-video-products/usb3hdcap'>StarTech USB3HDCAP device</a>, although it records lossy 4:2:0 Chroma, its drivers are somewhere from Windows 7 era and StarTech is no longer developing it, it seems. Sometimes disconnecting the device from USB causes a blue screen on Windows. The available recording bandwidth is great, but not quite enough to record 1600x1200 @ 70 Hz. (1280x1000 @ 70 Hz seems to work, and so does 1440x1080 @ 60 Hz)</li>
 <li>One brand of video capture devices we have not been able to test, but are curious about, are the Magewell branded USB capture boxes. They are said to offer 4:4:4 Chroma recording support.</li>
@@ -710,9 +711,14 @@ all packed into a single 8-bit ISA expansion card!
 <li><a href='https://oummg.com/dump/commander_keen_foray_in_the_forest_crt_terminator.mkv'>Direct .mkv download link</a> (file size: 306MB)</li>
 </ol>
 
-<p>This recording should losslessly contain all the original pixels from the original footage, modulo occassional lost video frame in the recording due to limitations of OBS.
+<p>The Foray in the Forest mod contains patches to update Keen 4 to run at 70 fps, instead of the original 35fps that Keen 4-6 games were developed to run at. See <a href='https://github.com/juj/KEEN70HZ'>juj/KEEN70HZ</a> for more details about Keen refresh rate.
 
-<p>The configuration that was used in OBS to acquire the above video recording is as follows:
+<p>However, due to some OBS software bugs, the video it records from USB3HDCAP is not perfect. There are two observed limitations:
+<ol><li>For some reason, OBS acquires video from USB3HDCAP by frame skipping every second frame. That is, if the input video is 60 or 70 Hz, then OBS only records 30 or 35 Hz respectively. This may be due to some kind of confusion between interlaced and progressive video modes. CRT Terminator always output progressive video, but OBS still only captures every second frame. Originally I thought this to be a USB3HDCAP hardware limitation, but using other software (see the next section about VirtualDub), this limitation does not occur. USB3HDCAP can record both 60 and 70 Hz, but for some reason OBS (tested v30.1.2) always skips every other input video frame from USB3HDCAP.</li>
+<li>Additionally, OBS generates some amount of blurring in the video it acquires from USB3HDCAP. Originally I attributed this to the 4:2:0 lossy Chroma from USB3HDCAP, but in addition, OBS adds some kind of blurring or filtering on top of that (which again VirtualDub capture avoided). This blurring is present already in the OBS preview window, so is not a compression artifact.</li>
+</ol>
+
+<p>Nevertheless, it is possible to use OBS to get decent video captures from USB3HDCAP recording CRT Terminator. The configuration that was used in OBS to acquire the above video recording is as follows:
 
 <h3>General Video Recording Settings</h3>
 
@@ -771,11 +777,108 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>It is worth testing how the other settings here look like, subject to taste.
 
-<h3>Alternative Capture Strategies</h3>
+<a name='virtualdub_video_capture'><h2>Lossless and pixel perfect 70 Hz video capture using VirtualDub</h2></a>
 
-<p>If you have a capture device that supports lossless Chroma 4:4:4 recording, then another way to record great quality video should be to set CRT Terminator DIP 1.1-1.4 Output Settings to <b><i>Passthrough</i></b> mode. In this mode the source pixels are sent to the video card almost unprocessed (except for border removal and clock doubling passes). Passthrough mode can help if the video capture device has maximum bandwidth limitations, although if the capture device employs a lossy compression mode, like Chroma 4:2:0 or MJPEG, then it is expected that first upscaling the video in CRT Terminator will yield better results. Feel free to experiment.
+<p>Given the observed bugs in popular OBS software that cause it to drop video frames and prevent it from capturing pixel perfect video from USB3HDCAP, it makes sense to compare against other video capture software.
 
-<p>If the capture device exhibits no bandwidth limitations, then upscaling 320x200 directly to 1600x1200 in CRT Terminator is recommended, as it can simplify the configuration in OBS or another video capture software. So far however, we have unfortunately not met a capture device that could record 1600x1200 @ 70 Hz.
+<p>One such software is the old "trusted" <a href='https://www.virtualdub.org/download.html'>VirtualDub</a>, which was a great power tool in the 2000s. It is no longer actively developed (last version is from 2014), but it does support somewhat "raw" video capture from any Windows driver compatible acquisition device. To a great surprise, whereas OBS failed due to a number of bugs, using VirtualDub enables acquiring practically lossless(*) and pixel perfect video footage from any DOS program.
+
+<p>(* subject to capture frame rate note discussed below)
+
+<p>VirtualDub does not support "modern" live compression of video, so the footage it captures gets enormous quickly. However, given a large enough hard drive and the <a href='https://www.ffmpeg.org/'>FFmpeg</a> command line utility, one can use this toolset as a proof of concept at least to show that making lossless pixel and frame rate perfect video captures of DOS content with CRT Terminator is possible.
+
+<p>To illustrate, here are two recordings made with a Cyrix 486 PC -> Hercules Stingray Pro (ARK1000PV) -> CRT Terminator -> USB3HDCAP -> VirtualDub 1.10.4 (x64) -> FFmpeg workflow.
+
+<h3>Pinball Fantasies</h3>
+
+<p>One of the legendary pinball games on DOS, <i>Pinball Fantasies</i> implements a custom nonstandard video resolution. CRT Terminator recognizes this video mode, and normalizes it to a 400x350 frame to preserve aspect ratio as close as possible and retaining pixel perfect upscaling. To avoid USB3HDCAP lossy 4:2:0 Chroma, video was upscaled to 800x700 using CRT Terminator's MultiMode feature. StutterStop was enabled to Level 3. Refresh rate for the game on the test system was 71.200 Hz.
+
+<p><a href='vdub_pinball_fantasies.png'><img src='vdub_pinball_fantasies.png' width=40%></a>
+
+<p>Here are the settings used to produce the VirtualDub capture.
+
+<p><b>1.</b> Set Video -> Preview to Progressive - both fields.
+
+<p><a href='vdub_preview_progressive.png'><img src='vdub_preview_progressive.png' width=40%></a>
+
+<p><b>2.</b> Set Video -> Capture Pin... settings for RGB24 color space, match the output size to "800x700 default" (it seems that in VirtualDub the default is 640x480, so one needs to change this to the correct resolution that has the text default), and then as a quirk, set the Frame Rate to the specific frame rate of the video input. In this case 71.200.
+
+<p><b>Note:</b> In this dialog, after typing in the frame rate, do *not* click on Apply or change any other settings, or the input video rate will revert back to 60. The compression/quality settings should not matter here since there is no actual compression done. Click directly on OK.
+
+<p><a href='vdub_video_capture_pin.png'><img src='vdub_video_capture_pin.png' width=30%></a>
+<a href='vdub_video_capture_pin_settings.png'><img src='vdub_video_capture_pin_settings.png' width=30%></a>
+
+<p><b>3.</b> Set Audio -> capture device to Line In, and feed game audio through PC motherboard's Line In input. CRT Terminator does not provide audio.
+
+<p><a href='vdub_audio_capture.png'><img src='vdub_audio_capture.png' width=30%></a>
+
+<p><b>4.</b> Go to Capture -> Settings... and enter the video frame rate (in this case 71.200) again. Do not click on the "round to nearest millisecond" button.
+
+<p><a href='vdub_capture_settings.png'><img src='vdub_capture_settings.png' width=30%></a>
+<a href='vdub_capture_settings2.png'><img src='vdub_capture_settings2.png' width=30%></a>
+
+<p><b>Note:</b> For some reason, one needs to specify the recording frame rate to both VirtualDub and OBS. There is no possibility to say "capture locked to the input video stream frame rate" as far as we can tell. So when one specifies e.g. a capture refresh rate of 71.200 Hz to VirtualDub or OBS, even when the input video is a matching 71.200 Hz, there can and will still be some occassional frames dropped (even if these drops will come at a rate less than 1/1000th Hz). This is because realistically, video refresh rate is not an integer, like 60 (no matter what OBS would like users to believe), and it is not even a simple fraction, like 71.200 or 71200/1000, but it can practically be seen as an irrational value with infinite number of digits. A value like 71.200 Hz is also just a rounded approximation of a physical process.
+
+<p>The proper software implementation for a video capture software would be to have a "capture locked to input frame rate" option. Neither OBS or VirtualDub have this (or we haven't understood a way to enable it), but they both only support asking the user to specify a refresh rate number to sample the input video at. Maybe a better software capable of losslessly locking to input video frame rate exists still?
+
+<p>Finally, the raw uncompressed .avi video from VirtualDub was encoded as H.265 via the following FFmpeg command line:
+
+<pre>ffmpeg -i pinball_fantasies.avi -c:v libx265 -vtag hvc1 pinball_fantasies_800x700_71.200hz.mp4</pre>
+
+<a href='vdub_fantasies_video_codec.png'><img src='vdub_fantasies_video_codec.png' width=50%></a>
+
+<p>The final H.265 recorded output can be downloaded here: <a href='https://oummg.com/dump/pinball_fantasies_800x700_71.200hz.mp4'>pinball_fantasies_800x700_71.200hz.mp4</a> (16.0MB). Web browsers for some reason say that the file is corrupt, but downloading it playing locally with VLC Player worked properly. The video codec information is shown above.
+
+<p><a href='youtube_pinball_fantasies.png'><img src='youtube_pinball_fantasies.png' width=50%></a>
+
+<p>A YouTube upload of this video is available here: <a href='https://youtu.be/erdPV5PvmcU'>DOS VGA Pinball Fantasies lossless upload test</a>.
+
+<p>It looks like YouTube was not at all kind to the video, but resampled it from the 800x700 @ 70.200 Hz format down to 548x480 @ 30 Hz, crushing both the resolution and the refresh rate. When dealing with oddball DOS resolutions like this, the takeaway here is it will definitely be better to upscale the video more with CRT Terminator before uploading to YouTube.
+
+<h3>Foray in the Forest</h3>
+
+<p>An open source total conversion mod <i>Commander Keen in... "Goodbye, Galaxy!" Episode π: Foray in the Forest</i> is a fan sequel (or prequel?) to Commander Keen 4-6 series. On the DOS test system, it natively runs at 320x200 @ 70.362 Hz.
+
+<p>The VGA adapter implements line doubling (i.e. 320x200 -> 320x400) and CRT Terminator was configured in <b>Passthrough</b> mode, where it provides clock doubling to normalize the aspect ratio (i.e. 320x400 -> 640x400). So USB3HDCAP and VirtualDub see an input video of 640x400 @ 70.362 Hz.
+
+<p><a href='vdub_fitf.png'><img src='vdub_fitf.png' width=40%></a>
+
+<p>To convert the huge raw uncompressed .avi footage from VirtualDub to much smaller modern compressed formats (H.264, H.265 or VP9 are the current choices), FFmpeg was used, with the following two pass approach:
+
+<p><b>1. </b>First pass downsampled the video from 640x400 down to 320x200 using nearest neighbor filtering. The idea was to remove the redundant information from the video first. Output codec was set to be raw video as well, to not lose any video signal in this temporary pass.
+
+<pre>ffmpeg -i virtualdub_capture.avi -vf scale=320x200 -sws_flags neighbor -pix_fmt bgr24 -vcodec rawvideo intermediate_320x200.avi</pre>
+
+<p><b>2. </b>The second pass upsampled this 320x200 video up to 1600x1200 and encoded that as H.265. Nearest neighbor upsampling was again used to keep the pixelated look.
+
+<pre>ffmpeg -i intermediate_320x200.avi -vf scale=1600x1200 -sws_flags neighbor -c:v libx265 -vtag hvc1 foray_in_the_forest_1600x1200_70.362hz.mp4</pre>
+
+<p>This two pass resampling strategy was used to avoid an aliasing effect that upsampling the 640x400 input video directly to 1600x1200 might cause (as 1600 is not evenly divisible by 640).
+
+<p>The final H.265 recorded output can be downloaded here: <a href='https://oummg.com/dump/foray_in_the_forest_1600x1200_70.362hz.mp4'>foray_in_the_forest_1600x1200_70.362hz.mp4</a> (109 MB). Web browsers for some reason say that the file is corrupt, but downloading it and playing locally with VLC Player works properly.
+
+<p><a href='vdub_fitf_video_codec.png'><img src='vdub_fitf_video_codec.png' width=50%></a>
+
+<p>Observing the media parameters in VLC Player verifies the 1600x1200 @ 70.362 Hz rate that closely matches that of the DOS VGA output.
+
+<p><a href='fitf_youtube.png'><img src='fitf_youtube.png' width=50%></a>
+<p>The above video was uploaded to YouTube to observe how it behaves with 1600x1200 @ 70.362 Hz H.265 content. The YouTube video upload be found here: <a href='https://www.youtube.com/watch?v=cynlFTtbI20'>Foray in the Forest lossless DOS 70Hz video capture</a>.
+
+<p>The takeaways are as follows:
+<ul><li>YouTube preserved the 1600x1200 resolution (nice!),</li>
+<li>but re-encoded the video from H.265 over to VP9,</li>
+<li>and while re-encoding, it resampled the video down to 60Hz from the original 70.362 Hz.</li>
+</ul>
+
+<p>This makes one wonder whether there might exist a set of FFmpeg conversion flags that one could use to generate a video file that would not incur YouTube re-encoding. YouTube has a <a href='https://support.google.com/youtube/answer/1722171'>Recommended encoding settings</a> page for video uploads, but it seems to be outdated, as it recommends H.264 instead of VP9.
+
+<h3>Differences in Capture Strategies</h3>
+
+<p>If you have a capture setup that resembles VirtualDub (i.e. capturing lossless, maybe uncompressed, capture card supports lossless Chroma 4:4:4), it is good to set CRT Terminator DIP 1.1-1.4 Output Settings to <b><i>Passthrough</i></b> mode to minimize the number of redundantly upscaled pixels coming in to the capture card. In this mode the source pixels are sent to the video card almost unprocessed (except for border removal and clock doubling passes). Passthrough mode can also help if the video capture device or cable has maximum bandwidth limitations.
+
+<p>On the other hand, if the capture device employs a lossy compression mode, like Chroma 4:2:0 or MJPEG, or if the capture software has problems with processing data without quality loss (like OBS), then it is expected that first upscaling the video in CRT Terminator will yield better results.
+
+<p>In this case, as long as there are no observed bandwidth limitations for the capture device, then upscaling 320x200 directly to 1600x1200 in CRT Terminator is recommended, as it can simplify the configuration in OBS or another video capture software. So far however, we have unfortunately not met a capture device that could record 1600x1200 @ 70 Hz.
 
 </div><div class='page'>
 
@@ -1689,6 +1792,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-11-26</b>: Added a section on lossless/pixel perfect VirtualDub HDMI video capture with examples.</li>
 <li><b>2024-11-24</b>: Added a section on HDMI video capture.</li>
 <li><b>2024-11-21</b>: Added link to PALTSR.EXE utility. Added a new section for pixel perfect 320x200 upscaling.</li>
 <li><b>2024-10-29</b>: Improved printability of the manual by using CSS media queries.</li>
