@@ -36,14 +36,23 @@ static void update_palette()
 	// http://www.osdever.net/FreeVGA/vga/colorreg.htm#3C7
 	unsigned char old_dac_write_index = inp(0x3C8);
 
-	// Safety heuristic: if the currently active VGA palette write index is
-	// different from the previous interrupt, skip updating the palette this
-	// time, because maybe we entered this interrupt right when the game code
-	// was in the middle of doing a palette upload, so we cannot disturb it.
-	if (old_dac_write_index != prev_vga_pal_index) {
-		prev_vga_pal_index = old_dac_write_index;
-		return;
+	// Detect if we might have gotten unlucky and the user code
+	// was just in the middle of updating VGA palette sub-colors,
+	// so it might be straddling a red, green or blue write.
+
+	outp(0x3C9, pal[old_dac_write_index].r);
+	int writing_index = 0;
+	if (inp(0x3C8) != old_dac_write_index) {
+		writing_index = 2; // we were writing blue
+		sound(440); // audio debugging
+	} else {
+		outp(0x3C9, pal[old_dac_write_index].g);
+		if (inp(0x3C8) != old_dac_write_index) {
+			writing_index = 1; // we were writing green
+			sound(880); // audio debugging
+		}
 	}
+
 	outp(0x3C7, 0); // Switch DAC to reading active VGA palette from index 0
 	for(int i = 0; i < 256; ++i) // Read all VGA colors
 	{
@@ -52,6 +61,9 @@ static void update_palette()
 		unsigned char b = inp(0x3C9);
 		// skip writing unchanged palette entries
 		if (pal[i].r == r && pal[i].g == g && pal[i].b == b) continue;
+		// skip mirroring a color index if we were just updating its
+		// color sub-component. (disabled: didn't have an observable effect)
+//		if (i == old_dac_write_index && writing_index) continue;
 		pal[i].r = r;
 		pal[i].g = g;
 		pal[i].b = b;
@@ -74,6 +86,16 @@ static void update_palette()
 	// (because if interrupt would occur in the middle of writing G or B
 	//  component, we cannot reset write index back to that color component)
 	outp(0x3C8, old_dac_write_index);
+
+	// If we were in the process of writing G or B, prefill red.
+	if (writing_index >= 1) outp(0x3C9, pal[old_dac_write_index].r);
+	// Or if in process of writing B, prefill green also.
+	if (writing_index >= 2) outp(0x3C9, pal[old_dac_write_index].g);
+	// audio debugging to hear how often this happens.
+	if (writing_index) {
+		delay(5);
+		nosound();
+	}
 }
 
 void interrupt timer_handler(...)
