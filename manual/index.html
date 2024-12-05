@@ -753,23 +753,20 @@ all packed into a single 8-bit ISA expansion card!
 <p>We have tested a range of USB HDMI video capture devices for compatibility. Coarsely categorizing the results:
 <ul><li>The main observation is that Elgato HDMI video capture devices do not work at all. Avoid these devices. (The suspicion is that Elgato skimped on adding DVI-D video signal recording support)</li>
 <li>Cheap Amazon HDMI capture devices tend to work, but typically use Motion JPEG compression (MJPEG) in the recorded video, so video capture quality is not that great. Maximum recordable pixel clock speed (i.e. resolution * refresh rate) may be limited.</li>
-<li>The best video capture device we have found so far is this <a href='https://www.startech.com/en-fi/audio-video-products/usb3hdcap'>StarTech USB3HDCAP device</a>, although it records lossy 4:2:0 Chroma, its drivers are somewhere from Windows 7 era and StarTech is no longer developing it, it seems. Sometimes disconnecting the device from USB causes a blue screen on Windows. The available recording bandwidth is great, but not quite enough to record 1600x1200 @ 70 Hz. (1280x1000 @ 70 Hz seems to work, and so does 1440x1080 @ 60 Hz)</li>
+<li>The best video capture device we have found so far is this <a href='https://www.startech.com/en-fi/audio-video-products/usb3hdcap'>StarTech USB3HDCAP device</a>, although it records lossy 4:2:0 Chroma, its drivers are somewhere from Windows 7 era and StarTech is no longer developing it, it seems. Sometimes disconnecting the device from USB or closing OBS causes a blue screen on Windows. The available recording bandwidth is great, enough to record all DOS video modes in Passthrough mode at 70 Hz, and other upscaled resolutions, such as 1600x1200 @ 60 Hz and 1440x1080 @ 70 Hz. Though there is not quite enough bandwidth to record 1600x1200 @ 70 Hz.
 <li>One brand of video capture devices we have not been able to test, but are curious about, are the Magewell branded USB capture boxes. They are said to offer 4:4:4 Chroma recording support.</li>
 </ul>
 
-<p>An example video capture of Mode 13h content, i.e. 320x200 @ 70 Hz, from an open source game mod <i>Commander Keen in... "Goodbye, Galaxy!" Episode π: Foray in the Forest</i> recorded as 1280x1000 @ 70 Hz source from OBS, upscaled to 1600x1200 is available here:
-<ol><li><a href='https://www.youtube.com/watch?v=8o7cu9mYL10'>Uploaded to YouTube</a></li>
-<li><a href='https://oummg.com/dump/commander_keen_foray_in_the_forest_crt_terminator.mkv'>Direct .mkv download link</a> (file size: 306MB)</li>
+<p>An example video capture of Mode 13h content, i.e. 320x200 @ 70 Hz, from an open source game mod <i>Commander Keen in... "Goodbye, Galaxy!" Episode π: Foray in the Forest</i> recorded in CRT Terminator Passthrough mode (640x400 @ 70.362 Hz) from OBS, upscaled to 1600x1200 is available here:
+
+<br><a href='foray_video_thumbnail.png'><img src='foray_video_thumbnail.png' width=55%></a><img src='commander_keen_foray_in_the_forest_crt_terminator_1600x1200_70.362hz.png'>
+<ol><li>Uploaded to <a href='https://youtu.be/FR_v5XbwRb8'>YouTube: Commander Keen - Foray in the Forest - 1600x1200 @ 70.362 Hz.</a></li>
+<li>Direct download link without YouTube recompression: <a href='https://oummg.com/manual/commander_keen_foray_in_the_forest_crt_terminator_1600x1200_70.362hz.mkv'>commander_keen_foray_in_the_forest_crt_terminator_1600x1200_70.362hz.mkv</a> (file size: 229MB)</li>
 </ol>
 
 <p>The Foray in the Forest mod contains patches to update Keen 4 to run at 70 fps, instead of the original 35fps that Keen 4-6 games were developed to run at. See <a href='https://github.com/juj/KEEN70HZ'>juj/KEEN70HZ</a> for more details about Keen refresh rate.
 
-<p>However, due to some OBS software bugs, the video it records from USB3HDCAP is not perfect. There are two observed limitations:
-<ol><li>For some reason, OBS acquires video from USB3HDCAP by frame skipping every second frame. That is, if the input video is 60 or 70 Hz, then OBS only records 30 or 35 Hz respectively. This may be due to some kind of confusion between interlaced and progressive video modes. CRT Terminator always output progressive video, but OBS still only captures every second frame. Originally I thought this to be a USB3HDCAP hardware limitation, but using other software (see the next section about VirtualDub), this limitation does not occur. USB3HDCAP can record both 60 and 70 Hz, but for some reason OBS (tested v30.1.2) always skips every other input video frame from USB3HDCAP.</li>
-<li>Additionally, OBS generates some amount of blurring in the video it acquires from USB3HDCAP. Originally I attributed this to the 4:2:0 lossy Chroma from USB3HDCAP, but in addition, OBS adds some kind of blurring or filtering on top of that (which again VirtualDub capture avoided). This blurring is present already in the OBS preview window, so is not a compression artifact.</li>
-</ol>
-
-<p>Nevertheless, it is possible to use OBS to get decent video captures from USB3HDCAP recording CRT Terminator. The configuration that was used in OBS to acquire the above video recording is as follows:
+<p>The next section outlines the OBS capture settings that were used to record this video.
 
 <h3>General Video Recording Settings</h3>
 
@@ -786,9 +783,9 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>In particular, the video canvas size was set to 1600x1200. This is a good resolution for recordings that aim for lossless 4:3 aspect ratio video output. Another good video canvas size for viewing on 1080p displays would be to set 1440x1080. That size would correspond to 4:3 aspect ratioed 1080 lines content.
 
-<p>The FPS value was set to precisely match the video output refresh rate that CRT Terminator states to be outputting. In this instance, it was 70362/1000 or 70.362 Hz. To see the CRT Terminator video refresh rate, either toggle the Developer HUD with the DIP Switch 2.4 at the back of CRT Terminator, or see if the HDMI Video Capture device you are using has a statistics window that could record this.
+<p>The FPS value was set to precisely match the video output refresh rate that CRT Terminator states to be outputting. In this instance, it was 70362/1000 or 70.362 Hz. To see the CRT Terminator video refresh rate, either toggle the Developer HUD with the DIP Switch 2.4 at the back of CRT Terminator, or see if the HDMI Video Capture device you are using has a statistics window that displays this value.
 
-<p>Note that even if video refresh rate is set to precisely match the source content, this will not be a locked synchronization, and occassional frames can and will drop. It is a bit odd that OBS does not seem to support locking the recording refresh rate to the rate of an input video, so this is the closest approximation we found.
+<p>Note that even if video refresh rate is set to precisely match the source content, this will not be a locked synchronization in OBS, and occassional frames can and will drop. It is a bit odd that OBS does not seem to support locking the recording refresh rate to the rate of an input video, so this is the closest approximation we found. However, the expected frame drop should occur less than 1/1000th of a Hz, i.e. approximately at most once every 1000 frames, in this case at most every 14.2 seconds.
 
 <p>It should be noted that recording with "odd" refresh rates like this make sense only if viewed on a high refresh rate display. For example, viewing 70Hz video on a 60Hz display is not much different from viewing 60Hz recorded video in the first place. However, when viewing 70Hz video on a high refresh rate gaming display, e.g. a 144 Hz, 240 Hz, 360 Hz or higher, video playback frame stuttering mismatches are minimized.
 
@@ -800,12 +797,14 @@ all packed into a single 8-bit ISA expansion card!
 
 <p> <a href='obs_startech_settings1.png'><img src='obs_startech_settings1.png' width=25%></a>
 
-<p>Because the StarTech capture device does not have enough bandwidth for capturing 1600x1200 @ 70Hz, then as a compromise, MultiMode and StutterStop Level 3 were enabled and video output DIP switches 1.1-1.4 were set to 1440x1080. This resulted in CRT Terminator outputting a video of size 1280x1000 @ 70.362 Hz.
+<p>The StarTech USB3HDCAP capture device is 4:2:0 Chroma lossy, but fortunately if the video capture is done at exactly 2x the resolution of the original video, the Chroma loss is hidden. Setting CRT Terminator to Passthrough mode will do exactly this for DOS 320x200 mode, i.e. the video will then output at 640x400 resolution, and at original refresh rate.
 
 <p> <a href='obs_startech_settings2.png'><img src='obs_startech_settings2.png' width=40%></a>
 <a href='obs_startech_settings3.png'><img src='obs_startech_settings3.png' width=40%></a>
 
-<p>None of the settings for the video capture device were changed, but were left to the defaults.
+<p>For USB3HDCAP specifically, it is important to set <b>Resolution/FPS Type</b> to <i>Custom</i>, and then set <b>Video Format</b> to <i>XRGB</i>, or otherwise OBS/USB3HDCAP will apply some kind of own "extra" Chroma loss to the output (we thought Chroma loss in uncompressed/raw video would be <a href='https://en.wikipedia.org/wiki/Idempotence'>idempotent</a>, but apparently the effect does cumulate somehow in OBS). Setting Video Format to XRGB was critical for USB3HDCAP to get a lossless pixel perfect recording.
+
+<p>Unfortunately OBS has a bit awkward UI quirk that setting Video Format to custom then requires that one manually also configures the recording Resolution. There is no way to just say "record whatever input resolution is coming in, but as XRGB." So this was set manually to 640x400. Getting the recording resolution exactly right is critical for pixel perfect captures.
 
 <h3>Source Transform Settings</h3>
 
@@ -816,13 +815,13 @@ all packed into a single 8-bit ISA expansion card!
 <p> <a href='obs_edit_transform.png'><img src='obs_edit_transform.png' width=40%></a>
 <a href='obs_transform_settings.png'><img src='obs_transform_settings.png' width=40%></a>
 
-<p>Here the Size parameter was set to match the 1280x1000 video input size, but the Bounding Box Size was set to match the 1600x1200 video output size.
+<p>Here the Size parameter was set to match the 640x400 video input size, but the Bounding Box Size was set to match the 1600x1200 video output size.
 
 <p>These configurations ensure that OBS will stretch the source video over the 1600x1200 canvas.
 
 <h3>Scale Filtering Settings</h3>
 
-<p>Finally, to ensure that the video upscaling to 1600x1200 will take place with the best possible image quality, the Video Scale Filtering options were changed to <i>Area</i> mode. This implements surface-area upsampling, which provides great quality output that does not blur like bilinear filtering does.
+<p>Finally, to ensure that the video upscaling to 1600x1200 will take place with the pixelated image look, the Video Scale Filtering options were changed to <i>Area</i> mode. This implements surface-area upsampling, which provides great quality output that does not blur like bilinear filtering does. In this specific case (upscaling 320x200 video that is upscaled to 640x400, and then upscaling that to 1600x1200) setting between <i>Area</i> and <i>Point</i> shouldn't matter, and should give identical result. Although in other upscaling scenarios, we prefer the Area mode.
 
 <p><a href='obs_scale_filtering.png'><img src='obs_scale_filtering.png' width=40%></a>
 
@@ -830,11 +829,9 @@ all packed into a single 8-bit ISA expansion card!
 
 <a name='virtualdub_video_capture'><h2>Lossless and pixel perfect 70 Hz video capture using VirtualDub</h2></a>
 
-<p>Given the observed bugs in popular OBS software that cause it to drop video frames and prevent it from capturing pixel perfect video from USB3HDCAP, it makes sense to compare against other video capture software.
+<p>If OBS is giving trouble, it makes sense to compare against other video capture software.
 
-<p>One such software is the old "trusted" <a href='https://www.virtualdub.org/download.html'>VirtualDub</a>, which was a great power tool in the 2000s. It is no longer actively developed (last version is from 2014), but it does support somewhat "raw" video capture from any Windows driver compatible acquisition device. To a great surprise, whereas OBS failed due to a number of bugs, using VirtualDub enables acquiring practically lossless(*) and pixel perfect video footage from any DOS program.
-
-<p>(* subject to capture frame rate note discussed below)
+<p>In this section, one such software, the old "trusted" <a href='https://www.virtualdub.org/download.html'>VirtualDub</a> is tested. This was a great power tool in the 2000s. It is no longer actively developed (last version is from 2014), but it does support somewhat "raw" video capture from any Windows driver compatible acquisition device.
 
 <p>VirtualDub does not support "modern" live compression of video, so the footage it captures gets enormous quickly. However, given a large enough hard drive and the <a href='https://www.ffmpeg.org/'>FFmpeg</a> command line utility, one can use this toolset as a proof of concept at least to show that making lossless pixel and frame rate perfect video captures of DOS content with CRT Terminator is possible.
 
@@ -868,7 +865,7 @@ all packed into a single 8-bit ISA expansion card!
 <p><a href='vdub_capture_settings.png'><img src='vdub_capture_settings.png' width=30%></a>
 <a href='vdub_capture_settings2.png'><img src='vdub_capture_settings2.png' width=30%></a>
 
-<p><b>Note:</b> For some reason, one needs to specify the recording frame rate to both VirtualDub and OBS. There is no possibility to say "capture locked to the input video stream frame rate" as far as we can tell. So when one specifies e.g. a capture refresh rate of 71.200 Hz to VirtualDub or OBS, even when the input video is a matching 71.200 Hz, there can and will still be some occassional frames dropped (even if these drops will come at a rate less than 1/1000th Hz). This is because realistically, video refresh rate is not an integer, like 60 (no matter what OBS would like users to believe), and it is not even a simple fraction, like 71.200 or 71200/1000, but it can practically be seen as an irrational value with infinite number of digits. A value like 71.200 Hz is also just a rounded approximation of a physical process.
+<p><b>Note:</b> For some reason, one needs to specify the recording frame rate to both VirtualDub and OBS. There is no possibility to say "capture locked to the input video stream frame rate" as far as we can tell. So when one specifies e.g. a capture refresh rate of 71.200 Hz to VirtualDub or OBS, even when the input video is a matching 71.200 Hz, there can and will still be some occassional frames dropped (even if these drops will come at a rate less than 1/1000th Hz). This is because realistically, video refresh rate is not an integer, like 60, and it is not even a simple fraction, like 71.200 or 71200/1000, but it can practically be seen as an irrational value with infinite number of digits. Any value like 71.200 Hz is only a rounded approximation of a physical process.
 
 <p>The proper software implementation for a video capture software would be to have a "capture locked to input frame rate" option. Neither OBS or VirtualDub have this (or we haven't understood a way to enable it), but they both only support asking the user to specify a refresh rate number to sample the input video at. Maybe a better software capable of losslessly locking to input video frame rate exists still?
 
@@ -927,7 +924,7 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>If you have a capture setup that resembles VirtualDub (i.e. capturing lossless, maybe uncompressed, capture card supports lossless Chroma 4:4:4), it is good to set CRT Terminator DIP 1.1-1.4 Output Settings to <b><i>Passthrough</i></b> mode to minimize the number of redundantly upscaled pixels coming in to the capture card. In this mode the source pixels are sent to the video card almost unprocessed (except for border removal and clock doubling passes). Passthrough mode can also help if the video capture device or cable has maximum bandwidth limitations.
 
-<p>On the other hand, if the capture device employs a lossy compression mode, like Chroma 4:2:0 or MJPEG, or if the capture software has problems with processing data without quality loss (like OBS), then it is expected that first upscaling the video in CRT Terminator will yield better results.
+<p>On the other hand, if the capture device employs a lossy compression mode, like Chroma 4:2:0 or MJPEG, or if the capture software has problems with processing data without quality loss, then it is expected that first upscaling the video in CRT Terminator will yield better results.
 
 <p>In this case, as long as there are no observed bandwidth limitations for the capture device, then upscaling 320x200 directly to 1600x1200 in CRT Terminator is recommended, as it can simplify the configuration in OBS or another video capture software. So far however, we have unfortunately not met a capture device that could record 1600x1200 @ 70 Hz.
 
@@ -1843,6 +1840,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-05</b>: Revised "Capturing CRT Terminator output for YouTube or Twitch streaming via OBS" section with clarifications to OBS behavior.</li>
 <li><b>2024-12-05</b>: Revised "Video Upscaling with CRT Terminator" section with a new comparison table, and uploaded new video capture screenshots that avoided a OBS misconfiguration with earlier screenshots.</li>
 <li><b>2024-11-26</b>: Added a section on lossless/pixel perfect VirtualDub HDMI video capture with examples.</li>
 <li><b>2024-11-24</b>: Added a section on HDMI video capture.</li>
