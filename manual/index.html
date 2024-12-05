@@ -503,7 +503,7 @@ all packed into a single 8-bit ISA expansion card!
 <p style='margin-bottom:5px'><b>PCI Standard VGA Palette Snoop:</b><br>
 
 <div style='padding-top:0px; padding-left:20px'>
-<p>If your VGA adapter is PCI-based, there exists a register bit in the PCI standard to enable PCI palette snoop on the VGA card. This register bit needs to be flipped once at system startup, e.g. in AUTOEXEC.BAT. The SNOOP.EXE configuration utility ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/SNOOP'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/SNOOP.zip'>Download ZIP</a>]) can do this.</p>
+<p>If your VGA adapter is PCI-based, there exists a register bit in the PCI standard to enable PCI palette snoop on the VGA card. This register bit needs to be flipped once at system startup, e.g. in AUTOEXEC.BAT. Both the SNOOP.EXE diagnostics utility ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/SNOOP'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/SNOOP.zip'>Download ZIP</a>]) and the CRTT.EXE CRT Terminator configuration utility ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/CRTT'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/CRTT.zip'>Download ZIP</a>])can do this.</p>
 
 <p>On one rare VGA card, the Diamond Speedstar 64 CL-GD5434, we observe a quirky VGA firmware bug that the card resets the PCI palette snoop setting on each video mode change. For this specific VGA adapter and others that possibly behave like this, we provide a TSR utility PCITSR.EXE ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/PCITSR'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/PCITSR.zip'>Download ZIP</a>]) that keeps the PCI palette snoop register latched to be force-enabled.</p>
 </div></p>
@@ -1840,6 +1840,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-05</b>: Added mention and links to CRTT.EXE CRT Terminator configuration utility.</li>
 <li><b>2024-12-05</b>: Fixed problem in CRT Terminator detection code.</li>
 <li><b>2024-12-05</b>: Revised "Capturing CRT Terminator output for YouTube or Twitch streaming via OBS" section with clarifications to OBS behavior.</li>
 <li><b>2024-12-05</b>: Revised "Video Upscaling with CRT Terminator" section with a new comparison table, and uploaded new video capture screenshots that avoided a OBS misconfiguration with earlier screenshots.</li>
