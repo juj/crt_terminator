@@ -651,7 +651,6 @@ all packed into a single 8-bit ISA expansion card!
   <thead>
     <tr>
       <th scope="col">Mode</th>
-      <th scope="col">Upscaling</th>
       <th scope="col">Visual End Result</th>
       <th scope="col">Uses Framebuffer?</th>
       <th scope="col">Added Latency</th>
@@ -663,8 +662,7 @@ all packed into a single 8-bit ISA expansion card!
   <tbody>
     <tr>
       <th scope="row">Passthrough</th>
-      <td>Bilinear Filtering</td>
-      <td>Smoothest</td>
+      <td>Like Bilinear Filtering - Smoothest</td>
       <td>No</td>
       <td>Microseconds</td>
       <td>Varies</td>
@@ -673,8 +671,7 @@ all packed into a single 8-bit ISA expansion card!
     </tr>
     <tr>
       <th scope="row">Fixed Resolution</th>
-      <td>Point Sampling</td>
-      <td>Crispest</td>
+      <td>Point Sampling - Crispest</td>
       <td>Yes</td>
       <td>1-2 frames</td>
       <td>Fixed if StutterStop is disabled</td>
@@ -683,8 +680,7 @@ all packed into a single 8-bit ISA expansion card!
     </tr>
     <tr>
       <th scope="row">MultiMode</th>
-      <td>Surface Area upsampling</td>
-      <td>Balanced</td>
+      <td>Like Surface Area upsampling - Balanced</td>
       <td>Yes</td>
       <td>1-2 frames</td>
       <td>Varies</td>
