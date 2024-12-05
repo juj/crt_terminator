@@ -87,7 +87,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-11-26</h3>
+<h3 class='center'>2024-12-05</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -610,7 +610,7 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>This section describes the video upscaling strategy employed by CRT Terminator.</p>
 
-<p>First note that CRT Terminator supports a <b>Passthrough mode</b> for use cases where upscaling is not desired. In Passthrough mode, minimal on-the-fly video normalization is performed without the use of a framebuffer (i.e. no added latency), to generate a video signal that many modern displays will hopefully be able to synchronze to.</p>
+<p>First note that CRT Terminator supports a <b>Passthrough mode</b> for use cases where upscaling is not desired. In Passthrough mode, minimal on-the-fly video normalization is performed without the use of a framebuffer (i.e. no added latency), to generate a video signal that many modern displays will hopefully be able to synchronize to.</p>
 
 <p>However, Passthrough mode may have some drawbacks:
 <ul>
@@ -642,14 +642,63 @@ all packed into a single 8-bit ISA expansion card!
 
 <p>Click on the above thumbnails to pixel peep into the full images in 100% size.</p>
 
-<p>When the effects of CRT Terminator video upsampling and flat panel display upsampling are combined, the different CRT Terminator operation modes produce different final results:</p>
-<ul>
-<li><b>Passthrough</b>: Bilinear filtering</li>
-<li><b>Fixed Resolution</b>: Point sampling</li>
-<li><b>MultiMode</b>: Surface Area upsampling</li>
-</ul>
+<p>When the effects of CRT Terminator video upsampling and flat panel display upsampling are combined, the different CRT Terminator operation modes produce different final results. The following table compares the pros and cons of the different modes:</p>
+
+<table>
+  <caption>
+    Comparison of different CRT Terminator video upscaling modes.
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Mode</th>
+      <th scope="col">Upscaling</th>
+      <th scope="col">Visual End Result</th>
+      <th scope="col">Uses Framebuffer?</th>
+      <th scope="col">Added Latency</th>
+      <th scope="col">Output Video Mode?</th>
+      <th scope="col">Output Aspect Ratio</th>
+      <th scope="col">LCD Compatibility</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">Passthrough</th>
+      <td>Bilinear Filtering</td>
+      <td>Smoothest</td>
+      <td>No</td>
+      <td>Microseconds</td>
+      <td>Varies</td>
+      <td>Varies. Use 4:3 mode on LCD.</td>
+      <td>Nonstandard</td>
+    </tr>
+    <tr>
+      <th scope="row">Fixed Resolution</th>
+      <td>Point Sampling</td>
+      <td>Crispest</td>
+      <td>Yes</td>
+      <td>1-2 frames</td>
+      <td>Fixed if StutterStop is disabled</td>
+      <td>Fixed 4:3 or 16:9.</td>
+      <td>Standard DMT or CVT</td>
+    </tr>
+    <tr>
+      <th scope="row">MultiMode</th>
+      <td>Surface Area upsampling</td>
+      <td>Balanced</td>
+      <td>Yes</td>
+      <td>1-2 frames</td>
+      <td>Varies</td>
+      <td>Varies. Use 4:3 mode on LCD.</td>
+      <td>Nonstandard</td>
+    </tr>
+  </tbody>
+</table>
 
 <p>In general we recommend using MultiMode for best picture quality, and falling back to other modes for compatibility, subject to taste.</p>
+
+<p>It is good to note that in the modes where input resolution changes trigger an output resolution change (Passthrough, MultiMode, and Fixed Resolution with StutterStop enabled), some LCD displays may take a couple of seconds to sync to the changed video mode. So, as an example, when playing Sierra's Black Cauldron or King's Quest, where switching between inventory and game views incur a video mode change, it may be better to use Fixed Resolution mode with StutterStop disabled, to avoid repeated slow video re-syncs. Some video capture boxes or recording software (such as OBS) may also have trouble with video frame rate changing during recording.
+
+<p>In video modes that use a framebuffer to upscale, single-buffering (vsync disabled, ~1 frame of latency) vs triple-buffering (vsync enabled, ~2 frames of latency) can be controlled in software with CRT Terminator configuration utility.
 
 <a name='pixel_perfect_upscaling'><h2>Pixel Perfect Upscaling DOS 320x200 games</h2></a>
 
@@ -659,9 +708,13 @@ all packed into a single 8-bit ISA expansion card!
 <a href='320x200_upscaled_to_1440x1080_fixed_resolution.png'><img src='320x200_upscaled_to_1440x1080_fixed_resolution.png' style='width: 100%'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>Fixed Resolution</b> mode.
 </td><td>
 <a href='320x200_upscaled_to_1440x1080_multimode.png'><img src='320x200_upscaled_to_1440x1080_multimode.png' style='width: 100%'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>MultiMode</b> scaling. (CRT Terminator will upscale to 1280x1000 for the LCD display to upscale to 1440x1080 in 4:3 mode)
-</td><td>
-<a href='320x220_upscaled_to_1600x1200.png'><img src='320x220_upscaled_to_1600x1200.png' style='width: 100%'></a><br>On a 1600x1200 or a 1920x1200 display, upscale to 1600x1200 (using either Fixed Resolution or MultiMode operation)
-</td></tr></table>
+</td></tr><td>
+<a href='320x200_upscaled_to_1600x1200.png'><img src='320x200_upscaled_to_1600x1200.png' style='width: 100%'></a><br>On a 1600x1200 or a 1920x1200 display, upscale to 1600x1200 (using either Fixed Resolution or MultiMode operation). Lossless and pixel perfect on real display, video capture suffers from lossy 4:2:0 Chroma.
+</td><td><a href='320x200_passthrough_upscaled_to_1600x1200.png'><img src='320x200_passthrough_upscaled_to_1600x1200.png' style='width: 100%'></a><br>320x200 captured as Passthrough and upscaled to 1600x1200 in OBS. Lossless and pixel perfect.
+</td></tr>
+
+
+</table>
 
 <br>Click on the individual images to load them up in full view.
 
@@ -671,19 +724,21 @@ all packed into a single 8-bit ISA expansion card!
 <a href='320x200_upscaled_to_1440x1080_fixed_resolution_closeup.png'><img src='320x200_upscaled_to_1440x1080_fixed_resolution_closeup.png' style='width: 414px'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>Fixed Resolution</b> mode.
 </td><td>
 <a href='320x200_upscaled_to_1440x1080_multimode_closeup.png'><img src='320x200_upscaled_to_1440x1080_multimode_closeup.png' style='width: 414px'></a><br>On a 1920x1080 display, upscale to 1440x1080 using <b>MultiMode</b> scaling.
+</td></tr><tr><td>
+<a href='320x200_upscaled_to_1600x1200_closeup.png'><img src='320x200_upscaled_to_1600x1200_closeup.png' style='width: 460px'></a><br>On a 1600x1200 or a 1920x1200 display, upscale to 1600x1200 (using either Fixed Resolution or MultiMode operation will yield the same result in this case) Lossless and pixel perfect on real display, video capture suffers from lossy 4:2:0 Chroma.
 </td><td>
-<a href='320x220_upscaled_to_1600x1200_closeup.png'><img src='320x220_upscaled_to_1600x1200_closeup.png' style='width: 460px'></a><br>On a 1600x1200 or a 1920x1200 display, upscale to 1600x1200 (using either Fixed Resolution or MultiMode operation will yield the same result in this case)
+<a href='320x200_passthrough_upscaled_to_1600x1200_closeup.png'><img src='320x200_passthrough_upscaled_to_1600x1200_closeup.png' style='width: 460px'></a><br>320x200 captured as Passthrough and upscaled to 1600x1200 in OBS. Lossless and pixel perfect.
 </td></tr></table>
 
-<p>Note that due to use of a <a href='https://en.wikipedia.org/wiki/Chroma_subsampling'>lossy 4:2:0 Chroma</a> StarTech video capture device, there is unfortunately a bit of chroma bleed on adjacent pixels, that is not present when viewed on a real LCD display.
+<p>Note that due to use of a <a href='https://en.wikipedia.org/wiki/Chroma_subsampling'>lossy 4:2:0 Chroma</a> StarTech video capture device, there is unfortunately a bit of chroma bleed on adjacent pixels in all of the above screenshots. That artifact is not present when viewed on a real LCD display. The image in bottom right shows how to use Passthrough mode to avoid lossy Chroma from degrading visual quality.
 
-<p>The first example (left), uses Fixed Resolution upscaling to upsample the video when viewed on a 1920x1080 display. This produces the sharpest output when the output video size (1440x1080) is not an exact integer multiple of the input resolution (320x200). There will however be some amount of aliasing visible in games that display two-color dither/raster patterns.
+<p>The first example (top left), uses Fixed Resolution upscaling to upsample the video when viewed on a 1920x1080 display. This produces the sharpest output when the output video size (1440x1080) is not an exact integer multiple of the input resolution (320x200). There will however be some amount of aliasing visible in games that display two-color dither/raster patterns.
 
-<p>The second example (middle), uses MultiMode upscaling to output the video to 1280x1000, for the LCD display to view in 4:3 1440x1080 mode. This is a great way to balance upscaling 320x200 video on Full HD displays. Note how individual pixels in two-color raster patterns appear evenly sized. (The zoomed up image shows up a bit more blurry than in reality due to 4:2:0 lossy Chroma video capture)
+<p>The second example (top right), uses MultiMode upscaling to output the video to 1280x1000, for the LCD display to view in 4:3 1440x1080 mode. This is a great way to balance upscaling 320x200 video on Full HD displays. Note how individual pixels in two-color raster patterns appear evenly sized. (The zoomed up image shows up a bit more blurry than in reality due to 4:2:0 lossy Chroma video capture)
 
 <p>Which one to use depends on taste: Fixed Resolution provides sharpness, whereas MultiMode provides image quality.
 
-<p>For ideal no-compromises upscaling of 320x200 content, the third example (right) shows how CRT Terminator upscales 320x200 input video to 1600x1200 when viewed on a 1200p capable output display. This upscaling is pixel perfect with zero smoothing/blurring. (any smoothing in the above screenshot is due to 4:2:0 lossy Chroma video capture)
+<p>For ideal no-compromises upscaling of 320x200 content, the third example (bottom left) shows how CRT Terminator upscales 320x200 input video to 1600x1200 when viewed on a 1200p capable output display. This upscaling is pixel perfect with zero smoothing/blurring. (any smoothing in the screenshot is due to 4:2:0 lossy Chroma video capture)
 
 <p>Using a 1600x1200 (or 1920x1200) display is ideal because that resolution is an integer multiple of popular 320x200, 320x240 and 800x600 resolutions.
 
@@ -1792,6 +1847,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-05</b>: Revised "Video Upscaling with CRT Terminator" section with a new comparison table, and uploaded new video capture screenshots that avoided a OBS misconfiguration with earlier screenshots.</li>
 <li><b>2024-11-26</b>: Added a section on lossless/pixel perfect VirtualDub HDMI video capture with examples.</li>
 <li><b>2024-11-24</b>: Added a section on HDMI video capture.</li>
 <li><b>2024-11-21</b>: Added link to PALTSR.EXE utility. Added a new section for pixel perfect 320x200 upscaling.</li>
