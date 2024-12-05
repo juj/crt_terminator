@@ -1561,7 +1561,6 @@ int crtt_detect()
     for(int i = 4; i--;) // one of 4 consecutive reads must be a 'C'
     {
       char id = inportb(CRTT_ID_PORT);
-      if (id != 'R' && id != 'T') break; // On anything else than C, R or T, not CRT Terminator.
       if (id == 'C')
       {
         if (inportb(CRTT_ID_PORT) != 'R') break; // and 'RTT' must follow
@@ -1570,6 +1569,7 @@ int crtt_detect()
         crtt_found = 1; // Found CRT Terminator
         break;
       }
+      if (id != 'R' && id != 'T') break; // On anything else than C, R or T, not CRT Terminator.
     }
     enable();
   }
@@ -1840,6 +1840,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-05</b>: Fixed problem in CRT Terminator detection code.</li>
 <li><b>2024-12-05</b>: Revised "Capturing CRT Terminator output for YouTube or Twitch streaming via OBS" section with clarifications to OBS behavior.</li>
 <li><b>2024-12-05</b>: Revised "Video Upscaling with CRT Terminator" section with a new comparison table, and uploaded new video capture screenshots that avoided a OBS misconfiguration with earlier screenshots.</li>
 <li><b>2024-11-26</b>: Added a section on lossless/pixel perfect VirtualDub HDMI video capture with examples.</li>
