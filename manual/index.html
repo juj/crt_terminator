@@ -544,7 +544,9 @@ all packed into a single 8-bit ISA expansion card!
 
 <div style='padding-top:0px; padding-left:20px'>
 
-<p>Finally, if there is no configuration option available either in BIOS or with the VGA adapter itself, the last resort may be to revert to utilizing a software polling approach. CRT Terminator provides a DOS software TSR program PALTSR.EXE ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/PALTSR'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/PALTSR.zip'>Download ZIP</a>]), which periodically polls the VGA palette, and then mirrors the palette over to CRT Terminator I/O address space. This software TSR may not be compatible with all DOS VGA programs, and will cause a small performance penalty, but on fast systems the performance impact may be unnoticeable.</p>
+<p>Finally, if there is no configuration option available either in BIOS or with the VGA adapter itself, the last resort may be to revert to utilizing a software polling approach. CRT Terminator provides a DOS software TSR program PALTSR.COM ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/PALTSRA'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/PALTSRA.zip'>Download ZIP</a>]), which periodically polls the VGA palette, and then mirrors the palette over to CRT Terminator I/O address space. This software TSR is unfortunately not compatible with all DOS VGA programs, and will cause a small performance penalty, but on fast systems the performance impact may be unnoticeable.</p>
+
+<p>A C++ reference version of the PALTSR TSR is available ([<a href='https://github.com/juj/crt_terminator/tree/main/DOS/PALTSR'>GitHub</a>] [<a href='https://github.com/juj/crt_terminator/raw/main/DOS/bin/PALTSR.zip'>Download ZIP</a>]). That may be easier to modify if you are more familiar with C++ over X86 assembly. The assembly version consumes about 6KB less RAM.
 
 </div>
 
@@ -1894,6 +1896,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-06</b>: Added link to Assembly version of PALTSR.</li>
 <li><b>2024-12-06</b>: Updated "Appendix B: VESA Standard VGA Pass-Through Connector" with connector pinout.</li>
 <li><b>2024-12-05</b>: Added mention and links to CRTT.EXE CRT Terminator configuration utility.</li>
 <li><b>2024-12-05</b>: Fixed problem in CRT Terminator detection code.</li>
