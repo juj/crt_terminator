@@ -21,6 +21,27 @@ tbody {
     background-color: #e4f0f5;
 }
 
+td.gnd {
+    background-color: #d0d0d0;
+}
+
+td.gnd_pin1 {
+    background-color: #d0d0d0;
+    border: solid 4px black;
+}
+
+td.td_red {
+    background-color: #f0d0d0;
+}
+
+td.td_green {
+    background-color: #d0f0d0;
+}
+
+td.td_gold {
+    background-color: #f0f0d0;
+}
+
 caption {
     padding: 10px;
     caption-side: bottom;
@@ -87,7 +108,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-12-05</h3>
+<h3 class='center'>2024-12-06</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -1755,13 +1776,46 @@ int main()
 
 <a name='appendix_b_vesa_standrad_vga_passthrough_connector'><h1>Appendix B: VESA Standard VGA Pass-Through Connector</h1></a>
 
-<p>In August 1989, VESA took IBM's existing Feature Connector functionality and standardized it as <a href='http://www1.ecs.uni-ruse.bg/kp/less/dispalys/VD-site/vesa/ve00013.html'>VESA Standard VS890803: VESA Standard VGA Pass-Through Connector</a>.</p>
+<p>In August 1989, VESA took IBM's existing Feature Connector functionality and standardized it as <a href='http://www1.ecs.uni-ruse.bg/kp/less/dispalys/VD-site/vesa/ve00013.html'>VESA Standard VS890803: VESA Standard VGA Pass-Through Connector</a> (VSVPC).</p> This connector is colloquially called the VESA Feature Connector, and became ubiquitous to exist on almost all SVGA adapters in the 1990s. This is the connector that CRT Terminator connects with.
 
 <p style='margin-left:0%; margin-right: 50%'><b>📁 Lost Documents:</b> Unfortunately this standard may to have lost in time, and not even VESA themselves seem to have this specification. If you would happen to have a copy, please <b>please</b> share it with us or scan it to archive.org!</p>
+
+<h3>VESA Feature Connector Pinout</h3>
+
+<p>The pin diagram from the male end of the VESA Feature Connector (on the SVGA adapter board) looks as follows.
+
+<table style='border: solid 1px black;'>
+<tr><td>   Pin 2    <br>DATA0</td><td>Pin 4<br>DATA1</td><td>Pin 6<br>DATA2</td><td>Pin 8<br>DATA3</td><td>Pin 10<br>DATA4</td><td>Pin 12<br>DATA5</td><td>Pin 14<br>DATA6</td><td>Pin 16<br>DATA7</td><td class='td_gold'>Pin 18<br>PIXCLK</td><td class='td_green'>Pin 20<br>DISPEN</td><td class='td_green'>Pin 22<br>HSYNC</td><td class='td_green'>Pin 24<br>VSYNC</td><td class='gnd'>Pin 26<br>Ground</td></tr>
+<tr><td class='gnd_pin1'><b>Pin 1<br>Ground</b></td><td class='gnd'>Pin 3<br>Ground</td><td class='gnd'>Pin 5<br>Ground</td><td class='td_red'>Pin 7<br>EPIXEL</td><td class='td_red'>Pin 9 <br>ESYNC</td><td class='td_red'>Pin 11<br>ECLK</td><td class='gnd'>Pin 13<br>N/C</td><td class='gnd'>Pin 15<br>Ground</td><td class='gnd'>Pin 17<br>Ground</td><td class='gnd'>Pin 19<br>Ground</td><td class='gnd'>Pin 21<br>Ground</td><td class='gnd'>Pin 23<br>N/C</td><td class='gnd'>Pin 25<br>N/C (may be keyed<br>with no pin)</td></tr>
+</table>
+
+<br><a href='vesa_feature_connector_pinout.jpg'><img src='vesa_feature_connector_pinout.jpg' width=45%></a>
+<br>Example connector orientation. Be sure to check pin 1 orientation on every SVGA adapter individually, since it can vary per vendor.
+
+<p>The meaning of the different signals are as follows:
+
+<ul>
+<li><b>DATA0 - DATA7:</b> The 8-bit pixel data bus. Carries palettized 8-bit video data, one pixel per clock. Sometimes 15/16bpp hi-color data comes through as one pixel per two clocks, or one pixel per clock in DDR mode. 24bpp nonpalettized true color data may come out as one pixel over three clocks.</li>
+<li><b>PIXCLK:</b> The Pixel Clock signal. Carries the individual pixel clock at e.g. 28.175 MHz for 720x400 @ 70 Hz Mode 03h text mode, or 12.5 MHz for 320x400 @ 70 Hz Mode 13h graphics mode.</li>
+<li><b>DISPEN:</b> The Display Enable signal. When 1, clocked out pixel is in visible display area. If 0, scanning out "display blank" area.
+<li><b>HSYNC:</b> The Horizontal Sync signal. One value when in hsync, and the opposite when outside hsync. Polarity varies per video mode.
+<li><b>VSYNC:</b> The Vertical Sync signal. One value when in vsync, and the opposite when outside vsync. Polarity varies per video mode.
+<li><b>EPIXEL:</b> Connected high to signal the SVGA adapter that it should output pixel data on bus DATA0 - DATA7.
+<li><b>ESYNC:</b> Connected high to signal the SVGA adapter that it should output pixel HSYNC, VSYNC and DISPEN signals.
+<li><b>ECLK:</b> Connected high to signal the SVGA adapter that it should output the PIXCLK signal.
+</ul>
+
+<p>When connecting the VESA Feature Connector cable, be careful to check the right orientation, since installing the cable in the wrong orientation will result in shorting data and clock lines to ground. To make matters more challenging, some SVGA vendors rotated the connector on the graphics board 180 degrees from the VESA normative orientation, making identifying pin 1 on each board especially important.
+
+<h3>VESA Advanced Feature Connector (VAFC)</h3>
+
+<p>After the original VSVPC connector that only carried 8-bit video, VESA expanded the connector standard to 32-bit video in the VESA Advanced Feature Connector (VAFC) standard.
 
 <p>VESA has released to the public the following documents related to their later VESA Advanced Feature Connector (VAFC):</p>
 <ul><li><a href='VAFC_HW.pdf'>VAFC_HW.pdf</a></li>
 <li><a href='VAFC_SW.pdf'>VAFC_SW.pdf</a></li></ul>
+
+<p>Unfortunately there were only one or two graphics adapters that implemented the VAFC connector, so its adoption was practically nonexistent.
 
 </div><div class='page'>
 
@@ -1840,6 +1894,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-06</b>: Updated "Appendix B: VESA Standard VGA Pass-Through Connector" with connector pinout.</li>
 <li><b>2024-12-05</b>: Added mention and links to CRTT.EXE CRT Terminator configuration utility.</li>
 <li><b>2024-12-05</b>: Fixed problem in CRT Terminator detection code.</li>
 <li><b>2024-12-05</b>: Revised "Capturing CRT Terminator output for YouTube or Twitch streaming via OBS" section with clarifications to OBS behavior.</li>
