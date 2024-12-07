@@ -108,7 +108,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-12-06</h3>
+<h3 class='center'>2024-12-08</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -1794,6 +1794,14 @@ int main()
 <br><a href='vesa_feature_connector_pinout.jpg'><img src='vesa_feature_connector_pinout.jpg' width=45%></a>
 <br>Example connector orientation. Be sure to check pin 1 orientation on every SVGA adapter individually, since it can vary per vendor.
 
+<p>Note that the pin numbering may differ a bit. The above numbering order (alternating even numbers on one row, odd numbers on the other row of the header) follows a convention found in <a href='3dpv375dx-104.pdf'>the user manual of ASUS 3DexPlorer<sup>DX</sup></a>, a graphics card that integrates the S3 ViRGE/DX graphics chip.
+
+<p><a href='feature_connector_pinout_numbering.jpg'><img src='feature_connector_pinout_numbering.jpg' width=45%></a>
+
+<p>The above Tseng ET4000AX adapter runs the numbering of the pins with pins 1-13 on one long row of the header, and pins 14-26 on the other row. The original IBM or VESA specifications might have used this convention, although we don't have the document to check.
+
+<p>Ultimately, whichever numbering convention was used, fortunately pins 1 and 26 are identified the same in both of these notations.
+
 <p>The meaning of the different signals are as follows:
 
 <ul>
@@ -1896,6 +1904,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2024-12-08</b>: Added a diagram about Feature Connector pin numbering.</li>
 <li><b>2024-12-06</b>: Added link to Assembly version of PALTSR.</li>
 <li><b>2024-12-06</b>: Updated "Appendix B: VESA Standard VGA Pass-Through Connector" with connector pinout.</li>
 <li><b>2024-12-05</b>: Added mention and links to CRTT.EXE CRT Terminator configuration utility.</li>
