@@ -1745,20 +1745,22 @@ int main()
 
 <h2>Improving Feature Connector Video Signal</h2>
 
-<p>It may happen that the video signal on CRT Terminator glitches, either intermittently or continuously. This section lists some of the actions that can be employed to reduce glitching.
+<p>It may happen that the video signal on CRT Terminator glitches, either intermittently or continuously. This section lists actions that can be employed to reduce glitching.
 
 <h3>Manual Sampling Phase Configuration</h3>
 
 <p>The jumper J2 on the top edge of CRT Terminator configures the automatic sampling phase detection feature of CRT Terminator. The idea with this feature is to provide a hassle-free configuration for video signal synchronization.
 
-<p>In some cases, this automatic sampling phase detection may not however work properly. If that is the case, it can be disabled by setting J2 to state 2-3. Then, the sampling phase of each of the four signals: Hsync, Vsync, Display Enable and Pixel Data may be manually selected with jumpers J3-J6.
+<p>In some cases, this automatic sampling phase detection may not however work properly. If that is the case, it can be disabled by setting J2 to state 2-3. The sampling phase of each of the four signals: Hsync, Vsync, Display Enable and Pixel Data can then be manually selected with jumpers J3-J6.
 
 <h3>Solder More Ground Pins</h3>
 <p>The Feature Connector bus contains multiple ground pins. The reason for this is that it allows the connector to provide a cleaner ground signal to the high speed video pins.</p>
 
-<p>However, unfortunately VESA did a major design mistake in the physical specification of the Feature Connector. To prevent accidental installation in 180 degrees incorrect orientation, they specified pin 25 to be a keyed N/C pin, likely thinking that pin 25 could then be omitted on the male end of the header, and on the Feature Connector cable, pin 25 could then be blocked out. But unfortunately, this convention never took wind, and out of all of the ~100 SVGA adapters we have in our test lab, only one or two of them have omitted pin 25.
+<p>However, unfortunately VESA did a major design mistake in the physical specification of the Feature Connector. If the connector is accidentally installed 180 degrees rotated, the data signals will short directly to ground. It is unclear what kind of protections different SVGA adapters may have against this.
 
-<p>Therefore it is not possible to provide safe keyed video cables with CRT Terminator, that could not be physically installed in the wrong orientation (unless the customer was asked to physically cut off pin 25 on their graphics card, an awkward, although safe operation).
+<p>To prevent accidental installation in 180 degrees incorrect orientation, VESA did specify pin 25 to be a keyed N/C pin, likely thinking that the pin could then be physically omitted on the male end of the header, and on the Feature Connector cable, pin 25 could then be blocked out. But unfortunately, this convention never took wind (maybe due to requiring manufacturing custom cables?), and out of all of the ~100 SVGA adapters we have in our test lab, only one or two of them have omitted pin 25.
+
+<p>Therefore it is not possible to provide safe keyed video cables with CRT Terminator, that could not be physically installed in the wrong orientation (unless the customer was asked to physically cut off pin 25 on their graphics card - an awkward, although safe operation).
 
 <p>So to help mitigate accidental short circuits from an incorrect 180 degrees reversed installation of the Feature Connector cable, CRT Terminator by default does not wire some of the ground pins on the PCB.
 
@@ -1774,7 +1776,9 @@ int main()
 
 <h3>Disconnect Analog VGA Cable</h3>
 
-<p>Maybe a bit surprisingly, the VGA output and the Feature Connector signal lines are partially connected on the SVGA adapter. This means that interference between the two may occur. If you are seeing glitches in the digital video signal while the analog VGA cable is connected, but not intended to be used - try disconnecting the VGA cable, and e.g. replace it with the VGA Terminator dongle. This will reduce any interference from the analog VGA circuitry to the Feature Connector video signal.
+<p>Maybe a bit surprisingly, the analog VGA output and the digital Feature Connector signal lines are partially shared on the SVGA adapter. This means that interference between the two may occur.
+
+<p>If you are seeing glitches in the digital video signal while the analog VGA cable is connected, but not intended to be used - try disconnecting the VGA cable, and e.g. replace it with the VGA Terminator dongle. This will reduce any interference from the analog VGA circuitry to the Feature Connector video signal.
 
 <p>This interference is not just theoretical, but is observed in practice. See next section.
 
@@ -1795,13 +1799,13 @@ int main()
 <table>
 <tr><td><b>Test case</b></td><td><b>Result</b></td></tr>
 <tr><td width=30%><a href='extra_short_7.5cm_cable.jpg'><img src='extra_short_7.5cm_cable.jpg' width=85%></a><br>A special made extra short 7.5 cm Feature Connector cable.</td><td><a href='short_cable_ok_vga_signal.jpg'><img src='short_cable_ok_vga_signal.jpg' width=45%></a><a href='short_cable_ok_crtt_signal.png'><img src='short_cable_ok_crtt_signal.png' width=45%></a><br>Both the CRT Terminator and analog VGA picture were intact.</td></tr>
-<tr><td width=30%><a href='normal_15cm_cable.jpg'><img src='normal_15cm_cable.jpg' width=85%></a><br>The default 15 cm Feature Connector cable.</td><td>Same as above. Signal ok, no difference to 7.5 cm cable.</td></tr>
-<tr><td width=30%><a href='extra_long_30cm_cable.jpg'><img src='extra_long_30cm_cable.jpg' width=85%></a><br>The extra long 30 cm Feature Connector cable.</td><td><a href='long_cable_drifted_signal.png'><img src='long_cable_drifted_signal.png' width=45%></a><a href='long_cable_no_vga_signal.jpg'><img src='long_cable_no_vga_signal.jpg' width=45%></a><br>CRT Terminator digital signal has drifted, automatic sampling phase detection is no longer accurate. Analog VGA signal has degraded.</td></tr>
+<tr><td width=30%><a href='normal_15cm_cable.jpg'><img src='normal_15cm_cable.jpg' width=85%></a><br>The default 15 cm Feature Connector cable.</td><td>Same as above. Signal ok, no difference to the 7.5 cm cable.</td></tr>
+<tr><td width=30%><a href='extra_long_30cm_cable.jpg'><img src='extra_long_30cm_cable.jpg' width=85%></a><br>The extra long 30 cm Feature Connector cable.</td><td><a href='long_cable_drifted_signal.png'><img src='long_cable_drifted_signal.png' width=45%></a><a href='long_cable_no_vga_signal.jpg'><img src='long_cable_no_vga_signal.jpg' width=45%></a><br>CRT Terminator digital signal has drifted, automatic sampling phase detection is no longer accurate. The long FC cable has caused the analog VGA output signal to degrade.</td></tr>
 </table>
 
 <p>The above test case shows an exaggerated scenario in out-of-spec pixel clocks on a 1024x768 resolution. On within-spec resolutions with lower pixel clocks (&leq; 37.5 MHz) however, degradation of the VGA output side was not observed.
 
-<p>This test does illustrate that interference between analog VGA and digital Feature Connector output paths can happen.
+<p>This test illustrates that interference between analog VGA and digital Feature Connector output paths can happen.
 
 </div><div class='page'>
 
