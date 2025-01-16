@@ -63,6 +63,14 @@ table {
     font-size: 0.8rem;
 }
 
+table.hidden, table.hidden td {
+  border: 0px;
+}
+
+table.hidden td {
+  background-color: white;
+}
+
 td,
 th {
     border: 1px solid rgb(190, 190, 190);
@@ -108,7 +116,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2024-12-09</h3>
+<h3 class='center'>2025-01-16</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -137,7 +145,9 @@ td {
 <a href='#hardware_rng'>11. Hardware Random Number Generation</a><br>
 <a href='#hardware_programming_reference'>12. Hardware Programming Reference</a><br>
 <a href='#frequently_asked_questions'>13. Frequently Asked Questions</a><br>
-<a href='#troubleshooting'>14. Troubleshooting</a><br>
+<a href='#developer_hud'>14. Developer HUD</a><br>
+<span class='indent'><a href='#video_frame_anatomy'>14.1. Anatomy of a Video Frame</a></span><br>
+<a href='#troubleshooting'>15. Troubleshooting</a><br>
 <a href='#appendix_a_ibm_vga_feature_connector'>Appendix A. IBM VGA Feature Connector</a><br>
 <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
 <a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
@@ -1737,6 +1747,53 @@ int main()
 
 </div><div class='page'>
 
+<a name='developer_hud'><h1>Developer HUD</h1></a>
+
+At the back of CRT Terminator board, the DIP switch DIP2.4 enables or disables an onscreen overlay for the video signal. This overlay can be used to diagnose the video signal that CRT Terminator is receiving and outputting.
+
+<p><a href='developer_hud.png'><img src='developer_hud.png'></a>
+
+<p>The HUD is split into three sections, <i>Input</i> (IN:), <i>Middle</i> (MID:) and <i>Output</i> (OUT:), that represent the stages of CRT Terminator video processing pipeline.
+
+<p>The Input section identifies the video signal that is being received through the Feature Connector, before any modification or processing is done on it. The Middle section displays information after CRT Terminator has applied its video geometry processing steps, and the Output section displays what the final generated (upscaled) video parameters are.
+
+<a name='video_frame_anatomy'><h2>Anatomy of a Video Frame</h2></a>
+
+<p>When the user views a single frame of the generated video, say this 320x200 pixels sized Commander Keen picture below:
+
+<p><a href='keen5_video_frame.png'><img src='keen5_video_frame.png' width=50%></a>
+
+<p>What actually gets transmitted over the wire by the graphics adapter, in analog VGA, digital Feature Connector, or DVI-D signals, has quite a bit more going on in it. In actuality, a "full" frame of video looks like the following image.
+
+<p><a href='video_frame.png'><img src='video_frame.png' width=80%></a>
+
+<p>For presentation, the image has been scaled 2x in the horizontal direction. That is, each pair of two adjacent pixels illustrates a single clock cycle when transmitting a frame of a video image over the wire. Only about 71.27% clock cycles transmit a visible pixel from the actual DOS framebuffer. The rest are "padding" that is used to help the receiving monitor to synchronize its operation to the video signal.
+
+<p>Taking a closer look at an individual scanline of this image that is 400 clock cycles long (drawn as 800 pixels wide above), this constitutes of:
+<ol>
+<li>8 clocks of <b>left VGA border</b> (cyan): in this area, the adapter sends a visible color for "overscan" area. These pixels are not part of the DOS VGA framebuffer. Most commonly the VGA border color is black, but in this game, the authors have changed the border color for artistic effect.</li>
+<li>320 clocks of <b>active framebuffer image</b>: this is the actual data scanned out from the VGA memory (at VGA segment A000h).</li>
+<li>8 clocks of <b>right VGA border</b> (cyan): right side overscan border. In this case, the border widths are symmetric, but the VGA adapter can be freely programmed to have lopsided left and right border lengths, or no borders at all.</li>
+</ol>
+The above 8+320+8 clocks area is called the <b>Display Enable</b> portion of the image. After this section, the adapter is considered to be in <b>Display Blank</b> and will scan out a black colored pixel. The blank period consists of:
+<ol>
+<li value=4>3 clocks of <b>horizontal front porch</b> (black): This "porch" area enables the cathode ray tube operation to prepare for transition to next scanline.</li>
+<li>48 clocks of <b>horizontal sync</b> (red): Shown here for clarity in red color, although the adapter scans black in this area. The horizontal sync signal commands the CRT beam to advance a scanline and return back to scan the next row of pixels to the screen.</li>
+<li>13 clocks of <b>horizontal back porch</b> (gray): The adapter also scans black here, shown in gray for visual highlight. This porch area gives time to the receiver to prepare its internal operation for receiving a new scanline of pixels.</li>
+</ol>
+In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These lengths have been selected historically somewhat arbitrarily to accommodate the cathode ray driving circuit implementations in CRT displays of the time.
+
+<p><b>Vertically</b>, a video frame is structured identically, i.e. the image sections are the same: top border, active image, bottom border, front porch, vertical sync and back porch.
+
+<p>Something that is typical for low DOS VGA resolutions like this is that proportionally a relatively long time is spent in vertical blank. The timings used in high resolutions in modern times need a considerably shorter percentage of time in vertical blank. As a result, when input latency of a video upscaler is measured, the latency is typically a tiny bit shorter in the top side of the image, compared to the bottom side. (a difference of about ~1 msecs or so)
+
+<p>Pedantic sidenote: In the earlier image, the "first clock" of a video frame is shown at top-left corner at (0,0) in the VGA border area. This is drawn so for clarity of illustration for the above diagram. For DOS VGA adapters, technically the first clock of a video frame is actually the top-left pixel of the visible framebuffer image, as shown below. This distinction only has a meaning if you are writing code to program the VGA register values yourself. The generated video stream is equivalent, as there are no markers for a "first pixel of a frame" in the video stream itself.
+
+<p><a href='video_frame_dos_vga_adapter.png'><img src='video_frame_dos_vga_adapter.png' width=40%></a>
+<pre>How the VGA adapter registers lay out a video frame. First pixel of a frame shown in top-left (0,0).</pre>
+
+</div><div class='page'>
+
 <a name='troubleshooting'><h1>Troubleshooting</h1></a>
 
 <p>Hardware and software bugs are collected at the public GitHub issue tracker at <a href='https://github.com/juj/crt_terminator/issues'>https://github.com/juj/crt_terminator/issues</a>.</p>
@@ -1952,6 +2009,7 @@ int main()
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2025-01-16</b>: Added new sections Developer HUD and Anatomy of a Video Frame.</li>
 <li><b>2024-12-09</b>: Updated Troubleshooting section on video signal quality.</li>
 <li><b>2024-12-08</b>: Added a diagram about Feature Connector pin numbering.</li>
 <li><b>2024-12-06</b>: Added link to Assembly version of PALTSR.</li>
