@@ -116,7 +116,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2025-01-16</h3>
+<h3 class='center'>2025-01-25</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -148,6 +148,7 @@ td {
 <a href='#developer_hud'>14. Developer HUD</a><br>
 <span class='indent'><a href='#video_frame_anatomy'>14.1. Anatomy of a Video Frame</a></span><br>
 <a href='#troubleshooting'>15. Troubleshooting</a><br>
+<a href='#firmware_update'>16. Updating the Firmware</a><br>
 <a href='#appendix_a_ibm_vga_feature_connector'>Appendix A. IBM VGA Feature Connector</a><br>
 <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
 <a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
@@ -1866,6 +1867,96 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 
 </div><div class='page'>
 
+<a name='firmware_update'><h1>Updating the Firmware</h1></a>
+
+<p>The CRT Terminator board has a mechanism that enables firmware updates after being shipped from factory. This way possible bugs can be fixed as they are discovered, or new features added.</p>
+
+<p>The steps to update the firmware are as follows:
+
+<h4>1. Power off and remove CRT Terminator from the vintage PC.</h4>
+
+<h4>2. Take any two of the jumpers from J1-J6 headers and use them to bridge the +5V and GND jumpers on the board, according to the illustration below.</h4>
+
+<br><a href='bridge_programmer_jumpers.png'><img src='bridge_programmer_jumpers.png' width=40%></a>
+
+<p>These jumpers enable the board to be powered via the provided USB-C connector. <b>After finishing the firmware update, remember to restore the two jumpers to their original locations.</b>
+
+<h4>3. Attach CRT Terminator to a Windows 10/11 PC with a USB-C cable.</h4>
+
+<br><a href='firmware_update_usbc_connection.png'><img src='firmware_update_usbc_connection.png' width=40%></a>
+
+<h4>4. Download CRT Terminator firmware update package.</h4>
+
+<p>The provided firmware are copyright of Oulainen Multimedia Group, only licensed for use with official CRT Terminator boards.</p>
+
+<p>Downlad and unzip <a href='https://github.com/juj/crt_terminator/raw/refs/heads/main/firmware/dist/crt_terminator_firmware_2025.1.5.zip'>crt_terminator_firmware_2025.1.5.zip</a> on the Windows PC.</p>
+
+<h4>5. Install USB drivers for the FPGA.</h4>
+
+<p>(This step needs to be run only when connecting CRT Terminator to the PC for the first time)</p>
+
+<p>The FTDI Programmer Interface of the FPGA board that CRT Terminator uses does not have any official USB drivers registered to Microsoft's OS vendor registry. Fortunately we do not need a custom device driver for CRT Terminator anyways, but we will want to associate the FPGA device with <a href='https://learn.microsoft.com/en-us/windows-hardware/drivers/usbcon/automatic-installation-of-winusb'>Microsoft's generic "WinUSB" driver</a>.</p>
+
+<p>To do this, we will use <a href='https://zadig.akeo.ie/'>Zadig</a>, a USB driver management tool that can be used to install/replace the driver of any connected USB device.</p>
+
+<p><b>NOTE:</b> Be very careful with this step. Because this tool can be used to override the driver of any connected USB device on the PC, it is possible to accidentally break any USB device driver installation on the system if this step is applied on the wrong USB device.</p>
+
+<p>The steps to install the USB drivers are as follows:
+
+<h4>5.1. Run zadig-2.9.exe from the zip file. The tool UI will show up, looking something like this:</h4>
+
+<a href='zadig-1.png'><img src='zadig-1.png' width=40%></a>
+
+<h4>5.2. In the 'Options' dropdown, choose 'List All Devices'</h4>
+
+<a href='zadig-2.png'><img src='zadig-2.png' width=40%></a>
+
+<p>This step will populate the dropdown list in the UI with all the USB devices, like this:
+
+<br><a href='zadig-3.png'><img src='zadig-3.png' width=40%></a>
+
+<h4>5.3. From the dropdown menu, find the FPGA device with USB ID "0403 6014".</h4>
+
+<a href='zadig-4.png'><img src='zadig-4.png' width=40%></a>
+
+<p>In my case, this was a USB device named "Single RS232-HS", with a previous driver "libusbK" attached to it. However, this is most certainly due to me having installed Arduino IDE on my PC before, which happens to share the same FTDI programmer interface. On your PC, the human-readable name of the FPGA device may be shown to be something different. The important part is the <b>USB ID: 0403 6014</b>.
+
+<div style='border: solid 1px black;'>
+<b>DO NOT PROCEED with the next step 5.4. if this ID does not match.</b>
+
+<p>If there is some confusion, and you want to triple check that you have the right USB device, you can try unplugging the USB-C cable from CRT Terminator, then re-select <b>Options->List All Devices</b> in Zadig, to see what USB devices exist. E.g. take a screenshot, and then reattach CRT Terminator cable, re-run <b>List All Devices</b>, and diff the new list against the previous one from the screenshot. There should be exactly one device that appears in the list after plugging in the USB cable to CRT Terminator.
+
+<p>If you are a developer/user dealing with multiple FTDI programmer based FPGAs or microcontrollers, replacing the USB driver may cause issues with some other FTDI programmers for other devices. In such case that you might already have a FTDI driver, you can just try skipping to step 6 to see if the driver might be compatible with OpenFPGALoader already.</p>
+</b>
+</div>
+
+<h4>5.4. From the drop down list pointed to by the green arrow, select WinUSB (v6.1.7600.16385) and click "Replace Driver".</h4>
+
+<p>After installation, the dialog should show like this:
+
+<br><a href='zadig-5.png'><img src='zadig-5.png' width=40%></a>
+
+<p>The generic Microsoft WinUSB driver is now applied to the FTDI Programmer chip for CRT Terminator. You can now close Zadig.
+
+<h4>6. Run CRT Terminator board update script.</h4>
+
+<p>Finally, double-click on <b>crt_terminator_firmware_update.bat</b> and follow the on-screen instructions. This step uses <a href='https://github.com/trabucayre/openFPGALoader'>OpenFPGALoader</a> to program the new firmware. The installation flow looks as follows:</p>
+
+<br><a href='firmware_installation_steps.png'><img src='firmware_installation_steps.png' width=40%></a>
+
+<h4>7. Disconnect USB-C, and then restore the two jumpers back to their original locations.</h4>
+
+<a href='restore_programmer_jumpers.png'><img src='restore_programmer_jumpers.png' width=40%></a>
+
+<h4>8. Reinstall the board to the vintage PC and boot.</h4>
+
+<p>With the exception of the first shipped firmware version (v2024.8.16) that did not show version field, the Developer HUD (DIP2.4) should reflect the version of the new installed firmware:
+
+<p><a href='developer_hud_firmware_version.png'><img src='developer_hud_firmware_version.png' width=20%></a>
+
+
+</div><div class='page'>
+
 <a name='appendix_a_ibm_vga_feature_connector'><h1>Appendix A: IBM VGA Feature Connector </h1></a>
 
 <p>Apparently the IBM Feature Connector first appeared in the following manuals:</p>
@@ -2009,6 +2100,7 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2025-01-25</b>: Added new section Updating the Firmware.</li>
 <li><b>2025-01-16</b>: Added new sections Developer HUD and Anatomy of a Video Frame.</li>
 <li><b>2024-12-09</b>: Updated Troubleshooting section on video signal quality.</li>
 <li><b>2024-12-08</b>: Added a diagram about Feature Connector pin numbering.</li>
