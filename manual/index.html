@@ -116,7 +116,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2025-01-25</h3>
+<h3 class='center'>2025-01-26</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -1915,16 +1915,16 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 
 <br><a href='zadig-3.png'><img src='zadig-3.png' width=40%></a>
 
-<h4>5.3. From the dropdown menu, find the FPGA device with USB ID "0403 6014".</h4>
+<h4>5.3. From the dropdown menu, find the CRT Terminator FPGA device. In this case, it is the device with USB ID "0403 6014".</h4>
 
 <a href='zadig-4.png'><img src='zadig-4.png' width=40%></a>
 
-<p>In my case, this was a USB device named "Single RS232-HS", with a previous driver "libusbK" attached to it. However, this is most certainly due to me having installed Arduino IDE on my PC before, which happens to share the same FTDI programmer interface. On your PC, the human-readable name of the FPGA device may be shown to be something different. The important part is the <b>USB ID: 0403 6014</b>.
+<p>On your PC, the human-readable name of the FPGA device is expected to read <b>"JTAG Programmer"</b>. (These screenshots were made against a previous prototype board, where the USB device was named "Single RS232-HS")
 
 <div style='border: solid 1px black;'>
-<b>DO NOT PROCEED with the next step 5.4. if this ID does not match.</b>
+<b>DO NOT PROCEED with the next step 5.4. unless you have positively identified the CRT Terminator FPGA Device.</b>
 
-<p>If there is some confusion, and you want to triple check that you have the right USB device, you can try unplugging the USB-C cable from CRT Terminator, then re-select <b>Options->List All Devices</b> in Zadig, to see what USB devices exist. E.g. take a screenshot, and then reattach CRT Terminator cable, re-run <b>List All Devices</b>, and diff the new list against the previous one from the screenshot. There should be exactly one device that appears in the list after plugging in the USB cable to CRT Terminator.
+<p>If there is some confusion, and you want to triple check that you have the right USB device, you can try unplugging the USB-C cable from CRT Terminator, then re-select <b>Options->List All Devices</b> in Zadig, to see what USB devices exist. E.g. take a screenshot. Then reattach CRT Terminator cable, re-run <b>List All Devices</b>, and diff the new list against the previous one from the screenshot. There should be exactly one device that appears in the list after plugging in the USB cable to CRT Terminator.
 
 <p>If you are a developer/user dealing with multiple FTDI programmer based FPGAs or microcontrollers, replacing the USB driver may cause issues with some other FTDI programmers for other devices. In such case that you might already have a FTDI driver, you can just try skipping to step 6 to see if the driver might be compatible with OpenFPGALoader already.</p>
 </b>
@@ -1950,7 +1950,7 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 
 <h4>8. Reinstall the board to the vintage PC and boot.</h4>
 
-<p>With the exception of the first shipped firmware version (v2024.8.16) that did not show version field, the Developer HUD (DIP2.4) should reflect the version of the new installed firmware:
+<p>With the exception of the first shipped firmware version (v2024.8.16) that did not show a version field, the Developer HUD (DIP2.4) should reflect the version of the new installed firmware:
 
 <p><a href='developer_hud_firmware_version.png'><img src='developer_hud_firmware_version.png' width=20%></a>
 
@@ -2100,6 +2100,7 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2025-01-26</b>: Clarified firmware update sequence.</li>
 <li><b>2025-01-25</b>: Added new section Updating the Firmware.</li>
 <li><b>2025-01-16</b>: Added new sections Developer HUD and Anatomy of a Video Frame.</li>
 <li><b>2024-12-09</b>: Updated Troubleshooting section on video signal quality.</li>
