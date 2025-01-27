@@ -108,6 +108,10 @@ td {
   visibility: visible;
 }
 
+#appendix_f h2 {
+  text-decoration: underline;
+}
+
 </style>
 <link rel="stylesheet" href="highlight/styles/base16/equilibrium-light.min.css">
 </head>
@@ -149,11 +153,13 @@ td {
 <span class='indent'><a href='#video_frame_anatomy'>14.1. Anatomy of a Video Frame</a></span><br>
 <a href='#troubleshooting'>15. Troubleshooting</a><br>
 <a href='#firmware_update'>16. Updating the Firmware</a><br>
+<br>
 <a href='#appendix_a_ibm_vga_feature_connector'>Appendix A. IBM VGA Feature Connector</a><br>
 <a href='#appendix_b_vesa_standrad_vga_passthrough_connector'>Appendix B. VESA Standard VGA Pass-Through Connector</a><br>
 <a href='#appendix_c_dvi_d_standard'>Appendix C. DVI-D Standard</a><br>
 <a href='#appendix_d_supported_fixed_resolutions'>Appendix D. CRT Terminator Supported Output Resolutions</a><br>
 <a href='#appendix_e_changelog'>Appendix E. Changelog</a><br>
+<a href='#appendix_f_firmware_version_history'>Appendix F. Firmware Version History</a><br>
 
 <p></p>
 
@@ -1944,6 +1950,8 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 
 <br><a href='firmware_installation_steps.png'><img src='firmware_installation_steps.png' width=40%></a>
 
+<p>For detailed information on differences between firmware versions, see <a href='#appendix_f_firmware_version_history'>Appendix F. Firmware Version History</a>.
+
 <h4>7. Disconnect USB-C, and then restore the two jumpers back to their original locations.</h4>
 
 <a href='restore_programmer_jumpers.png'><img src='restore_programmer_jumpers.png' width=40%></a>
@@ -2100,6 +2108,7 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2025-01-27</b>: Added a new Appendix F "Firmware Version History".</li>
 <li><b>2025-01-27</b>: Further clarified firmware update sequence with the precise USB device name and ID, and added updated screenshots.</li>
 <li><b>2025-01-26</b>: Clarified firmware update sequence.</li>
 <li><b>2025-01-25</b>: Added new section Updating the Firmware.</li>
@@ -2119,6 +2128,105 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 <li><b>2024-08-29</b>: Added section on hardware RNG support.</li>
 <li><b>2024-08-11</b>: First upload.</li>
 </ul>
+
+</div><div class='page' id='appendix_f'>
+
+<a name='appendix_f_firmware_version_history'><h1>Appendix F: Firmware Version History</h1></a>
+
+<p>This section lists a changelog to released versions of the CRT Terminator firmware.
+
+<h2>DV1000 v2025.1.5</h2>
+
+<p>This firmware saw a major rewrite of the internal video synchronization mechanism, aiming to improve video signal stability with SVGA adapters that have jitter in their hsync and/or vsync lines. Additionally support for several SVGA video modes and high and true color video modes was added.</p>
+
+<p>Detailed list of changes:</p>
+<ul>
+<li>Improved upscaling for Pinball Fantasies and Pinball Dreams in their High Res modes. (a85df770)</li>
+<li>Improved video signal sampling phase detection stability on Hercules Stingray Pro (ARK1000PV) (f4efaf67)</li>
+<li>Added video signal sampling phase indicators to Developer HUD as a sequence of four +/- characters (for HSync, Vsync, Disp.Enable and Data) (378237c5)</li>
+<li>Improved video signal sampling phase detection stability on Diamond SpeedStar 24X Tseng ET4000AX in DOS 320x200 and 640x350 video modes. (a8ba41d9)</li>
+<li>Improved video signal sampling phase detection stability on video modes that exceed 48.5 MHz pixel clock. (a8ba41d9)</li>
+<li>Dropped maximum generated output video refresh rate from 75.25Hz down to 75.00Hz for improved sync compatibility on displays with max 75Hz refresh rate. (3d0744a3)</li>
+<li>Improved video signal sampling phase detection stability for the Display Enable signal, by accounting for long time spent low during vblank. (63277314)</li>
+<li>Rewrote the video sync code to give precedence to Display Enable signal, and not get confused by timing fluctuations in poor stability of hsync or vsync lines (8e12e187)</li>
+<li>Fixed support for synchronizing to Hercules Stingray Pro (ARK1000PV) SVGA Mode 43h 1280x1024i. (fa2b2b99)</li>
+<li>Fixed support for synchronizing to Hercules Stingray Pro (ARK1000PV) SVGA Mode 32h 1024x768i. (25e6a0ec)</li>
+<li>Fixed video synchronization to not get confused by alternating line counts on even and odd fields of interlaced video modes. (387334ed)</li>
+<li>Improved stability for synchronizing to Tseng ET4000AX SVGA Mode 3Dh 1280x1024i. (bdb1c722)</li>
+<li>Added support for synchronizing to Hercules Stingray Pro (ARK1000PV) VESA Mode 1024x768i 15/16bpp. (95eb1411, a61359e2)</li>
+<li>Improved # of colors indication in Developr HUD to show suffixes 'b' (bpp in hi/truecolor), 'v' (vga), 'e' (ega), 'c' (cga), 'm' (mono) for color count. (7468a88c)</li>
+<li>Fixed an issue reporting color count data from CRT Terminator to SNOOP.EXE. (7468a88c)</li>
+<li>Improved support for synchronizing to interlaced video modes on WD90C31-LR. (1188060e)</li>
+<li>Improved support for synchronizing to WD90C31-LR VESA 320x240 15bpp, 512x384 15bpp, 640x400 16bpp, 640x480 15bpp, 640x480 24bpp and 800x600 8bpp video modes. (3424d34e)</li>
+<li>Improved support for synchronizing to video modes with vertical refresh rate below 50Hz. In such case, if viewing in upscaled video mode (and not Passthrough mode), CRT Terminator will repeat frames to bring the refresh rate up to 50Hz minimum. (cc9c8f99)</li>
+<li>Improved support for synchronizing to Hercules Stingray Pro (ARK1000PV) VESA 1280x1024p 256c and 800x600 15bpp video modes. (541670e2)</li>
+<li>Improved support for synchronizing to Avance Logic ALG2302 SVGA Mode 45h 1024x768i 16bpp (2cdc668d)</li>
+<li>Improved support for synchronizing to Hercules Stingray Pro (ARK1000PV) 640x480 256c, 800x600 256c, 800x600 15bpp and 1280x1024i video modes. (a61359e2)</li>
+<li>Fixed a video synchronization issue when VGA borders were disabled from DOS I/O interface and current video mode was interlaced. (c759ea3f)</li>
+<li>Improved support for synchronizing to Hercules Stingray Pro (ARK1000PV) 640x480 24bpp video mode. (69783b0a)</li>
+<li>Added support in the DOS I/O interface to disable CRT Terminator video scanhalving in sub-register 40h bit 20h (fde6b447)</li>
+<li>Improved support for synchronizing to Hercules Stingray Pro (ARK1000PV) nonstandard 800x600 72Hz, 1024x768p 69Hz and 1024x768 74.6Hz video modes. (97337574)</li>
+<li>Optimized video RAM bandwidth usage to increase interlaced <= 8bpp video modes to output 60Hz progressivized refresh rate instead of 50Hz. (b20db3b3)</li>
+<li>Improved support for synchronizing to Hercules Stingray Pro (ARK1000PV) UniVBE 512x384 24bpp 640x480 24bpp video modes. (0038d0fd)</li>
+<li>Optimized video RAM bandwidth usage to enable synchronizing to Hercules Stingray Pro (ARK1000PV) UniVBE 1024x768 15/16bpp 43.7Hz video modes. (d33aa9eb, 8231ed56)</li>
+<li>Improved support for synchronizing to Hercules Stingray Pro (ARK1000PV) UniVBE 320x240 256c video mode. (73684707)</li>
+<li>Fixed video upscaler problems when operating in packed 16bpp video upscaling mode. (6c407807)</li>
+<li>Added support for precise vertical cropping of VGA border in interlaced modes that have a different number of border scanlines to crop from top and bottom edges in even and odd fields. (5f6904c1)</li>
+<li>Improved 15bpp vs 16bpp video signal detector to not get confused as easily between detecting the two. (7f67735a)</li>
+<li>Fixed support for synchronizing to Diamond SpeedStar 64 1280x1024i 256c video mode. (9aeb67c8)</li>
+<li>Improved support for synchronizing to various video modes on Avance Logic ALG2302. (b4e5f080, 59a30c1e, aad82b99)</li>
+<li>Improved support for synchronizing to various video modes on Tseng Labs Tseng ET4000AX. (9f7b2690, 8393a430)</li>
+<li>Improved support for synchronizing to 1280x1024i video mode on Diamond SpeedSTAR 24 Tseng ET4000AX. (dfc42fc6)</li>
+<li>Fixed border cropping on Paradise PVGA1A-JK 64x34 and 80x25 text modes. (81534c45)</li>
+<li>Fixed issues with synchronizing to Trident 8900D video modes. (b3efc3ce, 2d934299, 2b2374f8)</li>
+<li>Fixed an issue in Developer HUD printing the minus sign for negative horizontal back porch lengths. (141f71af)</li>
+<li>Improved video crop of Jazz Jackrabbit video mode to preserve more vertical pixels for better aspect ratio (circles more circular). (09c7cca6)</li>
+<li>Improved support for oddball Trident 8900C SVGA video modes like 512x480. (ab1e3510)</li>
+<li>Improved video cropping on Cirrus Logic CL-GD5428 text modes. (f403e666)</li>
+<li>Improved video mode synchronization on Trident 9000i and Jazz Multimedia Tseng ET6000. (86f1ecd2, 83085bfe)</li>
+<li>Improved support for S3 Powergraph X-24 (S3 86C801) video modes. (65312dd4, 5abfd300, 5eb8e3fc)</li>
+<li>Improved support for S3 ViRGE ST-325A in VESA and UniVBE operation. (068ca649, 09dd83ac)</li>
+<li>Improved support for S3 Vision864 (S3 86C864-P) video modes. (069115f5)</li>
+<li>Improved support for Realtek RTG3106 video modes. (93d706ab)</li>
+<li>Improved support for Wang Labs Chips&Techologies F82C452 video modes. (1a750c72)</li>
+<li>Improved support for Headland HT208 video modes. (b7767419)</li>
+<li>Improved support for Acumos AVGA2 and Matrox Millennium 2064W. (6c9b5d9b)</li>
+<li>Improved support for Acumos AVGA1 and ATI 28800-5. (882e8541)</li>
+<li>Improved support for ATI 28800-6. (464a30ff, ddd0dc1d)</li>
+<li>Fixed a video mode synchronization problem seen with ATI 28800-6, where transitioning from one high pixel clock video mode to another might cause the HDMI PLL lock to not be properly reinitialized. (84dd7e3a)</li>
+<li>Improved video mode support for Ahead V5000B and MiroVideo 12PD v2.00. (141d9a39, 5255fa4a)</li>
+<li>Added support for synchronizing to MiroVideo 12PD v2.00 VESA mode 1024x768i 16bpp 91.894 Hz (8d68f6c1)</li>
+<li>Improved support for Aska ZyMOS Poach 51 (Trident 8800CS) video modes. (39713cf6, b516301a)</li>
+<li>Improved support for Trident TVGA8816CSC2 video modes. (267d69ff)</li>
+<li>Fixed synchronization to Jaton Corporation CL-GD5446 SVGA Mode 6Ch 1280x1024i video mode. (f8d4f15a)</li>
+<li>Added special handling to Tseng ET4000/W32p big endian clocked hi color video modes. (3ee5458e)</li>
+<li>Improved the Developer HUD to show the built firmware version in the HUD directly. (3b73e590, a88d90e6, 33d85453, 17b6732f)</li>
+<li>Fixed an issue in scandoubling detection in interlaced video modes. (987bc258)</li>
+<li>Optimized video signal stability on high >75 MHz Feature Connector pixel clocks (6d63e44a)</li>
+<li>Disabled support for radical overclocked HDMI PLL values that will never be able to work. (098a7cb3)</li>
+<li>Fixed video mode synchronization to Hercules Stingray Pro (ARK1000PV) 800x600 256c 90Hz video mode. (21aed934)</li>
+<li>Optimized Feature Connector signal stability for >90MHz pixel clocks. (c41d4b2a, 6655c611)</li>
+<li>Improved Developer HUD to show with uppercase 'B' if current hi-color video mode is DDR signaled by the video card. (e09ec8c9)</li>
+<li>Lifted a color bit depth quantization limitation that occurred with DDR signaled video modes. (a512fa62)</li>
+<li>Improved color depth on DDR video modes on Trident TGUI9440 and WDC WD90C31-LR adapters. (a512fa62)</li>
+<li>Improved video upscaling stability when DOS VGA adapter is set to very high >100Hz refresh rates. (0e0b1e80)</li>
+<li>Fixed a pedantic quirk on handling VGA Palette Access Mask register (bc358d91)</li>
+<li>Optimized video signal stability when outputting 1920x1080 and 1920x1200 video modes. (c41d4b2a, 6776796a, 18a34a7e, 63933192)</li>
+<li>Optimized timing closure with a more efficient parallelized hill climbing timing optimizer. (aacfb10b)</li>
+</ul>
+
+<h2>DV1000 v2024.8.16</h2>
+
+<ul>
+<li>This is the firmware version that shipped with the first released cards.</li>
+</ul>
+
+<p><b>Notes:</b></p>
+<ul>
+<li>This (and only this) firmware did not display a version number in the Developer HUD.</li>
+<li>Due to outdated version field information, the DOS I/O interface erroneously specified the version of this firmware as 2023.8.6.</li>
+</ul>
+
 
 </div>
 
