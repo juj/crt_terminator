@@ -333,6 +333,119 @@ wait_until_vblank_start: // tight wait the last few scanlines until vblank
 #endif
 }
 
+void scroll_hblank_calibrating(unsigned long address)
+{
+	unsigned int address16 = address >> 2;
+	unsigned char hshift = (address & 3) << 1;
+
+	// We want to sync to the start of a vblank (not vsync) below, so that
+	// DS and HS registers can be safely updated. But the problem is that the
+	// EGA/VGA adapters do not provide a mechanism to wait until start of vblank,
+	// i.e. it does not enable distinguishing between hblank and vblank.
+
+	// To overcome this problem, we first measure the length of a hblank, and then
+	// use the measured value to search when we arrive at start of vblank instead.
+
+	// This way the latching behavior of all EGA/VGA/SVGA cards is appeased, and
+	// since the hblank length is re-benchmarked each frame, the following code
+	// also works on emulators like DOSBox when one messes with the cycles
+	// setting in the middle of running the game.
+
+	asm mov dx, 3DAh
+
+restart_wait:
+	asm cli        // Stop interrupts. The code below is timing critical.
+	asm mov ch, 0  // CH will accumulate the hblank length
+
+wait_blank_end:  // 1. if we are in hblank or vblank, wait for it to end
+	asm in al, dx  // Read 3DAh - Status Register
+	asm test al, 1 // Bit 0: Display Blank
+	asm jnz wait_blank_end
+
+wait_active_end: // 2. wait for the end of the active scanline
+	asm in al, dx  // Read 3DAh again
+	asm test al, 1
+	asm jz wait_active_end
+
+	// We are now right at the very start of a blank, either hblank or vblank.
+	// Calibrate calculation of how many cycles this blank lasts.
+calc_blank_length: // 3. measure how many I/O port read cmds we can do in blank
+	asm in al, dx    // Read status port.
+
+	asm test al, 8 // Test if we are in fact in vsync, and not in hblank?
+	asm jnz restart_wait // We did reach vsync, must restart search from scratch.
+
+	asm inc ch       // Accumulate count of I/Os we can do within a blank.
+	asm test al, 1   // Still in blank period? Then repeat
+	asm jnz calc_blank_length
+
+	// We are now in visible picture area with interrupts disabled.
+
+	// Search for a blank length that is longer than (blank+1)*2 the one that we
+	// found. That should be enough to ascertain we have a vblank and not just a
+	// hblank.
+	asm inc ch
+	asm shl ch, 1
+
+wait_for_active_picture: // 4. Wait until we are in visible picture area.
+	asm in al, dx          // Read 3DAh - Status Register
+	asm test al, 1         // Bit 0: set if we are in Display Blank.
+	asm jnz wait_for_active_picture
+
+	// We are now in visible picture area (so can't be in vsync, or right headed
+	// into it)
+
+wait_for_hblank:
+	asm sti        // Let interrupts breathe, or audio and keyboard may stall.
+	asm mov cl, ch // Reset wait counter to # of I/Os in hblank
+	asm cli        // Restore interrupts to enter time critical stage.
+
+loop_hblank_length_times: // 5. Estimate the length of this blank.
+	asm in al, dx    // Read status port
+
+	asm test al, 1   // Are we in display blank?
+	asm jz wait_for_hblank // If 0, we are still in visible picture area. Restart.
+
+	asm test al, 8 // We are in blank, but have we slipped over to vsync?
+	asm jnz restart_wait // If 1, we are in vsync so blew it, restart the wait.
+
+in_blank_not_vsync: // We are in blank, either hblank or vblank
+	asm dec cl        // Decrement search counter
+	asm jnz loop_hblank_length_times // And loop back if we still need to.
+
+	// When we get here, we have entered a blank period that is longer than
+	// a hblank interval, so we conclude we must have just now entered a vblank.
+	// (but we aren't yet at start of vsync)
+	// Interrupts are disabled at this point, so we can safely update
+	// Display Start (DS) and Horizontal Shift Count (HS) registers so all
+	// adapters will latch it properly, with all their varying quirky behaviors.
+	// (Pedantically, it is tiny bit better better to write DS register before HS,
+	// because IBM EGA and VGA latch the DS register before the HS register)
+
+	asm mov dx, 3D4h
+	asm mov ax, [address16]
+
+	asm mov bh, al // save low part of address temporarily to bh
+	asm mov al, 0Ch
+
+	asm out dx, ax // Write 3D4h:0Ch Display Start Address high part
+	asm inc al
+	asm mov ah, bh
+	asm out dx, ax // Write 3D4h:0Dh Display Start Address low part
+
+	asm mov dx, 3DAh
+	asm in al, dx // Do a dummy I/O read to reset 3C0h flip flop to index mode
+
+	asm mov al, 33h // 0x20 (display visible) | 0x13 (Pixel Panning register)
+	asm mov dx, 3C0h
+	asm out dx, al
+	asm mov al, [hshift]
+	asm out dx, al // Write Horizontal Pixel Shift Count
+
+  // We are all done, so re-enable interrupts and exit	
+	asm sti
+}
+
 unsigned long vga_start_address = GUARD*FB_WIDTH + GUARD;
 
 // Repaints the image on screen, (sx,sy) position of the image scrolled to
@@ -403,6 +516,9 @@ void scroll(int x0, int y0, int x1, int y1)
 	case 9:
 		scroll_crtt(vga_start_address);
 		break;
+	case 0:
+		scroll_hblank_calibrating(vga_start_address);
+		break;
 	}
 }
 
@@ -454,7 +570,7 @@ int main(int argc, char **argv)
 	printf("directly from disk.\n");
 	printf("VGA hardware scrolling is implemented via two different registers:\n");
 	printf("Display Start Address (DS) and Horizontal Pixel Shift Count (HS).\n\n");
-	printf("Updating these registers may require careful synchronization. Eight sync modes\n");
+	printf("Updating these registers may require careful synchronization. Nine sync modes\n");
 	printf("are provided to enable testing how your adapter latches on to register updates:\n");
 	printf("1. Reprograms DS and HS right after start of vsync.\n");
 	printf("2. Reprograms DS and HS right after end of vsync (but before vblank ends).\n");
@@ -463,8 +579,10 @@ int main(int argc, char **argv)
 	printf("5. Reprograms DS and HS in hblank after 100th visible scanline.\n");
 	printf("6. Reprograms DS and HS in vblank before start of vsync.\n");
 	printf("7. Reprograms DS and hblank start and HS at vsync start.\n");
-	printf("8. Disables all vertical refresh synchronization.\n\n");
-	printf("Press one of keys 1-8 at runtime to change the sync mode, ESC to quit.\n\n");
+	printf("8. Disables all vertical refresh synchronization.\n");
+	printf("9. Use CRT Terminator to sync.\n\n");
+	printf("0. Use self-calibrating code to program DS and HS at start of vblank.");
+	printf("Press one of keys 0-9 at runtime to change the sync mode, ESC to quit.\n\n");
 	printf("Launch with option \"wrap\" to enable Tseng SVGA wraparound compatibility.\n\n");
 	if (opt(argc, argv, "hblank")) scroll_update_sync_method = 5;
 	scroll_cannot_wrap_256kb = opt(argc, argv, "wrap");
