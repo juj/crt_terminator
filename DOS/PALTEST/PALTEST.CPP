@@ -87,12 +87,78 @@ unsigned int crtt_read_u16(int idx)
 	return r.u16;
 }
 
+// Tests that reading from the ISA bus with CRT Terminator works
+// when interrupts are enabled. (there is expected to be nothing interrupts
+// sensitive in this function)
+void test_isa_bus_read()
+{
+	printf("[Test ISA bus Read] ");
+
+#define N 30000
+	int fails = 0;
+
+	outp(CRTT_INDEX_PORT, 0);
+
+	unsigned int Val = inp(CRTT_DATA_PORT);
+
+	for(int i = 0; i < N; ++i)
+	{
+		unsigned int val = inp(CRTT_DATA_PORT);
+
+		if (Val != val)
+		{
+			if (fails++ < 5)
+			{
+				printf("FAIL %d/%d: %u != %u.\n",
+					i, N, Val, val);
+			}
+			Val = val;
+		}
+	}
+	if (fails == 0) printf ("PASS. Val=%u.\n", Val);
+	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
+}
+
+// Tests that reading from the ISA bus with CRT Terminator works
+// when interrupts are enabled. (there is expected to be nothing interrupts
+// sensitive in this function)
+void test_isa_bus_read_intr_disabled()
+{
+	printf("[Test ISA bus Read no intr] ");
+
+	NO_INTR_SCOPE();
+
+#define N 30000
+	int fails = 0;
+
+	outp(CRTT_INDEX_PORT, 0);
+
+	unsigned int Val = inp(CRTT_DATA_PORT);
+
+	for(int i = 0; i < N; ++i)
+	{
+		unsigned int val = inp(CRTT_DATA_PORT);
+
+		if (Val != val)
+		{
+			if (fails++ < 5)
+			{
+				printf("FAIL %d/%d: %u != %u.\n",
+					i, N, Val, val);
+			}
+			Val = val;
+		}
+	}
+	if (fails == 0) printf ("PASS. Val=%u.\n", Val);
+	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
+}
+
 // Tests that reading and writing to the ISA bus with CRT Terminator works
 // when interrupts are enabled. (there is expected to be nothing interrupts
 // sensitive in this function)
-void test_isa_bus()
+void test_isa_bus_rw()
 {
-	printf("[Test ISA bus] ");
+	printf("[Test ISA bus R/W] ");
 
 #define N 30000
 	int fails = 0;
@@ -131,9 +197,9 @@ void test_isa_bus()
 
 // Tests that reading and writing to the ISA bus with CRT Terminator works
 // when interrupts are disabled.
-void test_isa_bus_intr_disabled()
+void test_isa_bus_rw_intr_disabled()
 {
-	printf("[Test ISA bus no intr] ");
+	printf("[Test ISA bus R/W no intr] ");
 	NO_INTR_SCOPE();
 
 #define N 30000
@@ -376,8 +442,10 @@ void main()
 		printf("CRT Terminator not detected.\n");
 		exit(1);
 	}
-	test_isa_bus();
-	test_isa_bus_intr_disabled();
+	test_isa_bus_read();
+	test_isa_bus_read_intr_disabled();
+	test_isa_bus_rw();
+	test_isa_bus_rw_intr_disabled();
 	test_fixed();
 	test_random();
 	test_silent();
