@@ -313,13 +313,52 @@ void test_random()
 	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
 }
 
-// Tests that nothing is changing palette e.g. in a background TSR
+// Tests that nothing is changing palette e.g. in a background TSR,
+// with interrupts enabled
 void test_silent()
 {
 	SAVE_PAL_SCOPE();
 	printf("[Test silent] ");
 
 	unsigned int fails = 0;
+
+	int idx = crtt_read_u8(0x48);
+	int r = crtt_read_u8(0x49)>>2;
+	int g = crtt_read_u8(0x4A)>>2;
+	int b = crtt_read_u8(0x4B)>>2;
+
+	time_t t0 = time(0);
+	while(time(0) - t0 < 4)
+	{
+		int Idx = crtt_read_u8(0x48);
+		int R = crtt_read_u8(0x49)>>2;
+		int G = crtt_read_u8(0x4A)>>2;
+		int B = crtt_read_u8(0x4B)>>2;
+
+		if (Idx != idx || R != r || G != g || B != b)
+		{
+			if (fails < 65535) ++fails;
+			if (fails < 5)
+			{
+				printf("FAIL %d: %d=(%d,%d,%d) != %d=(%d,%d,%d).\n",
+					fails, idx, r, g, b, Idx, R, G, B);
+			}
+		}
+	}
+	if (fails == 0) printf ("PASS.\n");
+	else printf(" - FAILED (%u failures)\n\n", fails);
+}
+
+// Tests that nothing is changing palette e.g. in a background TSR,
+// with interrupts disabled
+void test_silent_intr_disabled()
+{
+	SAVE_PAL_SCOPE();
+	printf("[Test silent no intr] ");
+
+	unsigned int fails = 0;
+
+	NO_INTR_SCOPE();
 
 	int idx = crtt_read_u8(0x48);
 	int r = crtt_read_u8(0x49)>>2;
@@ -448,7 +487,8 @@ void main()
 	test_isa_bus_rw_intr_disabled();
 	test_fixed();
 	test_random();
-	test_silent();
 	test_idempotent();
 	test_bits();
+	test_silent();
+	test_silent_intr_disabled();
 }
