@@ -71,9 +71,104 @@ int crtt_detect()
 
 unsigned char crtt_read_u8(int idx)
 {
-	NO_INTR_SCOPE();
 	outp(CRTT_INDEX_PORT, idx);
 	return inp(CRTT_DATA_PORT);
+}
+
+unsigned int crtt_read_u16(int idx)
+{
+	union
+	{
+		unsigned char u8[4];
+		unsigned long u16;
+	} r;
+	r.u8[0] = crtt_read_u8(idx);
+	r.u8[1] = crtt_read_u8(idx+1);
+	return r.u16;
+}
+
+// Tests that reading and writing to the ISA bus with CRT Terminator works
+// when interrupts are enabled. (there is expected to be nothing interrupts
+// sensitive in this function)
+void test_isa_bus()
+{
+	printf("[Test ISA bus] ");
+
+#define N 30000
+	int fails = 0;
+
+	unsigned int Id = crtt_read_u16(0x00);
+	unsigned int Rev = crtt_read_u8(0x02);
+	unsigned int Year = crtt_read_u8(0x03);
+	unsigned int Month = crtt_read_u8(0x04);
+	unsigned int Day = crtt_read_u8(0x05);
+
+	for(int i = 0; i < N; ++i)
+	{
+		unsigned int id = crtt_read_u16(0x00);
+		unsigned int rev = crtt_read_u8(0x02);
+		unsigned int year = crtt_read_u8(0x03);
+		unsigned int month = crtt_read_u8(0x04);
+		unsigned int day = crtt_read_u8(0x05);
+
+		if (Id != id || Rev != rev || Year != year || Month != month || Day != day)
+		{
+			if (fails++ < 5)
+			{
+				printf("FAIL %d/%d: (%u,%u,%u,%u,%u) != (%u,%u,%u,%u,%u).\n",
+					i, N, id, rev, year, month, day, Id, Rev, Year, Month, Day);
+			}
+			Id = id;
+			Rev = rev;
+			Year = year;
+			Month = month;
+			Day = day;
+		}
+	}
+	if (fails == 0) printf ("PASS. CRT Terminator DV%u rev%u firmware v20%u-%u-%u.\n", Id, Rev, Year, Month, Day);
+	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
+}
+
+// Tests that reading and writing to the ISA bus with CRT Terminator works
+// when interrupts are disabled.
+void test_isa_bus_intr_disabled()
+{
+	printf("[Test ISA bus no intr] ");
+	NO_INTR_SCOPE();
+
+#define N 30000
+	int fails = 0;
+
+	unsigned int Id = crtt_read_u16(0x00);
+	unsigned int Rev = crtt_read_u8(0x02);
+	unsigned int Year = crtt_read_u8(0x03);
+	unsigned int Month = crtt_read_u8(0x04);
+	unsigned int Day = crtt_read_u8(0x05);
+
+	for(int i = 0; i < N; ++i)
+	{
+		unsigned int id = crtt_read_u16(0x00);
+		unsigned int rev = crtt_read_u8(0x02);
+		unsigned int year = crtt_read_u8(0x03);
+		unsigned int month = crtt_read_u8(0x04);
+		unsigned int day = crtt_read_u8(0x05);
+
+		if (Id != id || Rev != rev || Year != year || Month != month || Day != day)
+		{
+			if (fails++ < 5)
+			{
+				printf("FAIL %d/%d: (%u,%u,%u,%u,%u) != (%u,%u,%u,%u,%u).\n",
+					i, N, id, rev, year, month, day, Id, Rev, Year, Month, Day);
+			}
+			Id = id;
+			Rev = rev;
+			Year = year;
+			Month = month;
+			Day = day;
+		}
+	}
+	if (fails == 0) printf ("PASS. CRT Terminator DV%u rev%u firmware v20%u-%u-%u.\n", Id, Rev, Year, Month, Day);
+	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
 }
 
 // Tests writing palette to a fixed palette index 1.
@@ -281,6 +376,8 @@ void main()
 		printf("CRT Terminator not detected.\n");
 		exit(1);
 	}
+	test_isa_bus();
+	test_isa_bus_intr_disabled();
 	test_fixed();
 	test_random();
 	test_silent();
