@@ -365,8 +365,8 @@ void test_silent_intr_disabled()
 	int g = crtt_read_u8(0x4A)>>2;
 	int b = crtt_read_u8(0x4B)>>2;
 
-	time_t t0 = time(0);
-	while(time(0) - t0 < 4)
+	for(int i = 0; i < 32000; ++i)
+	for(int j = 0; j < 4; ++j)
 	{
 		int Idx = crtt_read_u8(0x48);
 		int R = crtt_read_u8(0x49)>>2;
