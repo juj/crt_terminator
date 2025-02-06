@@ -2,12 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
-#define CRTT_ID_PORT               0x120
-#define CRTT_INDEX_PORT            0x121
-#define CRTT_DATA_PORT             0x122
-#define CRTT_PALETTE_INDEX_PORT    0x123
-#define CRTT_PALETTE_DATA_PORT     0x124
+#define CRTT_ID_PORT0              0x120
+#define CRTT_INDEX                 1
+#define CRTT_DATA                  2
+#define CRTT_PALETTE_INDEX         3
+#define CRTT_PALETTE_DATA          4
 
 int get_cur_video_mode()
 {
@@ -45,34 +46,38 @@ class save_pal { public:
 // Returns the port address that CRT Terminator is detected at.
 // Call this function before calling any of crtt_read/write_*() functions.
 // If this function returns 0, do not call any of crtt_read/write_*().
+static int crtt_port = 0;
+
 int crtt_detect()
 {
-	static int crtt_found = 0;
-	if (!crtt_found)
+	for(int port = CRTT_ID_PORT0; port <= 0x160; port += 0x40)
 	{
 		NO_INTR_SCOPE();
-		crtt_found = -1;
 		for(int i = 4; i--;) // one of 4 consecutive reads must be a 'C'
 		{
-			char id = inportb(CRTT_ID_PORT);
+			char id = inportb(port);
 			if (id == 'C')
 			{
-				if (inportb(CRTT_ID_PORT) != 'R') break;
-				if (inportb(CRTT_ID_PORT) != 'T') break;
-				if (inportb(CRTT_ID_PORT) != 'T') break;
-				crtt_found = 1;
-				break;
+				if (inportb(port) != 'R') break;
+				if (inportb(port) != 'T') break;
+				if (inportb(port) != 'T') break;
+				return port;
 			}
 			if (id != 'R' && id != 'T') break;
 		}
 	}
-	return crtt_found == 1;
+	return 0;
 }
 
 unsigned char crtt_read_u8(int idx)
 {
-	outp(CRTT_INDEX_PORT, idx);
-	return inp(CRTT_DATA_PORT);
+	outp(0x121, idx);
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	return inp(0x122);
 }
 
 unsigned int crtt_read_u16(int idx)
@@ -97,13 +102,11 @@ void test_isa_bus_read()
 #define N 30000
 	int fails = 0;
 
-	outp(CRTT_INDEX_PORT, 0);
-
-	unsigned int Val = inp(CRTT_DATA_PORT);
+	unsigned int Val = crtt_read_u8(0);
 
 	for(int i = 0; i < N; ++i)
 	{
-		unsigned int val = inp(CRTT_DATA_PORT);
+		unsigned int val = inp(0x122);
 
 		if (Val != val)
 		{
@@ -115,7 +118,7 @@ void test_isa_bus_read()
 			Val = val;
 		}
 	}
-	if (fails == 0) printf ("PASS. Val=%u.\n", Val);
+	if (fails == 0) printf("PASS. Val=%u.\n", Val);
 	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
 }
 
@@ -131,13 +134,11 @@ void test_isa_bus_read_intr_disabled()
 #define N 30000
 	int fails = 0;
 
-	outp(CRTT_INDEX_PORT, 0);
-
-	unsigned int Val = inp(CRTT_DATA_PORT);
+	unsigned int Val = crtt_read_u8(0);
 
 	for(int i = 0; i < N; ++i)
 	{
-		unsigned int val = inp(CRTT_DATA_PORT);
+		unsigned int val = inp(0x122);
 
 		if (Val != val)
 		{
@@ -149,7 +150,7 @@ void test_isa_bus_read_intr_disabled()
 			Val = val;
 		}
 	}
-	if (fails == 0) printf ("PASS. Val=%u.\n", Val);
+	if (fails == 0) printf("PASS. Val=%u.\n", Val);
 	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
 }
 
@@ -317,7 +318,6 @@ void test_random()
 // with interrupts enabled
 void test_silent()
 {
-	SAVE_PAL_SCOPE();
 	printf("[Test silent] ");
 
 	unsigned int fails = 0;
@@ -353,7 +353,6 @@ void test_silent()
 // with interrupts disabled
 void test_silent_intr_disabled()
 {
-	SAVE_PAL_SCOPE();
 	printf("[Test silent no intr] ");
 
 	unsigned int fails = 0;
@@ -385,6 +384,69 @@ void test_silent_intr_disabled()
 	}
 	if (fails == 0) printf ("PASS.\n");
 	else printf(" - FAILED (%u failures)\n\n", fails);
+}
+
+// Tests that nothing is reading the CRT Terminator I/O area.
+void test_isa_bus_read_conflict()
+{
+	printf("[Test ISA bus read conflict] ");
+
+	unsigned char old = crtt_read_u8(0x42);
+	sleep(4);
+	unsigned char reads = crtt_read_u8(0x42) - old;
+	if (reads == 0) printf("No reads detected (old firmware? Try rerun)\n\n");
+	else if (reads == 1) printf("PASS.\n");
+	else printf(" FAILED. I/O area %Xh-%Xh read conflict (%u reads).\n\n",
+		crtt_port, crtt_port + 0xF, reads);
+}
+
+volatile unsigned char dummy;
+
+void test_isa_bus_read_conflict_no_intr()
+{
+	printf("[Test ISA bus read conflict no intr] ");
+
+	unsigned char reads;
+	{
+		NO_INTR_SCOPE();
+		unsigned char old = crtt_read_u8(0x42);
+		for(unsigned long i = 0; i < 400000ul; ++i)
+			dummy = (dummy + 10) / (dummy | 1);
+		reads = crtt_read_u8(0x42) - old;
+	}
+	if (reads == 0) printf("No reads detected (old firmware? Try rerun)\n\n");
+	else if (reads == 1) printf("PASS.\n");
+	else printf(" FAILED. I/O area %Xh-%Xh read conflict (%u reads).\n\n",
+		crtt_port, crtt_port + 0xF, reads);
+}
+
+// Tests that nothing is writing the CRT Terminator I/O area.
+void test_isa_bus_write_conflict()
+{
+	printf("[Test ISA bus write conflict] ");
+
+	unsigned char old = crtt_read_u8(0x43);
+	sleep(4);
+	unsigned char writes = crtt_read_u8(0x43) - old;
+	if (writes == 0) printf("No writes detected (old firmware? Try rerun)\n\n");
+	else if (writes == 1) printf("PASS.\n");
+	else printf(" FAILED. I/O area %Xh-%Xh write conflict (%u writes).\n\n",
+		crtt_port, crtt_port + 0xF, writes);
+}
+
+void test_isa_bus_write_conflict_no_intr()
+{
+	printf("[Test ISA bus write conflict no intr] ");
+
+	NO_INTR_SCOPE();
+	unsigned char old = crtt_read_u8(0x43);
+	for(unsigned long i = 0; i < 400000ul; ++i)
+		dummy = (dummy + 10) / (dummy | 1);
+	unsigned char writes = crtt_read_u8(0x43) - old;
+	if (writes == 0) printf("No writes detected (old firmware? Try rerun)\n\n");
+	else if (writes == 1) printf("PASS.\n");
+	else printf(" FAILED. I/O area %Xh-%Xh write conflict (%u writes).\n\n",
+		crtt_port, crtt_port + 0xF, writes);
 }
 
 // Tests that nothing is observed to change if the same palette color is
@@ -470,25 +532,45 @@ void test_bits()
 	else printf(" - FAILED (%u failures)\n\n", fails);
 }
 
-void main()
+int test_enabled(int t, int argc, char **argv)
+{
+	if (argc == 1) return 1;
+	char tt[16] = {0};
+	sprintf(tt, "%d", t);
+	for(int i = 1; i < argc; ++i)
+		if (!strcmp(tt, argv[1])) return 1;
+	return 0;
+}
+
+void main(int argc, char **argv)
 {
 	set_80x50_text_mode();
 	printf("CRT Terminator palette snoop unit test.\n");
 	printf("Build date: %s %s\n\n", __DATE__, __TIME__);
 
-	if (!crtt_detect())
+	crtt_port = crtt_detect();
+	if (!crtt_port)
 	{
 		printf("CRT Terminator not detected.\n");
 		exit(1);
 	}
-	test_isa_bus_read();
-	test_isa_bus_read_intr_disabled();
-	test_isa_bus_rw();
-	test_isa_bus_rw_intr_disabled();
-	test_fixed();
-	test_random();
-	test_idempotent();
-	test_bits();
-	test_silent();
-	test_silent_intr_disabled();
+	printf("CRT Terminator detected at port %Xh.\n\n", crtt_port);
+
+#define E(x) test_enabled(x, argc, argv)
+	/*
+	if (E(0)) test_isa_bus_read_conflict();
+	if (E(1)) test_isa_bus_read_conflict_no_intr();
+	if (E(2)) test_isa_bus_write_conflict();
+	if (E(3)) test_isa_bus_write_conflict_no_intr();
+	*/
+	if (E(4)) test_isa_bus_read();
+	if (E(5)) test_isa_bus_read_intr_disabled();
+	if (E(6)) test_isa_bus_rw();
+	if (E(7)) test_isa_bus_rw_intr_disabled();
+	if (E(8)) test_fixed();
+	if (E(9)) test_random();
+	if (E(10)) test_idempotent();
+	if (E(11)) test_bits();
+	if (E(12)) test_silent();
+	if (E(13)) test_silent_intr_disabled();
 }
