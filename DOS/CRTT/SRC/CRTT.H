@@ -12,8 +12,6 @@ unsigned int crtt_read_u16(int idx);
 unsigned long crtt_read_u32(int idx);
 
 #define crtt_product_id() (crtt_read_u16(0))
-#define crtt_options() (crtt_read_u8(0x40))
-#define crtt_write_options(x) (crtt_write_u8(0x40, (x)))
 
 // Reads palette from VGA adapter and copies it over to the CRT Terminator.
 // Use this when you know that the palette has gone out of sync.

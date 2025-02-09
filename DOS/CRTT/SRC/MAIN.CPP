@@ -40,30 +40,65 @@ void help(char *argv0)
 	printf("                            that enabling border will prevent pixel-perfect\n");
 	printf("                            integer upscaling from 320x200, 320x240 and\n");
 	printf("                            800x600 modes up to 1600x1200.\n");
+	printf("  --scanhalve=<on|off|toggle>: If on, the double scanlines that some VGA modes have, will be decimated .\n");
+	printf("                            If off, doubled scanlines will be preserved.\n");
 	printf("  --snoop=<on|off>: Enables or disables PCI VGA palette snoop.\n");
+
+	printf("  --8bpp=<on|off>: Enables or disables CRT Terminator 8bpp palette.\n");
+	printf("  --isawrite=<on|off>: Enables or disables CRT Terminator ISA bus writes.\n");
+
 	printf("  --quiet: Performs given operations without any printing.\n");
 }
 
-unsigned char find_option_bit(const char *cmd)
+unsigned int find_option_bit(const char *cmd)
 {
 	if (!strcmpi(cmd, "6bpp")) return 0x1;
 	else if (!strcmpi(cmd, "vsync")) return 0x2;
 	else if (!strcmpi(cmd, "border")) return 0x4;
+	else if (!strcmpi(cmd, "scanhalve")) return 0x20;
+	else if (!strcmpi(cmd, "8bpp")) return 0x100;
+	else if (!strcmpi(cmd, "isawrite")) return 0x200;
 
 	fprintf(stderr, "Invalid command \"%s\"!\n", cmd);
 	exit(3);
 	return 0;
 }
 
-void apply_option_bit(unsigned char &options, const char *cmd, const char *value)
+void apply_option_bit(unsigned int &options, const char *cmd, const char *value)
 {
-	unsigned char bit = find_option_bit(cmd);
-	int val = parse_value(value);
-	if (bit == 1 && val != 2) val = 1-val; // Option "6bpp" is reversed, 0-enables, 1-disables
+	unsigned int bit = find_option_bit(cmd);
+	unsigned int val = parse_value(value);
+	if (bit == 1 && val != 2) val = 1-val; // Option "6bpp" is reversed, 0:enables, 1:disables
+	if (bit == 0x100 && val != 2) val = 1-val; // Option "8bpp" is reversed, 0:enables, 1:disables
+	if (bit == 0x200 && val != 2) val = 1-val; // Option "isawrite" is reversed, 0:enables, 1:disables
 	if (val == 2) options ^= bit;
 	else if (val == 1) options |= bit;
 	else options &= ~bit;
-	if (!quiet) printf("%s: %s\n", cmd, (options & bit) ? "ON" : "OFF");
+	if (!quiet)
+	{
+		// Option "6bpp" is reversed. 0:enabled, 1:disabled.
+		if (bit == 1 || bit == 0x100 || bit == 0x200) printf("%s: %s\n", cmd, (options & bit) ? "OFF" : "ON");
+		else          printf("%s: %s\n", cmd, (options & bit) ? "ON" : "OFF");
+	}
+}
+
+unsigned int crtt_options()
+{
+	return crtt_read_u16(0x40);
+}
+
+void write_options(unsigned int options, unsigned int prev_options)
+{
+	unsigned int diff = options ^ prev_options;
+	if (diff & 0xFF)
+	{
+		crtt_write_u8(0x40, ((unsigned char)options));
+	}
+	if (diff & 0xFF00u)
+	{
+		options >>= 8;
+		crtt_write_u8(0x41, ((unsigned char)options));
+	}
 }
 
 int main(int argc, char **argv)
@@ -84,13 +119,8 @@ int main(int argc, char **argv)
 	for(i = 1; i < argc; ++i)
 		if (strstr(argv[i], "quiet")) quiet = 1;
 
-	if (!crtt_detect())
-	{
-		if (!quiet) printf("CRT Terminator not detected!\n");
-		return 1;
-	}
-
-	unsigned char options = crtt_options();
+	unsigned int options = crtt_options();
+	unsigned int prev_options = options;
 	for(i = 1; i < argc; ++i)
 	{
 		if (!argv[i] || argv[i][0] != '-' || strstr(argv[i], "quiet")) continue;
@@ -142,6 +172,14 @@ int main(int argc, char **argv)
 		else
 			apply_option_bit(options, cmd, value);
 	}
-	crtt_write_options(options);
+	if (prev_options != options)
+	{
+		if (!crtt_detect())
+		{
+			if (!quiet) printf("CRT Terminator not detected!\n");
+			return 1;
+		}
+		write_options(options, prev_options);
+	}
 	return 0;
 }

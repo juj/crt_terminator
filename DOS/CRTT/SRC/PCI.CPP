@@ -106,8 +106,13 @@ void enable_vga_palette_snoop(pcidev_t vga)
 	unsigned int cmd = pci_read_u16(vga, 4);
 	if (!(cmd & 0x20))
 	{
-		pci_write_u16(vga, 4, cmd | 0x20); // Enable snooping and make sure that
-		mirror_vga_palette_to_crtt();      // CRTT has same palette as VGA.
+		// S3 Vision 864 (S3 86C864-P) bug: Enabling PCI Palette Snoop
+		// breaks reading VGA palette (will read FFh) so palette would
+		// come out all white. To work around this problem, first
+		// mirror the VGA palette to CRTT, and only then enable PCI
+		// Palette Snoop.
+		mirror_vga_palette_to_crtt();      // Enable snooping and make sure that
+		pci_write_u16(vga, 4, cmd | 0x20); // CRTT has same palette as VGA.
 	}
 }
 
