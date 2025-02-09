@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <conio.h>
 
 #define CRTT_ID_PORT0              0x120
 #define CRTT_INDEX                 1
@@ -69,15 +70,226 @@ int crtt_detect()
 	return 0;
 }
 
-unsigned char crtt_read_u8(int idx)
+unsigned char read_u8_0nop(unsigned char idx)
 {
-	outp(0x121, idx);
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_1nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_2nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_3nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm nop
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_4nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_5nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
 	asm nop
 	asm nop
 	asm nop
 	asm nop
 	asm nop
-	return inp(0x122);
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_6nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_10nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+unsigned char read_u8_20nop(unsigned char idx)
+{
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm inc dl
+	asm in al, dx
+	return _AL;
+}
+
+
+int _test_isa_io_delay()
+{
+	unsigned int x = read_u8_20nop(0);
+	unsigned int y = read_u8_20nop(1);
+	int failed = 0;
+	for(int i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_0nop(0) != x || read_u8_0nop(1) != y) ++failed;
+	if (!failed) return 0;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_1nop(0) != x || read_u8_1nop(1) != y) ++failed;
+	if (!failed) return 1;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_2nop(0) != x || read_u8_2nop(1) != y) ++failed;
+	if (!failed) return 2;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_3nop(0) != x || read_u8_3nop(1) != y) ++failed;
+	if (!failed) return 3;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_4nop(0) != x || read_u8_4nop(1) != y) ++failed;
+	if (!failed) return 4;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_5nop(0) != x || read_u8_5nop(1) != y) ++failed;
+	if (!failed) return 5;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_6nop(0) != x || read_u8_6nop(1) != y) ++failed;
+	if (!failed) return 6;
+
+	failed = 0;
+	for(i = 0; i < 10000 && !failed; ++i)
+		if (read_u8_10nop(0) != x || read_u8_10nop(1) != y) ++failed;
+	if (!failed) return 10;
+
+	return 20;
+}
+
+// Tests how many NOP instructions should be emitted after an OUT command,
+// before it is possible to perform an IN command.
+void test_isa_io_delay()
+{
+	printf("[Test ISA OUT->IN delay] %d clocks.\n", _test_isa_io_delay());
+}
+
+unsigned char crtt_read_u8(unsigned char idx)
+{
+/*
+	asm mov dx, 0x121
+	asm mov al, idx
+	asm out dx, al
+*/
+	outp(crtt_port + CRTT_INDEX, idx);
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+	asm nop
+/*
+	asm inc dl
+	asm in al, dx
+	return _AL;
+*/
+	return inp(crtt_port + CRTT_DATA);
 }
 
 unsigned int crtt_read_u16(int idx)
@@ -106,7 +318,7 @@ void test_isa_bus_read()
 
 	for(int i = 0; i < N; ++i)
 	{
-		unsigned int val = inp(0x122);
+		unsigned int val = inp(crtt_port + CRTT_DATA);
 
 		if (Val != val)
 		{
@@ -138,7 +350,7 @@ void test_isa_bus_read_intr_disabled()
 
 	for(int i = 0; i < N; ++i)
 	{
-		unsigned int val = inp(0x122);
+		unsigned int val = inp(crtt_port + CRTT_DATA);
 
 		if (Val != val)
 		{
@@ -192,7 +404,11 @@ void test_isa_bus_rw()
 			Day = day;
 		}
 	}
-	if (fails == 0) printf ("PASS. CRT Terminator DV%u rev%u firmware v20%u-%u-%u.\n", Id, Rev, Year, Month, Day);
+	const char *success = "PASS";
+	if (Year < 23 || Year > 40 || Month < 1 || Month > 12 || Day < 1 || Day > 31)
+		success = "FAIL";
+
+	if (fails == 0) printf ("%s. CRT Terminator DV%u rev%u firmware v20%u-%u-%u.\n", success, Id, Rev, Year, Month, Day);
 	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
 }
 
@@ -234,7 +450,11 @@ void test_isa_bus_rw_intr_disabled()
 			Day = day;
 		}
 	}
-	if (fails == 0) printf ("PASS. CRT Terminator DV%u rev%u firmware v20%u-%u-%u.\n", Id, Rev, Year, Month, Day);
+	const char *success = "PASS";
+	if (Year < 23 || Year > 40 || Month < 1 || Month > 12 || Day < 1 || Day > 31)
+		success = "FAIL";
+
+	if (fails == 0) printf ("%s. CRT Terminator DV%u rev%u firmware v20%u-%u-%u.\n", success, Id, Rev, Year, Month, Day);
 	else printf(" - FAILED (%d/%d failures)\n\n", fails, N);
 }
 
@@ -532,6 +752,19 @@ void test_bits()
 	else printf(" - FAILED (%u failures)\n\n", fails);
 }
 
+void test_isa_io_timings()
+{
+	printf("[Test ISA IO timings] ");
+	NO_INTR_SCOPE();
+	for(unsigned long i = 0; i < 1000000ul; ++i)
+	{
+		outp(crtt_port, 0xB1);
+		outp(crtt_port, 0xB2);
+	}
+	printf("Done.\n");
+}
+
+
 int test_enabled(int t, int argc, char **argv)
 {
 	if (argc == 1) return 1;
@@ -557,20 +790,20 @@ void main(int argc, char **argv)
 	printf("CRT Terminator detected at port %Xh.\n\n", crtt_port);
 
 #define E(x) test_enabled(x, argc, argv)
-	/*
 	if (E(0)) test_isa_bus_read_conflict();
 	if (E(1)) test_isa_bus_read_conflict_no_intr();
 	if (E(2)) test_isa_bus_write_conflict();
 	if (E(3)) test_isa_bus_write_conflict_no_intr();
-	*/
-	if (E(4)) test_isa_bus_read();
-	if (E(5)) test_isa_bus_read_intr_disabled();
-	if (E(6)) test_isa_bus_rw();
-	if (E(7)) test_isa_bus_rw_intr_disabled();
-	if (E(8)) test_fixed();
-	if (E(9)) test_random();
-	if (E(10)) test_idempotent();
-	if (E(11)) test_bits();
-	if (E(12)) test_silent();
-	if (E(13)) test_silent_intr_disabled();
+	if (E(4)) test_isa_io_delay();
+	if (E(5)) test_isa_bus_read();
+	if (E(6)) test_isa_bus_read_intr_disabled();
+	if (E(7)) test_isa_bus_rw();
+	if (E(8)) test_isa_bus_rw_intr_disabled();
+	if (E(9)) test_fixed();
+	if (E(10)) test_random();
+	if (E(11)) test_idempotent();
+	if (E(12)) test_bits();
+	if (E(13)) test_silent();
+	if (E(14)) test_silent_intr_disabled();
+	if (argc > 1 && E(15)) test_isa_io_timings();
 }
