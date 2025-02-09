@@ -794,7 +794,7 @@ void main(int argc, char **argv)
 	if (E(1)) test_isa_bus_read_conflict_no_intr();
 	if (E(2)) test_isa_bus_write_conflict();
 	if (E(3)) test_isa_bus_write_conflict_no_intr();
-	if (E(4)) test_isa_io_delay();
+	if (crtt_port == 0x120 && E(4)) test_isa_io_delay();
 	if (E(5)) test_isa_bus_read();
 	if (E(6)) test_isa_bus_read_intr_disabled();
 	if (E(7)) test_isa_bus_rw();
