@@ -120,7 +120,7 @@ td {
 
 <h1 class='center'>CRT Terminator DV1000 ISA</h1>
 <h2 class='center' style='padding-top: 0px'>User Manual</h2>
-<h3 class='center'>2025-01-27</h3>
+<h3 class='center'>2025-03-16</h3>
 
 <img src="crt_terminator_showcase.jpg" style="float:right; width:37%; border: solid 1px black; margin-right: 20px; margin-top: 60px">
 
@@ -1895,7 +1895,7 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 
 <p>The provided firmware are copyright of Oulainen Multimedia Group, only licensed for use with official CRT Terminator boards.</p>
 
-<p>Downlad and unzip <a href='https://github.com/juj/crt_terminator/raw/refs/heads/main/firmware/dist/crt_terminator_firmware_2025.1.5.zip'>crt_terminator_firmware_2025.1.5.zip</a> on the Windows PC.</p>
+<p>Downlad the latest firmware from <a href='https://github.com/juj/crt_terminator/tree/main/firmware/dist'>juj/crt_terminator/firmware/dist/</a> and unzip on the Windows PC.</p>
 
 <h4>5. Install USB drivers for the FPGA.</h4>
 
@@ -2108,6 +2108,7 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 <p>This section lists changes to this manual. For precise changes, see <a href='https://github.com/juj/crt_terminator/commits/main/manual'>GitHub history on the manual/ subdirectory</a>.
 
 <ul>
+<li><b>2025-03-16</b>: Updated links to latest firmware and ChangeLog entries for DV1000-2025.3.16.</li>
 <li><b>2025-01-27</b>: Added a new Appendix F "Firmware Version History".</li>
 <li><b>2025-01-27</b>: Further clarified firmware update sequence with the precise USB device name and ID, and added updated screenshots.</li>
 <li><b>2025-01-26</b>: Clarified firmware update sequence.</li>
@@ -2133,7 +2134,37 @@ In this case, the Display Blank portion consists of 3+48+13 = 64 pixels. These l
 
 <a name='appendix_f_firmware_version_history'><h1>Appendix F: Firmware Version History</h1></a>
 
-<p>This section lists a changelog to released versions of the CRT Terminator firmware.
+<p>This section lists a changelog of CRT Terminator firmware releases.
+
+<h2>DV1000-2025.3.16</h2>
+
+<p>This firmware was developed to fix a video mode resync bug when using CRT Terminator with both MultiMode and StutterStop disabled.
+
+<p>Detailed list of changes:</p>
+<ul>
+<li>Removed the ISA bus timing information from the Developer HUD, that was added in the previous firmware version to help troubleshoot reported palette upload problems. (5da3b7c6)</li>
+<li>Fixed an issue reported by Keenmaster486 where video mode sync would incorrectly be re-established when switching video modes with both MultiMode and StutterStop disabled. This was caused by video mode change being intermittently detected to be entering an interlaced mode. (f1439e09)</li>
+<li>Improved FPGA timing closure performance in the ISA bus clock domain. (a7474ead, 43e5e1dd)</li>
+<li>Improved FPGA timing closure performance in the HDMI clock domain. (e2b016f9, d506e200, fd12ab5b, 7f5476d2, db2c046e)</li>
+</ul>
+
+<h2>DV1000-2025.2.9</h2>
+
+<p>This firmware was issued to troubleshoot and fix a problem in handling ISA bus I/O writes in earlier CRT Terminator firmware.
+
+<p>Detailed list of changes:</p>
+<ul>
+<li>Temporarily added ISA timing analysis information in the Developer HUD to enable troubleshooting a customer ISA bus read issue. (09a04426)</li>
+<li>Fixed a bug in ISA bus I/O read timing, where the read request might get ignored due to a badly timed interaction with the DMA_AEN signal. Fixes observed ISA read stability on MikroMikko 386 PC, and hopefully fixes the issues reported by Vogons user CircuitRewind. (14407a9e, 1c192411)</li>
+<li>Implemented a new self diagnostic circuitry to allow CRT Terminator DOS unit test software to detect if a ISA bus I/O conflict might occur. (d70c4b0e)</li>
+<li>Implemented new troubleshooting switch STATE_DISABLE_ISA_BUS_WRITES to force-disable CRT Terminator from performing any writes to the ISA bus, to enable troubleshooting ISA bus problems. (09307229)</li>
+<li>Implemented new troubleshooting switch STATE_DISABLE_8BPP_PALETTE_SUPPORT to force-disable CRT Terminator 8bpp palette RAMDAC subsystem, to enable troubleshooting ISA bus palette problems. (09307229)</li>
+<li>ISA I/O: Restored logic to specify JP_CONFIG[1] to select between 120h-12Fh and 160h-16Fh as the CRT Terminator ISA I/O address range. Note that this functionality may be temporary. CRT Terminator is recommended to be always used in the ISA I/O address space 120h-12Fh. (61adf861)</li>
+<li>Added sanity check to the ISA bus write logic to ensure that CRT Terminator will not write to the bus in unexpected scenarios when the ISA_RESET line is active. (dab008d5, 5dac28e3)</li>
+<li>Improved FPGA timing closure performance in the HDMI clock domain. (9a586945)</li>
+<li>Improved output refresh rate video timing synchronization to input video refresh rate (StutterStop Level 3 mode) by expanding the video refresh rate HBP field search window from 6 to 8 bits. (2a53a3c4)</li>
+<li>Implemented a mechanism for benchmarking video processing input-to-output latency, to be used in the future. (e5a01310)</li>
+</ul>
 
 <h2>DV1000 v2025.1.5</h2>
 
